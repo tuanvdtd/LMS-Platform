@@ -127,15 +127,15 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
 | Message Queue | **RabbitMQ trên CloudAMQP** (gói free) | Hai vai trò: **(1) hàng đợi tác vụ**: điều phối gửi bài sang Judge0, gửi email, sinh chứng chỉ PDF, có ack, retry, dead-letter queue; **(2) event bus**: topic exchange `events` phát sự kiện học tập (xem video, nộp bài, mua hàng, duyệt khoá) tới nhiều queue, mỗi consumer (analytics, skill mastery, embedding) một queue riêng |
 | Cache | **Redis trên Upstash** (gói free) | Cache gợi ý và số liệu dashboard, rate limit API nộp bài |
 | Thanh toán | Stripe (test mode) | Checkout, webhook xác nhận thanh toán và hoàn tiền |
-| Chấm code | **Judge0 CE tự host** (Docker, cùng VM với backend) | Sandbox chạy code cô lập. Dùng `callback_url` để Judge0 tự gọi về khi chấm xong. Không dùng bản cloud trên RapidAPI vì tính phí theo từng lượt nộp (mỗi test case là một lượt) |
+| Chấm code | **Judge0 CE tự host** (Docker, cùng EC2 với backend) | Sandbox chạy code cô lập. Dùng `callback_url` để Judge0 tự gọi về khi chấm xong. Không dùng bản cloud trên RapidAPI vì tính phí theo từng lượt nộp (mỗi test case là một lượt) |
 | Lưu trữ file | **Cloudflare R2** (S3-compatible, 10GB free, không tính phí egress) | Tài liệu, chứng chỉ PDF, video (MP4/HLS phát qua presigned URL có thời hạn) |
 | Email | **Brevo** (gói free, 300 mail/ngày) | Email xác minh, nhắc nhở, thông báo. Gửi từ subdomain `mail.` |
 | Giám sát lỗi | Sentry (gói Student) | `@sentry/nextjs` + `@sentry/nestjs` cho api và worker; tracing FE → API; session replay |
-| Triển khai | Vercel (FE) + Docker Compose + Caddy trên Azure VM (BE + Judge0) | Caddy làm reverse proxy + HTTPS tự động cho `api.` |
+| Triển khai | Phát triển trên **local**; cuối đồ án lên Vercel (FE) + Docker Compose + Caddy trên **AWS EC2** (BE + Judge0) | Caddy làm reverse proxy + HTTPS tự động cho `api.` |
 
 > **Vì sao không dùng Kafka:** RabbitMQ với topic exchange đã cho nhiều consumer đọc độc lập cùng một sự kiện, đủ cho dashboard và recommendation. Kafka mạnh ở lưu log sự kiện để đọc lại (replay) và thông lượng rất lớn, nhưng ở quy mô đồ án thì không cần, trong khi phải vận hành thêm một hệ thống (tự host tốn ~1GB RAM, bản cloud không có gói free lâu dài). Nguồn sự kiện lớn nhất là heartbeat video được gom phía client trước khi gửi (mục 4.5), nên vẫn nằm trong hạn mức CloudAMQP.
 
-> **Vì sao dùng dịch vụ free:** chỉ backend và Judge0 cần máy chủ riêng (Judge0 cần quyền cgroup, không chạy được trên PaaS). Các thành phần còn lại dùng gói free để credit Azure chỉ trả cho một VM.
+> **Vì sao dùng dịch vụ free:** chỉ backend và Judge0 cần máy chủ riêng (Judge0 cần quyền cgroup, không chạy được trên PaaS). Các thành phần còn lại dùng gói free để chi phí AWS chỉ nằm ở một EC2.
 
 > **Vì sao tách NestJS thay vì dùng API của Next.js:** hệ thống có ~10 module nghiệp vụ, 3 vai trò, 2 hệ thống queue và cron. NestJS có sẵn DI, module, guard, pipe, `@nestjs/microservices`, `@nestjs/schedule`, nên route, consumer và cron dùng chung service. Next.js chỉ lo giao diện.
 
@@ -148,7 +148,7 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
             skillpath.dotattuan.id.vn │ api.skillpath.dotattuan.id.vn
               ┌───────────────────────┴───────────────┐
               ▼                                       ▼
-      ┌───────────────┐        ┌──────────────── Azure VM ─────────────────┐
+      ┌───────────────┐        ┌──────────────── AWS EC2 ──────────────────┐
       │    Vercel     │        │  Caddy (HTTPS)                            │
       │  Next.js (UI) │        │    │                                      │
       └───────────────┘        │  ┌─▼──────────────┐  callback  ┌────────┐ │
@@ -203,7 +203,7 @@ Project/                         # git root
 ### 4.4. Xác thực & phân quyền
 
 - **Session Redis + DB**: Better Auth lưu session trong bảng `session` của Postgres (nguồn chính) và Redis (`secondaryStorage`, đọc nhanh mỗi request). Trình duyệt giữ cookie `httpOnly`, `secure`, `sameSite=lax`.
-- FE (`skillpath.dotattuan.id.vn`, Vercel) và BE (`api.skillpath.dotattuan.id.vn`, VM) khác origin nhưng **cùng site**, nên cookie `sameSite=lax` vẫn được gửi kèm. Cookie đặt `Domain=.skillpath.dotattuan.id.vn` (tuỳ chọn `crossSubDomainCookies` của Better Auth). NestJS bật CORS với `credentials: true`, chỉ cho phép origin của FE.
+- FE (`skillpath.dotattuan.id.vn`, Vercel) và BE (`api.skillpath.dotattuan.id.vn`, EC2) khác origin nhưng **cùng site**, nên cookie `sameSite=lax` vẫn được gửi kèm. Cookie đặt `Domain=.skillpath.dotattuan.id.vn` (tuỳ chọn `crossSubDomainCookies` của Better Auth). NestJS bật CORS với `credentials: true`, chỉ cho phép origin của FE.
 - NestJS kiểm tra session bằng guard, phân quyền bằng decorator `@Roles('student' | 'instructor' | 'admin')`.
 - Admin khoá user hoặc đổi role: revoke session (xoá cả ở DB và Redis) là có hiệu lực ngay. Đây là lý do chọn session phía server thay vì JWT.
 - Worker không dùng session, `userId` đi kèm trong payload job. Stripe webhook xác thực bằng chữ ký, Judge0 callback xác thực bằng HMAC trong query.
@@ -212,7 +212,7 @@ Project/                         # git root
 ### 4.5. Các luồng xử lý chính
 
 **Nộp bài code**
-1. Học viên nộp bài. API lưu bài nộp với trạng thái `pending` rồi đẩy job vào RabbitMQ. RabbitMQ giúp điều tiết số bài chấm đồng thời cho vừa sức VM
+1. Học viên nộp bài. API lưu bài nộp với trạng thái `pending` rồi đẩy job vào RabbitMQ. RabbitMQ giúp điều tiết số bài chấm đồng thời cho vừa sức máy chủ
 2. Worker lấy job, gửi từng test case sang Judge0 (mạng nội bộ Docker) kèm `callback_url=http://api:4000/api/judge0/callback?sub=…&test=…&sig=<HMAC>`. Judge0 không mở ra Internet
 3. Judge0 chấm xong thì gọi `PUT` về callback. API kiểm tra chữ ký rồi lưu kết quả từng test
 4. Khi đủ kết quả các test: tính điểm, publish `submission.graded` lên exchange `events`
@@ -273,25 +273,38 @@ LIMIT 5;
 
 ### 4.7. Triển khai
 
-**Môi trường local (phát triển)**
-- `docker-compose` chạy Judge0 local (hoặc trỏ `JUDGE0_URL` sang Judge0 trên VM nếu máy dev gặp lỗi cgroup). DB, Redis, RabbitMQ dùng luôn các dịch vụ cloud free (tạo instance riêng cho dev)
-- Địa chỉ các dịch vụ lấy từ biến môi trường (`DATABASE_URL`, `JUDGE0_URL`, `RABBITMQ_URL`, `REDIS_URL`…), nên chuyển môi trường chỉ cần đổi config
+**Lộ trình:** toàn bộ quá trình phát triển chạy trên **local**. Chỉ khoảng 1–2 tháng cuối (trước buổi bảo vệ) mới dựng EC2 để demo public, nhằm không tốn tiền máy chủ khi chưa cần.
 
-**Môi trường VM (demo public)**
+**Môi trường local (phát triển)**
+
+| Thành phần | Cách chạy |
+|---|---|
+| FE | `pnpm dev` trong `it-course-platform/`, cổng `3000` |
+| BE | `pnpm start:dev` trong `back-end/`, cổng `4000` (`api`); `worker` chạy process riêng |
+| DB, Redis, RabbitMQ, R2, Brevo | Dùng luôn dịch vụ cloud free, **tạo instance riêng cho dev** (không dùng chung với production) |
+| Judge0 | Máy dev là Mac chip Apple Silicon (ARM). Judge0 chỉ có image amd64 và cần cgroup v1, trong khi Docker Desktop trên Mac chạy ARM + cgroup v2, nên **không chạy Judge0 trên máy dev**. Khi làm module chấm bài: bật tạm một EC2 `t3.small` chỉ chạy Judge0 (dừng instance khi không dùng), trỏ `JUDGE0_URL` sang đó. Test tự động của module chấm bài dùng Judge0 giả (trả verdict cố định) |
+
+- Địa chỉ các dịch vụ lấy từ biến môi trường (`DATABASE_URL`, `JUDGE0_URL`, `RABBITMQ_URL`, `REDIS_URL`…), nên chuyển môi trường chỉ cần đổi config
+- Khi dev không có Caddy phía trước nên Better Auth không lấy được IP client: mọi request dùng chung một bộ đếm rate limit. Bình thường vì chỉ có một người dùng
+
+**Môi trường EC2 (demo public, cuối đồ án)**
 
 | Hạng mục | Lựa chọn |
 |---|---|
-| VM | **B2als v2 (2 vCPU / 4GB RAM)**, Ubuntu 24.04, region Southeast Asia, Standard SSD ~30GB, thêm 2GB swap. Tiết kiệm hơn: B1ms (1 vCPU / 2GB) + swap, chấm bài chậm hơn. Judge0 cần **cgroup v1**: thêm `systemd.unified_cgroup_hierarchy=0` vào GRUB |
-| Nhà cung cấp | **Azure for Students** (100 USD credit/12 tháng, không cần thẻ, hết credit thì tắt chứ không trừ tiền). VM 4GB chạy liên tục ~2,5–3 tháng; **deallocate khi không dùng** (chỉ còn tính disk + IP) để kéo dài, chỉ chạy liên tục 1–2 tháng trước buổi bảo vệ. Phương án khác: Hetzner Singapore (~8–10 USD/tháng), Oracle Cloud Free Tier |
-| Chạy trên VM | Caddy, api, worker, Judge0 (server + workers + Postgres/Redis nội bộ của Judge0) |
-| Build | GitHub Actions build image `back-end` rồi đẩy lên GHCR. VM chỉ `docker compose pull && up -d`, **không build trên VM** vì dễ hết RAM. FE do Vercel build |
-| Bảo mật | Chỉ mở cổng 22, 80, 443. SSH bằng key. Judge0 chỉ nằm trong mạng Docker nội bộ, không mở ra ngoài |
+| Instance | **`t3.medium` (2 vCPU / 4GB RAM)**, region **ap-southeast-1 (Singapore)**, cùng vùng với Supabase. Tiết kiệm hơn: `t3.small` (2GB) + 2GB swap, chấm bài chậm hơn. **Bắt buộc dòng x86 (`t3`/`t3a`)**: Judge0 chỉ có image amd64, không chạy trên Graviton (`t4g`, ARM) |
+| Hệ điều hành | Ubuntu 24.04 LTS. Judge0 cần **cgroup v1**: thêm `systemd.unified_cgroup_hierarchy=0` vào `GRUB_CMDLINE_LINUX` trong `/etc/default/grub`, chạy `update-grub` rồi reboot |
+| Ổ đĩa | EBS **gp3 30GB** (mặc định 8GB không đủ cho image Judge0 và các layer Docker) + 2GB swap |
+| IP | **Elastic IP** gắn vào instance, để bản ghi A của `api.` không đổi khi stop/start |
+| Chi phí | Ước tính ~40 USD/tháng cho `t3.medium` chạy liên tục (~20 USD với `t3.small`), cộng EBS và IPv4 công khai vài USD. Tài khoản AWS mới có credit dùng trong 6 tháng đầu, kiểm tra hạn mức trên trang Billing. **Stop instance khi không dùng** (chỉ còn tính EBS + Elastic IP) |
+| Chạy trên EC2 | Caddy, api, worker, Judge0 (server + workers + Postgres/Redis nội bộ của Judge0) |
+| Build | GitHub Actions (runner x86) build image `back-end` rồi đẩy lên GHCR. EC2 chỉ `docker compose pull && up -d`, **không build trên EC2** vì dễ hết RAM. Nếu phải build tay trên Mac ARM thì thêm `--platform linux/amd64`, nếu không image sẽ báo `exec format error` trên EC2. FE do Vercel build |
+| Bảo mật | Security Group chỉ mở 22 (**giới hạn theo IP của người quản trị**), 80, 443. SSH bằng key pair. Judge0 chỉ nằm trong mạng Docker nội bộ, không mở ra ngoài |
 
 **Tên miền (`dotattuan.id.vn`)**
 
 ```
 CNAME skillpath.dotattuan.id.vn      → cname.vercel-dns.com   (Next.js)
-A     api.skillpath.dotattuan.id.vn  → IP VM                  (Caddy → NestJS)
+A     api.skillpath.dotattuan.id.vn  → Elastic IP của EC2     (Caddy → NestJS)
 TXT   mail.dotattuan.id.vn           → bản ghi SPF/DKIM theo Brevo
       dotattuan.id.vn                → giữ nguyên
 ```
@@ -301,7 +314,7 @@ TXT   mail.dotattuan.id.vn           → bản ghi SPF/DKIM theo Brevo
 
 **Lưu ý với Supabase**
 - Api và worker dùng **transaction pooler** (cổng `6543`, Prisma thêm `?pgbouncer=true`). Migration dùng session pooler hoặc direct. Kết nối direct chỉ có IPv6 trên gói free
-- Chọn region **cùng vùng với VM** (Singapore) để giảm độ trễ truy vấn
+- Chọn region **cùng vùng với EC2** (Singapore) để giảm độ trễ truy vấn
 - Gói free: 500MB và tự tạm dừng sau 1 tuần không truy cập. Kiểm tra trước buổi bảo vệ
 
 **Giám sát**
