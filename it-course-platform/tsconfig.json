@@ -6,6 +6,7 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -18,12 +19,9 @@
         "name": "next"
       }
     ],
-    "baseUrl": "src/",
-    "ignoreDeprecations": "6.0",
     "paths": {
-      "@/styles/*": ["styles/*"],
-      "@/components/*": ["components/*"]
-    },
+      "@/*": ["./src/*"]
+    }
   },
   "include": [
     "next-env.d.ts",

@@ -34,7 +34,7 @@ Phạm vi: toàn bộ mức **Bắt buộc** và **Nên có** trong §3.6. Bỏ 
 | **Không có tầng "topic" của Udemy** | `skills` + `course_skills` đã là tầng mịn và làm việc thật (mastery, đồ thị tiên quyết, tầng 2). Thêm `topics` là khái niệm thứ ba chồng lấn, không ai tiêu thụ. |
 | **UUID v7** cho mọi khoá chính | Sắp theo thời gian → B-tree không phân mảnh như UUID v4. Better Auth phải cấu hình `generateId` cùng loại, xem ghi chú trong schema. |
 | **Không có bảng lưu heartbeat thô** | §4.5: Supabase free giới hạn 500MB. Worker Kafka gom batch rồi ghi thẳng vào `stat_video_buckets` và `lesson_progress`. |
-| **Bảng `session` gần như rỗng** | §4.4 giữ session ở Redis (`storeSessionInDatabase: false`). Bảng chỉ để plugin `admin` revoke/impersonate chạy ổn định; xoá được. |
+| **Session ở Redis + DB** | §4.4: `secondaryStorage` = Redis để đọc nhanh, `storeSessionInDatabase: true` để bảng `session` vẫn là nguồn chính — admin liệt kê/revoke được, Redis restart không đăng xuất mọi người. |
 | **Tiền lưu `Int`** | Đơn vị nhỏ nhất của currency. Không dùng `Float` cho tiền. |
 | **`order_items` snapshot giá + phí** | Đổi giá khoá sau này không làm sai báo cáo doanh thu lịch sử. |
 | **`lessons` một bảng cho 4 loại** | Cột nullable theo `type`, quiz/exercise trỏ ngược về `lessonId` — rẻ hơn 4 bảng con và 4 join. |
@@ -100,15 +100,16 @@ Luồng tính **hồ sơ năng lực**: `quiz_answers` / `submissions` → tag q
 // ============================================================================
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
+// Không dùng preview feature postgresqlExtensions: Supabase luôn cài sẵn
+// pg_cron, pgcrypto, supabase_vault… → Prisma coi là drift và đòi reset mãi.
+// vector / pg_trgm / unaccent tạo bằng SQL ở ĐẦU migration init (mục 5).
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL") // transaction pooler :6543 ?pgbouncer=true
-  directUrl  = env("DIRECT_URL") // session pooler / direct — dùng cho migrate
-  extensions = [vector, pg_trgm, unaccent]
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // transaction pooler :6543 ?pgbouncer=true
+  directUrl = env("DIRECT_URL") // session pooler / direct — dùng cho migrate
 }
 
 // ============================================================================
@@ -120,8 +121,8 @@ datasource db {
 //    import { v7 as uuidv7 } from 'uuid';
 //    betterAuth({
 //      advanced: { database: { generateId: () => uuidv7() } },
-//      secondaryStorage: redisStore,        // §4.4: session nằm ở Redis
-//      session: { storeSessionInDatabase: false },
+//      secondaryStorage: redisStore,        // §4.4: đọc session từ Redis
+//      session: { storeSessionInDatabase: true }, // bảng session vẫn là nguồn chính
 //      user: { additionalFields: {
 //        targetTrack: { type: 'string', required: false },
 //        level:       { type: 'string', required: false },
@@ -179,8 +180,8 @@ model User {
   @@map("user")
 }
 
-// Chỉ giữ để plugin admin revoke/impersonate hoạt động ổn định.
-// Với storeSessionInDatabase: false, bảng này luôn rỗng — xoá được nếu không cần.
+// Nguồn chính của session (storeSessionInDatabase: true); Redis là lớp đọc nhanh.
+// Admin liệt kê / revoke / impersonate dựa trên bảng này.
 model Session {
   id             String   @id @db.Uuid
   token          String   @unique
@@ -1217,8 +1218,10 @@ Phần Prisma không diễn tả được: extension, CHECK constraint, generate
 -- ============================================================================
 --  Phần schema Prisma không diễn tả được.
 --
---  Cách áp dụng: dán vào cuối file migration do Prisma sinh ra
+--  Cách áp dụng:
 --    pnpm prisma migrate dev --create-only --name init
+--    Chèn 3 dòng CREATE EXTENSION của mục 1 lên ĐẦU migration.sql (bảng courses
+--    có cột vector, phải có extension trước CREATE TABLE), rồi nối phần còn lại:
 --    cat prisma/sql/01_post_migrate.sql >> prisma/migrations/<ts>_init/migration.sql
 --    pnpm prisma migrate dev
 --
@@ -1450,6 +1453,21 @@ FROM (VALUES
   ('cntt-ha-tang',     'chung-chi',        'Chứng chỉ CNTT',            4)
 ) AS s(parent_slug, slug, name, position)
 JOIN categories p ON p.slug = s.parent_slug;
+
+-- ---------------------------------------------------------------------------
+--  8. Dọn user chưa xác minh email sau 7 ngày (pg_cron, 3h sáng giờ VN hằng ngày; pg_cron chạy theo UTC nên lịch là 20:00 UTC)
+--  KHÔNG dán vào migration (shadow DB của migrate dev không tạo được pg_cron).
+--  Tách ra prisma/sql/02_pg_cron.sql, chạy tay sau migrate deploy:
+--    pnpm prisma db execute --file prisma/sql/02_pg_cron.sql
+--  Bật extension pg_cron trong Supabase Dashboard trước. account/session xoá
+--  theo nhờ onDelete: Cascade. User chưa xác minh không đăng nhập được nên
+--  không có đơn hàng / ghi danh nào để mất.
+-- ---------------------------------------------------------------------------
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+SELECT cron.schedule('purge-unverified-users', '0 20 * * *', $$
+  DELETE FROM "user"
+  WHERE "emailVerified" = false AND "createdAt" < now() - interval '7 days'
+$$);
 ```
 
 ---

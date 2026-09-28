@@ -120,21 +120,22 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
 
 | Thành phần | Công nghệ | Vai trò |
 |---|---|---|
-| Frontend | Next.js 16 (React 19, Tailwind CSS 4) | Giao diện học viên, giảng viên, admin; biểu đồ dashboard (Recharts). Chỉ làm UI, gọi NestJS |
+| Frontend | Next.js 16 (React 19, Tailwind CSS 4), deploy trên **Vercel** (Hobby) | Giao diện học viên, giảng viên, admin; biểu đồ dashboard (Recharts). Chỉ làm UI, gọi NestJS |
 | Backend | **NestJS 12** (ESM, Express adapter, Vitest, oxlint) | REST API, xử lý nghiệp vụ, tính gợi ý. Cùng codebase chạy 2 process: `api` (HTTP) và `worker` (consumer + cron) |
 | Xác thực | **Better Auth** (mount trong NestJS) | Email + mật khẩu, OAuth Google/GitHub, quên mật khẩu, plugin admin (khoá user, gán role) |
 | Cơ sở dữ liệu | **PostgreSQL trên Supabase** + **pgvector** | Dữ liệu nghiệp vụ, bảng thống kê tổng hợp cho dashboard, embedding khoá học. Chỉ dùng như Postgres (không dùng Supabase Auth/RLS) |
-| Message Queue | RabbitMQ (CloudAMQP hoặc tự host) | **Hàng đợi tác vụ**: điều phối gửi bài sang Judge0, gửi email, sinh chứng chỉ PDF. Có ack, retry, dead-letter queue |
-| Event streaming | Kafka (Confluent Cloud hoặc tự host chế độ KRaft) | **Luồng sự kiện học tập**: heartbeat xem video, nộp bài, mua hàng, duyệt khoá. Consumer tổng hợp số liệu dashboard và cập nhật hồ sơ năng lực |
-| Cache | Redis | **Session đăng nhập**, cache gợi ý và số liệu dashboard, rate limit API nộp bài |
+| Message Queue | **RabbitMQ trên CloudAMQP** (gói free) | Hai vai trò: **(1) hàng đợi tác vụ**: điều phối gửi bài sang Judge0, gửi email, sinh chứng chỉ PDF, có ack, retry, dead-letter queue; **(2) event bus**: topic exchange `events` phát sự kiện học tập (xem video, nộp bài, mua hàng, duyệt khoá) tới nhiều queue, mỗi consumer (analytics, skill mastery, embedding) một queue riêng |
+| Cache | **Redis trên Upstash** (gói free) | Cache gợi ý và số liệu dashboard, rate limit API nộp bài |
 | Thanh toán | Stripe (test mode) | Checkout, webhook xác nhận thanh toán và hoàn tiền |
-| Chấm code | **Judge0 cloud** | Sandbox chạy code cô lập. Dùng `callback_url` để Judge0 tự gọi về khi chấm xong |
-| Lưu trữ file | Supabase Storage / Cloudflare R2 (S3-compatible) | Tài liệu, chứng chỉ PDF. Video có thể dùng Bunny Stream / Cloudflare Stream (HLS + signed URL) |
-| Email | Resend / Amazon SES | Email xác minh, nhắc nhở, thông báo. Gửi từ subdomain `mail.` |
+| Chấm code | **Judge0 CE tự host** (Docker, cùng VM với backend) | Sandbox chạy code cô lập. Dùng `callback_url` để Judge0 tự gọi về khi chấm xong. Không dùng bản cloud trên RapidAPI vì tính phí theo từng lượt nộp (mỗi test case là một lượt) |
+| Lưu trữ file | **Cloudflare R2** (S3-compatible, 10GB free, không tính phí egress) | Tài liệu, chứng chỉ PDF, video (MP4/HLS phát qua presigned URL có thời hạn) |
+| Email | **Brevo** (gói free, 300 mail/ngày) | Email xác minh, nhắc nhở, thông báo. Gửi từ subdomain `mail.` |
 | Giám sát lỗi | Sentry (gói Student) | `@sentry/nextjs` + `@sentry/nestjs` cho api và worker; tracing FE → API; session replay |
-| Triển khai | Docker Compose + Caddy | Local (phát triển) và VPS (demo public). Caddy làm reverse proxy + HTTPS tự động |
+| Triển khai | Vercel (FE) + Docker Compose + Caddy trên Azure VM (BE + Judge0) | Caddy làm reverse proxy + HTTPS tự động cho `api.` |
 
-> **Vì sao dùng cả RabbitMQ và Kafka:** RabbitMQ dành cho *tác vụ cần làm đúng một lần* (chấm một bài nộp, gửi một email). Kafka dành cho *luồng sự kiện số lượng lớn*, cần lưu lại và cho nhiều consumer đọc độc lập (dashboard, recommendation). Riêng heartbeat video là nguồn sự kiện lớn nhất.
+> **Vì sao không dùng Kafka:** RabbitMQ với topic exchange đã cho nhiều consumer đọc độc lập cùng một sự kiện, đủ cho dashboard và recommendation. Kafka mạnh ở lưu log sự kiện để đọc lại (replay) và thông lượng rất lớn, nhưng ở quy mô đồ án thì không cần, trong khi phải vận hành thêm một hệ thống (tự host tốn ~1GB RAM, bản cloud không có gói free lâu dài). Nguồn sự kiện lớn nhất là heartbeat video được gom phía client trước khi gửi (mục 4.5), nên vẫn nằm trong hạn mức CloudAMQP.
+
+> **Vì sao dùng dịch vụ free:** chỉ backend và Judge0 cần máy chủ riêng (Judge0 cần quyền cgroup, không chạy được trên PaaS). Các thành phần còn lại dùng gói free để credit Azure chỉ trả cho một VM.
 
 > **Vì sao tách NestJS thay vì dùng API của Next.js:** hệ thống có ~10 module nghiệp vụ, 3 vai trò, 2 hệ thống queue và cron. NestJS có sẵn DI, module, guard, pipe, `@nestjs/microservices`, `@nestjs/schedule`, nên route, consumer và cron dùng chung service. Next.js chỉ lo giao diện.
 
@@ -143,33 +144,30 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
 ### 4.2. Kiến trúc tổng quan
 
 ```
-                     Trình duyệt
-                          │ HTTPS
-                  ┌───────▼────────┐
-                  │     Caddy      │  skillpath.dotattuan.id.vn
-                  └───┬────────┬───┘
-               /*     │        │  /api/*
-             ┌────────▼──┐  ┌──▼──────────────┐       ┌─────────┐
-             │  Next.js  │─►│  NestJS api     │◄─────►│  Redis  │
-             │   (UI)    │  │ (REST, auth,    │       │ session │
-             └───────────┘  │  SSE kết quả)   │       │ cache   │
-   Stripe webhook ─────────►│                 │       └─────────┘
-   Judge0 callback ────────►│                 │
-                            └──┬──────┬────┬──┘
-                               │      │    │
-           ┌───────────────────┘      │    └───────────────┐
-           ▼                          ▼                    ▼
-  ┌──────────────────┐        ┌──────────────┐      ┌────────────┐
-  │ Supabase Postgres│        │   RabbitMQ   │      │   Kafka    │
-  │   + pgvector     │        └──────┬───────┘      └─────┬──────┘
-  └────────▲─────────┘               └────────┬───────────┘
-           │                          ┌───────▼────────────────────┐
-           │                          │ NestJS worker              │
-           └──────────────────────────│ grading dispatch ↔ Judge0  │
-                                      │ email / PDF / embedding    │
-                                      │ analytics, skill mastery   │
-                                      │ cron hằng đêm              │
-                                      └────────────────────────────┘
+                              Trình duyệt
+            skillpath.dotattuan.id.vn │ api.skillpath.dotattuan.id.vn
+              ┌───────────────────────┴───────────────┐
+              ▼                                       ▼
+      ┌───────────────┐        ┌──────────────── Azure VM ─────────────────┐
+      │    Vercel     │        │  Caddy (HTTPS)                            │
+      │  Next.js (UI) │        │    │                                      │
+      └───────────────┘        │  ┌─▼──────────────┐  callback  ┌────────┐ │
+                               │  │ NestJS api     │◄───────────│ Judge0 │ │
+   Stripe webhook ────────────────►│ REST/auth/SSE  │            │ CE     │ │
+                               │  └─┬──────────────┘            └───▲────┘ │
+                               │    │   ┌────────────────┐  submit  │      │
+                               │    │   │ NestJS worker  │──────────┘      │
+                               │    │   │ consumer + cron│                 │
+                               │    │   └───────┬────────┘                 │
+                               └────┼───────────┼──────────────────────────┘
+                                    └─────┬─────┘
+          ┌─────────────────┬─────────────┼──────────────┬────────────────┐
+          ▼                 ▼             ▼              ▼                ▼
+  ┌───────────────┐ ┌──────────────┐ ┌──────────┐ ┌─────────────┐ ┌──────────┐
+  │ Supabase PG   │ │ RabbitMQ     │ │ Upstash  │ │ Cloudflare  │ │ Brevo    │
+  │ + pgvector    │ │ (CloudAMQP)  │ │ Redis    │ │ R2          │ │ (email)  │
+  │               │ │ jobs + events│ │ cache/RL │ │ file, video │ │          │
+  └───────────────┘ └──────────────┘ └──────────┘ └─────────────┘ └──────────┘
 ```
 
 ### 4.3. Cấu trúc mã nguồn
@@ -186,7 +184,7 @@ Project/                         # git root
     ├── src/
     │   ├── auth/ course/ enrollment/ payment/
     │   ├── grading/ recommendation/ analytics/
-    │   ├── infra/               # client singleton: redis, kafka, rabbitmq, prisma, storage
+    │   ├── infra/               # client singleton: redis, rabbitmq, prisma, storage
     │   ├── app.module.ts
     │   ├── main.ts              # process HTTP (PORT=4000, global prefix 'api')
     │   └── worker.ts            # process consumer + cron (dùng chung module)
@@ -198,30 +196,30 @@ Project/                         # git root
 - **Một commit sửa được cả FE và BE**, ví dụ thêm một trường mới cho khoá học. Cài đặt và chạy riêng trong từng thư mục (`pnpm install`, `pnpm dev`).
 - **Type dùng chung FE và BE:** sinh type từ OpenAPI. NestJS xuất spec bằng `@nestjs/swagger`, FE chạy `openapi-typescript` để tạo type. Sửa DTO ở BE, chạy lại lệnh sinh type là FE báo lỗi type ngay. Chưa cần package `shared-types` riêng.
 - **ESM:** import tương đối trong BE phải có đuôi `.js` (`./course.service.js`), đây là quy tắc của `moduleResolution: nodenext`.
-- **CI/CD:** workflow đặt ở gốc repo. Mỗi job dùng `working-directory` trỏ vào thư mục của mình, và `paths` filter để chỉ build image nào có thay đổi (FE hoặc BE), rồi đẩy lên GHCR. File compose và Caddyfile để deploy nằm trong `back-end/deploy/`.
+- **CI/CD:** workflow đặt ở gốc repo. Mỗi job dùng `working-directory` trỏ vào thư mục của mình, và `paths` filter để chỉ chạy job khi thư mục đó có thay đổi. FE deploy tự động bởi Vercel Git integration (Root Directory `it-course-platform`). BE build image rồi đẩy lên GHCR. File compose và Caddyfile để deploy nằm trong `back-end/deploy/`.
 - Logic nghiệp vụ nằm trong service, controller và consumer chỉ là lớp vỏ mỏng. Nếu sau này đổi nền tảng deploy (ví dụ Lambda) thì chỉ thay lớp vỏ.
 - `payment/providers/stripe.provider.ts` tách riêng. Muốn thêm VNPay thì thêm một provider, không phải sửa logic đơn hàng.
 
 ### 4.4. Xác thực & phân quyền
 
-- **Database session**: đăng nhập tạo session trong Redis, trình duyệt giữ cookie `httpOnly`, `secure`, `sameSite=lax`.
-- FE và BE **cùng origin** (`/api/*` do Caddy chuyển sang NestJS), nên không cần CORS và cookie không cần đặt `Domain`.
+- **Session Redis + DB**: Better Auth lưu session trong bảng `session` của Postgres (nguồn chính) và Redis (`secondaryStorage`, đọc nhanh mỗi request). Trình duyệt giữ cookie `httpOnly`, `secure`, `sameSite=lax`.
+- FE (`skillpath.dotattuan.id.vn`, Vercel) và BE (`api.skillpath.dotattuan.id.vn`, VM) khác origin nhưng **cùng site**, nên cookie `sameSite=lax` vẫn được gửi kèm. Cookie đặt `Domain=.skillpath.dotattuan.id.vn` (tuỳ chọn `crossSubDomainCookies` của Better Auth). NestJS bật CORS với `credentials: true`, chỉ cho phép origin của FE.
 - NestJS kiểm tra session bằng guard, phân quyền bằng decorator `@Roles('student' | 'instructor' | 'admin')`.
-- Admin khoá user hoặc đổi role: xoá session trong Redis là có hiệu lực ngay. Đây là lý do chọn database session thay vì JWT.
+- Admin khoá user hoặc đổi role: revoke session (xoá cả ở DB và Redis) là có hiệu lực ngay. Đây là lý do chọn session phía server thay vì JWT.
 - Worker không dùng session, `userId` đi kèm trong payload job. Stripe webhook xác thực bằng chữ ký, Judge0 callback xác thực bằng HMAC trong query.
 - Không dùng Clerk vì phải đồng bộ user về Postgres qua webhook, trong khi hầu hết các bảng đều tham chiếu tới user.
 
 ### 4.5. Các luồng xử lý chính
 
 **Nộp bài code**
-1. Học viên nộp bài. API lưu bài nộp với trạng thái `pending` rồi đẩy job vào RabbitMQ. RabbitMQ giúp điều tiết số request gửi sang Judge0 cloud cho vừa hạn mức
-2. Worker lấy job, gửi từng test case sang Judge0 kèm `callback_url=/api/judge0/callback?sub=…&test=…&sig=<HMAC>`
+1. Học viên nộp bài. API lưu bài nộp với trạng thái `pending` rồi đẩy job vào RabbitMQ. RabbitMQ giúp điều tiết số bài chấm đồng thời cho vừa sức VM
+2. Worker lấy job, gửi từng test case sang Judge0 (mạng nội bộ Docker) kèm `callback_url=http://api:4000/api/judge0/callback?sub=…&test=…&sig=<HMAC>`. Judge0 không mở ra Internet
 3. Judge0 chấm xong thì gọi `PUT` về callback. API kiểm tra chữ ký rồi lưu kết quả từng test
-4. Khi đủ kết quả các test: tính điểm, publish `submission.graded` lên Kafka
+4. Khi đủ kết quả các test: tính điểm, publish `submission.graded` lên exchange `events`
 5. Frontend nhận kết quả qua SSE (server chỉ đẩy một chiều nên không cần WebSocket)
 
 **Sự kiện học → dashboard & gợi ý**
-1. Video player gửi heartbeat mỗi 15 giây. API publish sự kiện lên Kafka (`learning.events`). Kafka lỗi thì bỏ qua, không trả lỗi cho người dùng
+1. Video player ghi lại các đoạn đã xem (mỗi mốc 15 giây) và **gom lại gửi 60 giây một lần**, hoặc khi pause/rời trang (`navigator.sendBeacon`). API publish một sự kiện `video.progress` lên exchange `events`. RabbitMQ lỗi thì bỏ qua, không trả lỗi cho người dùng. Gom phía client giúp giảm ~4 lần số message, vừa hạn mức CloudAMQP free
 2. Analytics worker gom sự kiện theo batch vào các bảng thống kê (giữ chân video, tiến độ, phân tích câu hỏi). **Không lưu heartbeat thô vào Postgres**, vì gói Supabase free giới hạn 500MB
 3. Khi có sự kiện `submission.graded`, cập nhật độ thành thạo kỹ năng và xoá cache gợi ý trong Redis
 4. Chỉ số nặng (độ phân biệt câu hỏi, điểm rủi ro bỏ học, refresh materialized view) được tính lại bằng cron hằng đêm trong worker
@@ -233,7 +231,7 @@ Project/                         # git root
 **Thanh toán**
 1. Tạo Stripe Checkout Session, chuyển học viên sang trang thanh toán của Stripe
 2. Stripe gọi webhook `checkout.session.completed`. API kiểm tra chữ ký, tạo quyền học (enrollment) theo cách idempotent
-3. Publish sự kiện `order.paid` lên Kafka để cập nhật dashboard doanh thu
+3. Publish sự kiện `order.paid` lên exchange `events` để cập nhật dashboard doanh thu
 
 > Stripe chưa hỗ trợ tài khoản nhận tiền thật tại Việt Nam, nên đồ án dùng **test mode**. Nếu triển khai thật thì thay bằng VNPay / MoMo / PayOS qua một provider mới.
 
@@ -276,33 +274,34 @@ LIMIT 5;
 ### 4.7. Triển khai
 
 **Môi trường local (phát triển)**
-- `docker-compose` chạy Redis (cùng Kafka và RabbitMQ nếu tự host). DB dùng Supabase, Judge0 dùng bản cloud
-- Địa chỉ các dịch vụ lấy từ biến môi trường (`DATABASE_URL`, `JUDGE0_URL`, `KAFKA_BROKERS`…), nên chuyển môi trường chỉ cần đổi config
+- `docker-compose` chạy Judge0 local (hoặc trỏ `JUDGE0_URL` sang Judge0 trên VM nếu máy dev gặp lỗi cgroup). DB, Redis, RabbitMQ dùng luôn các dịch vụ cloud free (tạo instance riêng cho dev)
+- Địa chỉ các dịch vụ lấy từ biến môi trường (`DATABASE_URL`, `JUDGE0_URL`, `RABBITMQ_URL`, `REDIS_URL`…), nên chuyển môi trường chỉ cần đổi config
 
-**Môi trường VPS (demo public)**
+**Môi trường VM (demo public)**
 
 | Hạng mục | Lựa chọn |
 |---|---|
-| VPS | **2 vCPU / 4GB RAM**, Ubuntu 24.04, region Singapore, thêm 2GB swap. Nếu Kafka và RabbitMQ đều dùng cloud thì 2GB RAM là đủ |
-| Nhà cung cấp | **Azure for Students** (100 USD credit trong GitHub Student Pack, không cần thẻ, VM B2s chạy được khoảng 3 tháng). Phương án khác: Hetzner Singapore (~8–10 USD/tháng), Oracle Cloud Free Tier |
-| Chạy trên VPS | Caddy, web, api, worker, Redis (cộng Kafka/RabbitMQ nếu tự host) |
-| Build | GitHub Actions build image `it-course-platform` và `back-end` rồi đẩy lên GHCR. VPS chỉ `docker compose pull && up -d`, **không build trên VPS** vì dễ hết RAM |
-| Bảo mật | Chỉ mở cổng 22, 80, 443. SSH bằng key. Redis không mở ra ngoài |
+| VM | **B2als v2 (2 vCPU / 4GB RAM)**, Ubuntu 24.04, region Southeast Asia, Standard SSD ~30GB, thêm 2GB swap. Tiết kiệm hơn: B1ms (1 vCPU / 2GB) + swap, chấm bài chậm hơn. Judge0 cần **cgroup v1**: thêm `systemd.unified_cgroup_hierarchy=0` vào GRUB |
+| Nhà cung cấp | **Azure for Students** (100 USD credit/12 tháng, không cần thẻ, hết credit thì tắt chứ không trừ tiền). VM 4GB chạy liên tục ~2,5–3 tháng; **deallocate khi không dùng** (chỉ còn tính disk + IP) để kéo dài, chỉ chạy liên tục 1–2 tháng trước buổi bảo vệ. Phương án khác: Hetzner Singapore (~8–10 USD/tháng), Oracle Cloud Free Tier |
+| Chạy trên VM | Caddy, api, worker, Judge0 (server + workers + Postgres/Redis nội bộ của Judge0) |
+| Build | GitHub Actions build image `back-end` rồi đẩy lên GHCR. VM chỉ `docker compose pull && up -d`, **không build trên VM** vì dễ hết RAM. FE do Vercel build |
+| Bảo mật | Chỉ mở cổng 22, 80, 443. SSH bằng key. Judge0 chỉ nằm trong mạng Docker nội bộ, không mở ra ngoài |
 
 **Tên miền (`dotattuan.id.vn`)**
 
 ```
-A    skillpath.dotattuan.id.vn   → IP VPS   (/ → Next.js, /api/* → NestJS)
-     mail.dotattuan.id.vn        → bản ghi SPF/DKIM theo Resend/SES
-     dotattuan.id.vn             → giữ nguyên
+CNAME skillpath.dotattuan.id.vn      → cname.vercel-dns.com   (Next.js)
+A     api.skillpath.dotattuan.id.vn  → IP VM                  (Caddy → NestJS)
+TXT   mail.dotattuan.id.vn           → bản ghi SPF/DKIM theo Brevo
+      dotattuan.id.vn                → giữ nguyên
 ```
 
-- Cần HTTPS cho cookie `secure`, Stripe webhook và link QR trên chứng chỉ. Caddy tự xin chứng chỉ Let's Encrypt
+- Cần HTTPS cho cookie `secure`, Stripe webhook và link QR trên chứng chỉ. Vercel tự cấp chứng chỉ cho FE, Caddy tự xin chứng chỉ Let's Encrypt cho `api.`
 - Gửi mail từ subdomain `mail.` để không đụng SPF của domain gốc và tách uy tín gửi mail
 
 **Lưu ý với Supabase**
 - Api và worker dùng **transaction pooler** (cổng `6543`, Prisma thêm `?pgbouncer=true`). Migration dùng session pooler hoặc direct. Kết nối direct chỉ có IPv6 trên gói free
-- Chọn region **cùng vùng với VPS** (Singapore) để giảm độ trễ truy vấn
+- Chọn region **cùng vùng với VM** (Singapore) để giảm độ trễ truy vấn
 - Gói free: 500MB và tự tạm dừng sau 1 tuần không truy cập. Kiểm tra trước buổi bảo vệ
 
 **Giám sát**
