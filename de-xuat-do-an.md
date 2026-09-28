@@ -37,7 +37,7 @@
 | Xác minh giảng viên | Giảng viên nộp hồ sơ (bằng cấp, kinh nghiệm, portfolio). Admin duyệt xong mới được tạo khoá học |
 | Duyệt khoá học | Giảng viên cam kết bản quyền nội dung khi gửi duyệt. Admin duyệt hoặc từ chối kèm lý do. Chỉ khoá đã duyệt mới được bán |
 | Báo cáo vi phạm | Học viên báo cáo nội dung sai hoặc vi phạm bản quyền. Admin xử lý: ẩn khoá, yêu cầu sửa |
-| Bảo vệ video | Link video có thời hạn (signed URL), chỉ học viên đã mua mới xem được |
+| Bảo vệ video | Video HLS để trong bucket private, phát qua CloudFront bằng **signed cookies** có thời hạn: chỉ học viên đã mua mới xem được, một lần ký dùng cho mọi đoạn của video |
 
 ### 3.3. Bài kiểm tra & đánh giá năng lực
 
@@ -128,7 +128,8 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
 | Cache | **Redis trên Upstash** (gói free) | Cache gợi ý và số liệu dashboard, rate limit API nộp bài |
 | Thanh toán | Stripe (test mode) | Checkout, webhook xác nhận thanh toán và hoàn tiền |
 | Chấm code | **Judge0 CE tự host** (Docker, cùng EC2 với backend) | Sandbox chạy code cô lập. Dùng `callback_url` để Judge0 tự gọi về khi chấm xong. Không dùng bản cloud trên RapidAPI vì tính phí theo từng lượt nộp (mỗi test case là một lượt) |
-| Lưu trữ file | **Cloudflare R2** (S3-compatible, 10GB free, không tính phí egress) | Tài liệu, chứng chỉ PDF, video (MP4/HLS phát qua presigned URL có thời hạn) |
+| Lưu trữ file | **Cloudflare R2** (S3-compatible, 10GB free, không tính phí egress) | Hai bucket: **public** (avatar, ảnh bìa khoá, ảnh trong bài; URL cố định qua `cdn.`) và **private** (tài liệu, chứng chỉ PDF; presigned GET có thời hạn). Upload thẳng từ trình duyệt bằng presigned PUT, ký kèm `ContentLength` + `ContentType` để giới hạn dung lượng và loại file |
+| Video | **AWS S3** (private) + **CloudFront** (Always Free 1TB/tháng) | HLS 360p/720p, worker chuyển mã bằng `ffmpeg`. Phát qua `video.` bằng CloudFront signed cookies (policy `videos/{id}/*`). S3 → CloudFront không tính phí truyền |
 | Email | **Brevo** (gói free, 300 mail/ngày) | Email xác minh, nhắc nhở, thông báo. Gửi từ subdomain `mail.` |
 | Giám sát lỗi | Sentry (gói Student) | `@sentry/nextjs` + `@sentry/nestjs` cho api và worker; tracing FE → API; session replay |
 | Triển khai | Phát triển trên **local**; cuối đồ án lên Vercel (FE) + Docker Compose + Caddy trên **AWS EC2** (BE + Judge0) | Caddy làm reverse proxy + HTTPS tự động cho `api.` |
@@ -136,6 +137,8 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
 > **Vì sao không dùng Kafka:** RabbitMQ với topic exchange đã cho nhiều consumer đọc độc lập cùng một sự kiện, đủ cho dashboard và recommendation. Kafka mạnh ở lưu log sự kiện để đọc lại (replay) và thông lượng rất lớn, nhưng ở quy mô đồ án thì không cần, trong khi phải vận hành thêm một hệ thống (tự host tốn ~1GB RAM, bản cloud không có gói free lâu dài). Nguồn sự kiện lớn nhất là heartbeat video được gom phía client trước khi gửi (mục 4.5), nên vẫn nằm trong hạn mức CloudAMQP.
 
 > **Vì sao dùng dịch vụ free:** chỉ backend và Judge0 cần máy chủ riêng (Judge0 cần quyền cgroup, không chạy được trên PaaS). Các thành phần còn lại dùng gói free để chi phí AWS chỉ nằm ở một EC2.
+
+> **Vì sao video dùng S3 + CloudFront mà file khác dùng R2:** HLS chia một video thành hàng trăm đoạn nhỏ. Presigned URL (của cả S3 lẫn R2) chỉ ký cho từng file, nên phải ký lại từng đoạn và sửa playlist. CloudFront có sẵn **signed cookies**: ký một lần cho cả thư mục của video. CloudFront miễn phí 1TB băng thông/tháng (khoảng 900 giờ xem 720p), S3 chỉ tính tiền lưu trữ (~1 USD/tháng cho 20 giờ nội dung). Ảnh và tài liệu không cần cơ chế này nên để trên R2, không tốn phí egress và không trừ vào credit AWS. Cả hai đều dùng chung `@aws-sdk/client-s3`, chỉ khác `endpoint`.
 
 > **Vì sao tách NestJS thay vì dùng API của Next.js:** hệ thống có ~10 module nghiệp vụ, 3 vai trò, 2 hệ thống queue và cron. NestJS có sẵn DI, module, guard, pipe, `@nestjs/microservices`, `@nestjs/schedule`, nên route, consumer và cron dùng chung service. Next.js chỉ lo giao diện.
 
@@ -166,8 +169,12 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
   ┌───────────────┐ ┌──────────────┐ ┌──────────┐ ┌─────────────┐ ┌──────────┐
   │ Supabase PG   │ │ RabbitMQ     │ │ Upstash  │ │ Cloudflare  │ │ Brevo    │
   │ + pgvector    │ │ (CloudAMQP)  │ │ Redis    │ │ R2          │ │ (email)  │
-  │               │ │ jobs + events│ │ cache/RL │ │ file, video │ │          │
+  │               │ │ jobs + events│ │ cache/RL │ │ file, ảnh   │ │          │
   └───────────────┘ └──────────────┘ └──────────┘ └─────────────┘ └──────────┘
+
+  Video:  Trình duyệt ──(signed cookies)──► CloudFront (video.) ──► S3 private (HLS)
+                                                                     ▲
+                                      NestJS worker (ffmpeg) ────────┘ upload segment
 ```
 
 ### 4.3. Cấu trúc mã nguồn
@@ -223,6 +230,12 @@ Project/                         # git root
 2. Analytics worker gom sự kiện theo batch vào các bảng thống kê (giữ chân video, tiến độ, phân tích câu hỏi). **Không lưu heartbeat thô vào Postgres**, vì gói Supabase free giới hạn 500MB
 3. Khi có sự kiện `submission.graded`, cập nhật độ thành thạo kỹ năng và xoá cache gợi ý trong Redis
 4. Chỉ số nặng (độ phân biệt câu hỏi, điểm rủi ro bỏ học, refresh materialized view) được tính lại bằng cron hằng đêm trong worker
+
+**Upload & phát video**
+1. Giảng viên xin presigned PUT, upload file gốc thẳng lên S3 (`raw/{videoId}.mp4`), rồi báo API. API đẩy job `video.transcode` vào RabbitMQ
+2. Worker tải file gốc, chạy `ffmpeg` ra HLS 360p + 720p (đoạn 6 giây), upload lên `videos/{videoId}/`, xoá file gốc, cập nhật trạng thái bài học thành `ready`
+3. Học viên mở bài: API kiểm tra đã mua khoá, set 3 cookie CloudFront (`Policy`, `Signature`, `Key-Pair-Id`) cho `videos/{videoId}/*`, hết hạn sau 2 giờ, `Domain=.skillpath.dotattuan.id.vn`
+4. Player (`hls.js`) tải `index.m3u8` và các đoạn từ `video.`, trình duyệt tự gửi kèm cookie. Private key ký cookie chỉ nằm ở API
 
 **Duyệt khoá học → embedding**
 1. Admin duyệt khoá, API publish `course.approved`
@@ -282,6 +295,7 @@ LIMIT 5;
 | FE | `pnpm dev` trong `it-course-platform/`, cổng `3000` |
 | BE | `pnpm start:dev` trong `back-end/`, cổng `4000` (`api`); `worker` chạy process riêng |
 | DB, Redis, RabbitMQ, R2, Brevo | Dùng luôn dịch vụ cloud free, **tạo instance riêng cho dev** (không dùng chung với production) |
+| Video (S3 + CloudFront) | Bucket + distribution riêng cho dev. `ffmpeg` cài thẳng trên máy dev (`brew install ffmpeg`), worker gọi được luôn |
 | Judge0 | Máy dev là Mac chip Apple Silicon (ARM). Judge0 chỉ có image amd64 và cần cgroup v1, trong khi Docker Desktop trên Mac chạy ARM + cgroup v2, nên **không chạy Judge0 trên máy dev**. Khi làm module chấm bài: bật tạm một EC2 `t3.small` chỉ chạy Judge0 (dừng instance khi không dùng), trỏ `JUDGE0_URL` sang đó. Test tự động của module chấm bài dùng Judge0 giả (trả verdict cố định) |
 
 - Địa chỉ các dịch vụ lấy từ biến môi trường (`DATABASE_URL`, `JUDGE0_URL`, `RABBITMQ_URL`, `REDIS_URL`…), nên chuyển môi trường chỉ cần đổi config
@@ -295,7 +309,8 @@ LIMIT 5;
 | Hệ điều hành | Ubuntu 24.04 LTS. Judge0 cần **cgroup v1**: thêm `systemd.unified_cgroup_hierarchy=0` vào `GRUB_CMDLINE_LINUX` trong `/etc/default/grub`, chạy `update-grub` rồi reboot |
 | Ổ đĩa | EBS **gp3 30GB** (mặc định 8GB không đủ cho image Judge0 và các layer Docker) + 2GB swap |
 | IP | **Elastic IP** gắn vào instance, để bản ghi A của `api.` không đổi khi stop/start |
-| Chi phí | Ước tính ~40 USD/tháng cho `t3.medium` chạy liên tục (~20 USD với `t3.small`), cộng EBS và IPv4 công khai vài USD. Tài khoản AWS mới có credit dùng trong 6 tháng đầu, kiểm tra hạn mức trên trang Billing. **Stop instance khi không dùng** (chỉ còn tính EBS + Elastic IP) |
+| Chi phí | Ước tính ~40 USD/tháng cho `t3.medium` chạy liên tục (~20 USD với `t3.small`), cộng EBS và IPv4 công khai vài USD. S3 video ~1 USD/tháng, CloudFront 0 USD trong hạn mức Always Free. Tổng ~46 USD/tháng → credit 200 USD đủ ~4 tháng; chạy 2 tháng cuối còn dư ~100 USD. Tài khoản AWS mới có credit dùng trong 6 tháng đầu, kiểm tra hạn mức trên trang Billing. **Stop instance khi không dùng** (chỉ còn tính EBS + Elastic IP). Tạo **AWS Budgets** 20 USD/tháng, cảnh báo email ở 80% |
+| CPU credit | Đặt instance ở chế độ **Standard** (không phải Unlimited): `ffmpeg` chạy 100% CPU lâu, chế độ Unlimited sẽ tính thêm 0,05 USD/vCPU-giờ khi hết credit. Standard thì chỉ chậm lại |
 | Chạy trên EC2 | Caddy, api, worker, Judge0 (server + workers + Postgres/Redis nội bộ của Judge0) |
 | Build | GitHub Actions (runner x86) build image `back-end` rồi đẩy lên GHCR. EC2 chỉ `docker compose pull && up -d`, **không build trên EC2** vì dễ hết RAM. Nếu phải build tay trên Mac ARM thì thêm `--platform linux/amd64`, nếu không image sẽ báo `exec format error` trên EC2. FE do Vercel build |
 | Bảo mật | Security Group chỉ mở 22 (**giới hạn theo IP của người quản trị**), 80, 443. SSH bằng key pair. Judge0 chỉ nằm trong mạng Docker nội bộ, không mở ra ngoài |
