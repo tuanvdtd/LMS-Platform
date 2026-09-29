@@ -79,6 +79,21 @@ describe('Auth (e2e)', () => {
     const { pathname, search } = new URL(url);
     return pathname + search;
   };
+  const resetTokenFor = async (email: string) => {
+    await vi.waitFor(() =>
+      expect(mail.sendResetPassword).toHaveBeenCalledWith(email, expect.any(String)),
+    );
+    const [, url] = mail.sendResetPassword.mock.calls.findLast(
+      ([to]) => to === email,
+    ) as [string, string];
+    // {BETTER_AUTH_URL}/api/auth/reset-password/:token?callbackURL=...
+    return new URL(url).pathname.split('/').pop()!;
+  };
+  const requestReset = (email: string, ip?: string) =>
+    call('post', '/api/auth/request-password-reset', { ip }).send({
+      email,
+      redirectTo: `${FE_URL}/reset-password`,
+    });
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -154,5 +169,39 @@ describe('Auth (e2e)', () => {
     const ip = randomIp();
     for (let i = 0; i < 3; i++) await signUp(randomEmail(), ip).expect(200);
     await signUp(randomEmail(), ip).expect(429);
+  });
+
+  it('8. đặt lại mật khẩu: mật khẩu mới dùng được, mật khẩu cũ và session cũ mất', async () => {
+    // user mới — user của test 1–6 đã bị ban
+    const email = randomEmail();
+    await signUp(email).expect(200);
+    await call('get', await verifyPathFor(email));
+    const oldCookie = cookieOf(await signIn(email).expect(200));
+
+    await requestReset(email).expect(200);
+    const token = await resetTokenFor(email);
+    const NEW_PASSWORD = 'NewPassword456!';
+    await call('post', '/api/auth/reset-password')
+      .send({ token, newPassword: NEW_PASSWORD })
+      .expect(200);
+
+    await call('post', '/api/auth/sign-in/email')
+      .send({ email, password: NEW_PASSWORD })
+      .expect(200);
+    await signIn(email).expect(401);
+    await call('get', '/api/me', { cookie: oldCookie }).expect(401);
+  });
+
+  it('9. email không tồn tại vẫn 200, không gửi mail', async () => {
+    const email = randomEmail();
+    await requestReset(email).expect(200);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(mail.sendResetPassword).not.toHaveBeenCalledWith(email, expect.any(String));
+  });
+
+  it('10. request-password-reset quá 3 lần cùng IP thì 429', async () => {
+    const ip = randomIp();
+    for (let i = 0; i < 3; i++) await requestReset(randomEmail(), ip).expect(200);
+    await requestReset(randomEmail(), ip).expect(429);
   });
 });

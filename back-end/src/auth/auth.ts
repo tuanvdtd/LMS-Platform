@@ -54,6 +54,8 @@ export function createAuth(
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
+      // Lộ mật khẩu → đặt lại là đá mọi phiên, kể cả kẻ gian.
+      revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
         void mail.sendResetPassword(user.email, url);
       },
@@ -80,7 +82,11 @@ export function createAuth(
     rateLimit: {
       enabled: true, // mặc định Better Auth chỉ bật ở production
       storage: 'secondary-storage',
-      customRules: { '/sign-up/email': { window: 600, max: 3 } },
+      // Mặc định /request-password-reset là 3 lần/60s → ~180 mail/giờ tới hộp thư người khác.
+      customRules: {
+        '/sign-up/email': { window: 600, max: 3 },
+        '/request-password-reset': { window: 600, max: 3 },
+      },
     },
     plugins: [
       admin({ ac, roles, defaultRole: 'student', adminRoles: ['admin'] }),

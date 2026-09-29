@@ -8,9 +8,9 @@ import {
   Search, ShoppingCart, Bell, ChevronDown, Moon, Sun, Menu, X, BookOpen,
   User, LogOut, Award, Settings, BarChart2, Briefcase, MessageCircle
 } from 'lucide-react';
-import { demoStudent } from '@/lib/mocks/data';
+import { authClient } from '@/lib/auth-client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,15 @@ export default function Header({ cartCount = 0 }: { cartCount?: number }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
+  const { data: session, isPending } = authClient.useSession();
+  const user = session?.user;
+
+  async function signOut() {
+    const { error } = await authClient.signOut().catch(() => ({ error: true }));
+    if (error) return;
+    router.replace('/');
+    router.refresh();
+  }
 
   const tracks = [
     { id: 'frontend', label: 'Frontend', icon: '⚡' },
@@ -133,36 +142,50 @@ export default function Header({ cartCount = 0 }: { cartCount?: number }) {
             )}
           </Link>
 
-          {/* Messages */}
-          <Link href="/messages" className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Tin nhắn">
-            <MessageCircle size={18} style={{ color: 'var(--foreground)' }} />
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500" />
-          </Link>
+          {user && (
+            <>
+              {/* Messages */}
+              <Link href="/messages" className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Tin nhắn">
+                <MessageCircle size={18} style={{ color: 'var(--foreground)' }} />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500" />
+              </Link>
 
-          {/* Notifications */}
-          <Link href="/notifications" className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Thông báo">
-            <Bell size={18} style={{ color: 'var(--foreground)' }} />
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
-          </Link>
+              {/* Notifications */}
+              <Link href="/notifications" className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Thông báo">
+                <Bell size={18} style={{ color: 'var(--foreground)' }} />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
+              </Link>
+            </>
+          )}
 
           {/* Profile */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="ghost" size="icon" className="rounded-full" aria-label="Menu tài khoản" />}
-            >
-              <Avatar className="size-7">
-                <AvatarImage src={demoStudent.avatar} alt={demoStudent.name} />
-                <AvatarFallback>{demoStudent.name.slice(0, 2)}</AvatarFallback>
-              </Avatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>
-                  <p className="text-sm font-semibold text-foreground">{demoStudent.name}</p>
-                  <p className="text-xs font-normal text-muted-foreground">{demoStudent.email}</p>
-                </DropdownMenuLabel>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
+          {isPending ? (
+            <div className="size-9 flex items-center justify-center">
+              <div className="size-7 rounded-full animate-pulse" style={{ background: 'var(--secondary)' }} />
+            </div>
+          ) : !user ? (
+            <div className="flex items-center gap-1 ml-1">
+              <Link href="/login" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Đăng nhập</Link>
+              <Link href="/register" className={buttonVariants({ size: 'sm' })}>Đăng ký</Link>
+            </div>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<Button variant="ghost" size="icon" className="rounded-full" aria-label="Menu tài khoản" />}
+              >
+                <Avatar className="size-7">
+                  {user.image && <AvatarImage src={user.image} alt={user.name} />}
+                  <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>
+                    <p className="text-sm font-semibold text-foreground">{user.name}</p>
+                    <p className="text-xs font-normal text-muted-foreground">{user.email}</p>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
                 {[
                   { icon: BookOpen, label: 'Học tập của tôi', to: '/my-learning' },
                   { icon: BarChart2, label: 'Hồ sơ năng lực', to: '/skills' },
@@ -175,17 +198,18 @@ export default function Header({ cartCount = 0 }: { cartCount?: number }) {
                     {label}
                   </DropdownMenuItem>
                 ))}
-              <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-primary focus:text-primary" render={<Link href="/instructor" />}>
-                    <User size={15} />
-                    Chuyển sang Giảng viên
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive focus:text-destructive">
-                    <LogOut size={15} />
-                    Đăng xuất
-                  </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-primary focus:text-primary" render={<Link href="/instructor" />}>
+                  <User size={15} />
+                  Chuyển sang Giảng viên
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={signOut}>
+                  <LogOut size={15} />
+                  Đăng xuất
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {/* Mobile menu */}
           <Button

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
+import { safeRedirect } from '@/lib/safe-redirect';
+import { NETWORK } from './auth-messages';
 
 const PROVIDERS = [
   {
@@ -23,7 +25,7 @@ const PROVIDERS = [
 
 type Provider = (typeof PROVIDERS)[number];
 
-export function SocialButtons() {
+export function SocialButtons({ redirect }: { redirect?: string }) {
   const [pending, setPending] = useState<Provider['id'] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,15 +33,19 @@ export function SocialButtons() {
     setError(null);
     setPending(id);
     try {
+      const origin = window.location.origin;
       // Thành công → better-auth tự redirect sang trang của provider
       const { error } = await authClient.signIn.social({
         provider: id,
-        callbackURL: `${window.location.origin}/onboarding`,
+        callbackURL: origin + safeRedirect(redirect),
+        newUserCallbackURL: `${origin}/onboarding`,
+        // Lỗi OAuth → back-end redirect về đây kèm ?error=..., giữ nguyên redirect đích
+        errorCallbackURL: redirect ? `${origin}/login?redirect=${encodeURIComponent(safeRedirect(redirect))}` : `${origin}/login`,
       });
       // Provider thiếu key → back-end bỏ hẳn provider → 404 PROVIDER_NOT_FOUND
       if (error) setError(`Tiếp tục với ${label} tạm thời chưa khả dụng`);
     } catch {
-      setError('Không kết nối được máy chủ, thử lại sau');
+      setError(NETWORK);
     }
     setPending(null);
   }

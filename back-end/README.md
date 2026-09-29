@@ -26,6 +26,20 @@ Không có endpoint tự nâng quyền. Đăng ký, xác minh email, rồi chạ
 UPDATE "user" SET role = 'admin' WHERE email = 'you@example.com';
 ```
 
+## OAuth Google / GitHub
+
+Provider thiếu key thì back-end bỏ hẳn provider đó (FE hiện "tạm thời chưa khả dụng").
+
+- Google Cloud Console → Credentials → OAuth client (Web application)
+  - Authorized JavaScript origins: `FE_URL` (dev `http://localhost:3000`)
+  - Authorized redirect URIs: `{BETTER_AUTH_URL}/api/auth/callback/google` (dev `http://localhost:4000/api/auth/callback/google`)
+- GitHub → Settings → Developer settings → OAuth Apps
+  - Homepage URL: `FE_URL`
+  - Authorization callback URL: `{BETTER_AUTH_URL}/api/auth/callback/github`
+- Điền `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET` vào `.env`, restart.
+
+Prod: bắt buộc `COOKIE_DOMAIN` (vd `.skillpath.dotattuan.id.vn`) — FE (`proxy.ts`) phải đọc được cookie session do back-end set.
+
 ## Test
 
 ```bash
