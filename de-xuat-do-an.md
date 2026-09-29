@@ -128,7 +128,7 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
 | Cache | **Redis trên Upstash** (gói free) | Cache gợi ý và số liệu dashboard, rate limit API nộp bài |
 | Thanh toán | Stripe (test mode) | Checkout, webhook xác nhận thanh toán và hoàn tiền |
 | Chấm code | **Judge0 CE tự host** (Docker, cùng EC2 với backend) | Sandbox chạy code cô lập. Dùng `callback_url` để Judge0 tự gọi về khi chấm xong. Không dùng bản cloud trên RapidAPI vì tính phí theo từng lượt nộp (mỗi test case là một lượt) |
-| Lưu trữ file | **Cloudflare R2** (S3-compatible, 10GB free, không tính phí egress) | Hai bucket: **public** (avatar, ảnh bìa khoá, ảnh trong bài; URL cố định qua `cdn.`) và **private** (tài liệu, chứng chỉ PDF; presigned GET có thời hạn). Upload thẳng từ trình duyệt bằng presigned PUT, ký kèm `ContentLength` + `ContentType` để giới hạn dung lượng và loại file |
+| Lưu trữ file | **Cloudflare R2** (S3-compatible, 10GB free, không tính phí egress) | Hai bucket: **public** (avatar, ảnh bìa khoá, ảnh trong bài; URL cố định qua `cdn-skillpath.`) và **private** (tài liệu, chứng chỉ PDF; presigned GET có thời hạn). Upload thẳng từ trình duyệt bằng presigned PUT, ký kèm `ContentLength` + `ContentType` để giới hạn dung lượng và loại file |
 | Video | **AWS S3** (private) + **CloudFront** (Always Free 1TB/tháng) | HLS 360p/720p, worker chuyển mã bằng `ffmpeg`. Phát qua `video.` bằng CloudFront signed cookies (policy `videos/{id}/*`). S3 → CloudFront không tính phí truyền |
 | Email | **Brevo** (gói free, 300 mail/ngày) | Email xác minh, nhắc nhở, thông báo. Gửi từ subdomain `mail.` |
 | Giám sát lỗi | Sentry (gói Student) | `@sentry/nextjs` + `@sentry/nestjs` cho api và worker; tracing FE → API; session replay |
@@ -148,7 +148,7 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
 
 ```
                               Trình duyệt
-            skillpath.dotattuan.id.vn │ api.skillpath.dotattuan.id.vn
+            skillpath.tuandt.me │ api.skillpath.tuandt.me
               ┌───────────────────────┴───────────────┐
               ▼                                       ▼
       ┌───────────────┐        ┌──────────────── AWS EC2 ──────────────────┐
@@ -210,7 +210,7 @@ Project/                         # git root
 ### 4.4. Xác thực & phân quyền
 
 - **Session Redis + DB**: Better Auth lưu session trong bảng `session` của Postgres (nguồn chính) và Redis (`secondaryStorage`, đọc nhanh mỗi request). Trình duyệt giữ cookie `httpOnly`, `secure`, `sameSite=lax`.
-- FE (`skillpath.dotattuan.id.vn`, Vercel) và BE (`api.skillpath.dotattuan.id.vn`, EC2) khác origin nhưng **cùng site**, nên cookie `sameSite=lax` vẫn được gửi kèm. Cookie đặt `Domain=.skillpath.dotattuan.id.vn` (tuỳ chọn `crossSubDomainCookies` của Better Auth). NestJS bật CORS với `credentials: true`, chỉ cho phép origin của FE.
+- FE (`skillpath.tuandt.me`, Vercel) và BE (`api.skillpath.tuandt.me`, EC2) khác origin nhưng **cùng site**, nên cookie `sameSite=lax` vẫn được gửi kèm. Cookie đặt `Domain=.skillpath.tuandt.me` (tuỳ chọn `crossSubDomainCookies` của Better Auth). NestJS bật CORS với `credentials: true`, chỉ cho phép origin của FE.
 - NestJS kiểm tra session bằng guard, phân quyền bằng decorator `@Roles('student' | 'instructor' | 'admin')`.
 - Admin khoá user hoặc đổi role: revoke session (xoá cả ở DB và Redis) là có hiệu lực ngay. Đây là lý do chọn session phía server thay vì JWT.
 - Worker không dùng session, `userId` đi kèm trong payload job. Stripe webhook xác thực bằng chữ ký, Judge0 callback xác thực bằng HMAC trong query.
@@ -234,7 +234,7 @@ Project/                         # git root
 **Upload & phát video**
 1. Giảng viên xin presigned PUT, upload file gốc thẳng lên S3 (`raw/{videoId}.mp4`), rồi báo API. API đẩy job `video.transcode` vào RabbitMQ
 2. Worker tải file gốc, chạy `ffmpeg` ra HLS 360p + 720p (đoạn 6 giây), upload lên `videos/{videoId}/`, xoá file gốc, cập nhật trạng thái bài học thành `ready`
-3. Học viên mở bài: API kiểm tra đã mua khoá, set 3 cookie CloudFront (`Policy`, `Signature`, `Key-Pair-Id`) cho `videos/{videoId}/*`, hết hạn sau 2 giờ, `Domain=.skillpath.dotattuan.id.vn`
+3. Học viên mở bài: API kiểm tra đã mua khoá, set 3 cookie CloudFront (`Policy`, `Signature`, `Key-Pair-Id`) cho `videos/{videoId}/*`, hết hạn sau 2 giờ, `Domain=.skillpath.tuandt.me`
 4. Player (`hls.js`) tải `index.m3u8` và các đoạn từ `video.`, trình duyệt tự gửi kèm cookie. Private key ký cookie chỉ nằm ở API
 
 **Duyệt khoá học → embedding**
@@ -315,15 +315,22 @@ LIMIT 5;
 | Build | GitHub Actions (runner x86) build image `back-end` rồi đẩy lên GHCR. EC2 chỉ `docker compose pull && up -d`, **không build trên EC2** vì dễ hết RAM. Nếu phải build tay trên Mac ARM thì thêm `--platform linux/amd64`, nếu không image sẽ báo `exec format error` trên EC2. FE do Vercel build |
 | Bảo mật | Security Group chỉ mở 22 (**giới hạn theo IP của người quản trị**), 80, 443. SSH bằng key pair. Judge0 chỉ nằm trong mạng Docker nội bộ, không mở ra ngoài |
 
-**Tên miền (`dotattuan.id.vn`)**
+**Tên miền (`tuandt.me`)**
+
+Domain `.me` miễn phí năm đầu qua GitHub Student Pack (Namecheap), **DNS quản lý trên Cloudflare** (bắt buộc để gắn custom domain cho R2). Gia hạn trước ngày bảo vệ nếu quá 12 tháng.
 
 ```
-CNAME skillpath.dotattuan.id.vn      → cname.vercel-dns.com   (Next.js)
-A     api.skillpath.dotattuan.id.vn  → Elastic IP của EC2     (Caddy → NestJS)
-TXT   mail.dotattuan.id.vn           → bản ghi SPF/DKIM theo Brevo
-      dotattuan.id.vn                → giữ nguyên
+CNAME tuandt.me, www            → tuanvdtd.github.io     (trang cá nhân, giữ nguyên)
+CNAME skillpath.tuandt.me       → cname.vercel-dns.com   (Next.js)
+A     api.skillpath.tuandt.me   → Elastic IP của EC2     (Caddy → NestJS)
+CNAME video.skillpath.tuandt.me → dxxxx.cloudfront.net   (video HLS, chứng chỉ ACM ở us-east-1)
+      cdn-skillpath.tuandt.me   → R2 public bucket       (Cloudflare tự tạo khi Connect Domain)
+TXT   mail.tuandt.me            → bản ghi SPF/DKIM theo Brevo
 ```
 
+- Mọi bản ghi để **DNS only (xám)**, trừ `cdn-skillpath` do R2 tự bật proxy. Vercel, Caddy, CloudFront, GitHub Pages đều tự cấp HTTPS; bật proxy Cloudflare phía trước sẽ cản cấp chứng chỉ, và `api.` còn cần IP thật của client (qua `X-Forwarded-For` của Caddy) cho rate limit
+- `cdn-skillpath` dùng dấu gạch ngang thay vì `cdn.skillpath`: Universal SSL miễn phí của Cloudflare chỉ phủ subdomain một cấp (`*.tuandt.me`), mà bản ghi này bắt buộc proxied
+- Cookie session `Domain=.skillpath.tuandt.me` (`COOKIE_DOMAIN`), bao cả `skillpath.`, `api.skillpath.`, `video.skillpath.`
 - Cần HTTPS cho cookie `secure`, Stripe webhook và link QR trên chứng chỉ. Vercel tự cấp chứng chỉ cho FE, Caddy tự xin chứng chỉ Let's Encrypt cho `api.`
 - Gửi mail từ subdomain `mail.` để không đụng SPF của domain gốc và tách uy tín gửi mail
 

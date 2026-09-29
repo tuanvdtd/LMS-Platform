@@ -38,7 +38,7 @@ Provider thiếu key thì back-end bỏ hẳn provider đó (FE hiện "tạm th
   - Authorization callback URL: `{BETTER_AUTH_URL}/api/auth/callback/github`
 - Điền `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET` vào `.env`, restart.
 
-Prod: bắt buộc `COOKIE_DOMAIN` (vd `.skillpath.dotattuan.id.vn`) — FE (`proxy.ts`) phải đọc được cookie session do back-end set.
+Prod: bắt buộc `COOKIE_DOMAIN` (vd `.skillpath.tuandt.me`) — FE (`proxy.ts`) phải đọc được cookie session do back-end set.
 
 ## Test
 
