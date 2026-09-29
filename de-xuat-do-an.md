@@ -43,10 +43,10 @@
 
 | Chức năng | Mô tả |
 |---|---|
-| Ngân hàng câu hỏi | Giảng viên tạo câu hỏi trắc nghiệm, **mỗi câu gắn tag kỹ năng** (vd `react-hooks`, `sql-join`) |
+| Ngân hàng câu hỏi | Giảng viên tạo câu hỏi trắc nghiệm, **mỗi quiz gắn 1–3 topic** của khoá (vd `react`, `sql`), topic theo taxonomy Udemy |
 | Bài tập lập trình | Đề bài, test case công khai và test ẩn, giới hạn thời gian và bộ nhớ, hỗ trợ nhiều ngôn ngữ |
 | Chấm tự động | Trắc nghiệm chấm ngay. Bài code chạy trong sandbox cô lập, trả về kết quả Accepted / Wrong Answer / Time Limit / Runtime Error và điểm theo số test đạt |
-| Hồ sơ năng lực | Tự động tính **độ thành thạo từng kỹ năng** của học viên từ kết quả các bài kiểm tra |
+| Hồ sơ năng lực | Tự động tính **độ thành thạo từng topic** của học viên từ kết quả các bài kiểm tra |
 | Chứng chỉ | Hoàn thành khoá và đạt bài test cuối khoá thì được cấp chứng chỉ PDF có **mã QR để xác thực** |
 
 ### 3.4. Gợi ý cá nhân hoá (Recommendation)
@@ -56,11 +56,11 @@ Gợi ý dựa trên **năng lực thực tế** của học viên (lấy từ k
 | Tầng | Gợi ý | Dữ liệu sử dụng |
 |---|---|---|
 | 1. Theo mục tiêu | Khoá học phù hợp cho người mới | Mục tiêu (Backend, Frontend, Data…) và trình độ chọn lúc đăng ký. Dùng cho người mới chưa có dữ liệu (cold start) |
-| 2. Theo lỗ hổng kỹ năng ⭐ | Bài học cần ôn lại trong khoá, và khoá học nên học tiếp | Độ thành thạo từng kỹ năng + **đồ thị kỹ năng tiên quyết** (vd JS → React → Next.js). Chỉ gợi ý khoá khi học viên đã vững kỹ năng tiên quyết |
+| 2. Theo lỗ hổng topic ⭐ | Bài học cần ôn lại trong khoá, và khoá học nên học tiếp | Độ thành thạo từng topic + **đồ thị topic tiên quyết** (vd JS → React → Next.js). Chỉ gợi ý khoá khi học viên đã vững topic tiên quyết |
 | 3. Theo hành vi chung | "Học viên mua khoá này cũng mua…" | Tần suất các khoá được mua cùng nhau (item-based collaborative filtering) |
 | 4. Theo nội dung (bổ sung) | Khoá có nội dung gần giống khoá vừa học | Embedding mô tả khoá học lưu bằng **pgvector**, tìm theo độ tương đồng cosine. Giúp cả khoá mới chưa ai mua (cold start phía khoá học) |
 
-- **Gợi ý có giải thích lý do**, ví dụ: *"Gợi ý vì bạn đạt 35% ở kỹ năng React Hooks"*
+- **Gợi ý có giải thích lý do**, ví dụ: *"Gợi ý vì bạn đạt 35% ở topic React JS"*
 - **Đánh giá:** Dùng dữ liệu học viên giả lập với các điểm yếu biết trước, đo mức gợi ý trúng điểm yếu bằng Precision@K
 
 ### 3.5. Dashboard giảng viên
@@ -94,13 +94,13 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
 | Độ phân biệt câu hỏi | Chênh lệch tỉ lệ đúng giữa nhóm 27% điểm cao và 27% điểm thấp (discrimination index), dùng để phát hiện câu hỏi kém chất lượng |
 | Phân tích đáp án nhiễu | Tỉ lệ chọn từng đáp án sai; đáp án không ai chọn thì cần thay |
 | Bài code | Tỉ lệ Accepted, lỗi phổ biến (WA/TLE/RE), số lần nộp trung bình đến khi đạt |
-| Kỹ năng yếu của lớp | Heatmap độ thành thạo theo kỹ năng của toàn bộ học viên trong khoá |
+| Topic yếu của lớp | Heatmap độ thành thạo theo topic của toàn bộ học viên trong khoá |
 
 **d) Theo từng học viên**
 
 | Chỉ số | Mô tả |
 |---|---|
-| Hồ sơ chi tiết | Tiến độ, lịch sử điểm, radar chart kỹ năng, lần hoạt động gần nhất |
+| Hồ sơ chi tiết | Tiến độ, lịch sử điểm, radar chart topic, lần hoạt động gần nhất |
 | Cảnh báo nguy cơ bỏ học | Điểm rủi ro tính từ: số ngày không hoạt động, tiến độ chậm hơn trung vị lớp, điểm test thấp. Có danh sách học viên cần chú ý |
 | Hành động | Gửi email nhắc nhở hoặc động viên cho học viên có nguy cơ |
 
@@ -124,7 +124,7 @@ Có bộ lọc theo khoá học và khoảng thời gian, hỗ trợ xuất CSV.
 | Backend | **NestJS 12** (ESM, Express adapter, Vitest, oxlint) | REST API, xử lý nghiệp vụ, tính gợi ý. Cùng codebase chạy 2 process: `api` (HTTP) và `worker` (consumer + cron) |
 | Xác thực | **Better Auth** (mount trong NestJS) | Email + mật khẩu, OAuth Google/GitHub, quên mật khẩu, plugin admin (khoá user, gán role) |
 | Cơ sở dữ liệu | **PostgreSQL trên Supabase** + **pgvector** | Dữ liệu nghiệp vụ, bảng thống kê tổng hợp cho dashboard, embedding khoá học. Chỉ dùng như Postgres (không dùng Supabase Auth/RLS) |
-| Message Queue | **RabbitMQ trên CloudAMQP** (gói free) | Hai vai trò: **(1) hàng đợi tác vụ**: điều phối gửi bài sang Judge0, gửi email, sinh chứng chỉ PDF, có ack, retry, dead-letter queue; **(2) event bus**: topic exchange `events` phát sự kiện học tập (xem video, nộp bài, mua hàng, duyệt khoá) tới nhiều queue, mỗi consumer (analytics, skill mastery, embedding) một queue riêng |
+| Message Queue | **RabbitMQ trên CloudAMQP** (gói free) | Hai vai trò: **(1) hàng đợi tác vụ**: điều phối gửi bài sang Judge0, gửi email, sinh chứng chỉ PDF, có ack, retry, dead-letter queue; **(2) event bus**: topic exchange `events` phát sự kiện học tập (xem video, nộp bài, mua hàng, duyệt khoá) tới nhiều queue, mỗi consumer (analytics, topic mastery, embedding) một queue riêng |
 | Cache | **Redis trên Upstash** (gói free) | Cache gợi ý và số liệu dashboard, rate limit API nộp bài |
 | Thanh toán | Stripe (test mode) | Checkout, webhook xác nhận thanh toán và hoàn tiền |
 | Chấm code | **Judge0 CE tự host** (Docker, cùng EC2 với backend) | Sandbox chạy code cô lập. Dùng `callback_url` để Judge0 tự gọi về khi chấm xong. Không dùng bản cloud trên RapidAPI vì tính phí theo từng lượt nộp (mỗi test case là một lượt) |
@@ -228,7 +228,7 @@ Project/                         # git root
 **Sự kiện học → dashboard & gợi ý**
 1. Video player ghi lại các đoạn đã xem (mỗi mốc 15 giây) và **gom lại gửi 60 giây một lần**, hoặc khi pause/rời trang (`navigator.sendBeacon`). API publish một sự kiện `video.progress` lên exchange `events`. RabbitMQ lỗi thì bỏ qua, không trả lỗi cho người dùng. Gom phía client giúp giảm ~4 lần số message, vừa hạn mức CloudAMQP free
 2. Analytics worker gom sự kiện theo batch vào các bảng thống kê (giữ chân video, tiến độ, phân tích câu hỏi). **Không lưu heartbeat thô vào Postgres**, vì gói Supabase free giới hạn 500MB
-3. Khi có sự kiện `submission.graded`, cập nhật độ thành thạo kỹ năng và xoá cache gợi ý trong Redis
+3. Khi có sự kiện `quiz.submitted` hoặc `submission.graded`, cập nhật độ thành thạo topic và xoá cache gợi ý trong Redis
 4. Chỉ số nặng (độ phân biệt câu hỏi, điểm rủi ro bỏ học, refresh materialized view) được tính lại bằng cron hằng đêm trong worker
 
 **Upload & phát video**
@@ -255,7 +255,7 @@ Không dùng mô hình học máy. Đây là hệ gợi ý **dựa trên tri th�
 | Tầng | Dữ liệu | Cách tính trong PostgreSQL |
 |---|---|---|
 | 1. Theo mục tiêu | `courses(track, level, rating)`, mục tiêu học viên chọn lúc đăng ký | Lọc theo `track` và `level`, sắp xếp theo `rating` |
-| 2. Theo lỗ hổng kỹ năng | `user_skill_mastery(user_id, skill_id, score)`, `course_skills(course_id, skill_id)`, `skill_prerequisites(skill_id, requires_skill_id)` | Lấy các kỹ năng có `score < 0.6`, tìm khoá dạy kỹ năng đó, loại khoá đã mua. Duyệt đồ thị tiên quyết bằng `WITH RECURSIVE` để loại khoá mà học viên chưa đạt kỹ năng tiên quyết |
+| 2. Theo lỗ hổng topic | `user_topic_mastery(user_id, topic_id, score)`, `course_topics(course_id, topic_id)`, `_TopicPrereq(A, B)` | Lấy các topic có `score < 0.6`, tìm khoá dạy topic đó, loại khoá đã mua. Duyệt đồ thị tiên quyết bằng `WITH RECURSIVE` để loại khoá mà học viên chưa đạt topic tiên quyết |
 | 3. Theo hành vi chung | `enrollments(user_id, course_id)` | Self-join `enrollments` để đếm số lần hai khoá được mua cùng nhau. Lưu kết quả vào **materialized view**, `REFRESH` hằng đêm bằng cron |
 | 4. Theo nội dung | `courses.embedding vector(N)` + index HNSW | `ORDER BY embedding <=> $1` kết hợp bộ lọc `status`, `level` |
 
@@ -280,9 +280,9 @@ ORDER BY embedding <=> $1
 LIMIT 5;
 ```
 
-- `user_skill_mastery` được cập nhật mỗi khi chấm xong một bài test (qua sự kiện `submission.graded`)
-- Kết quả gợi ý của từng học viên được cache trong Redis và xoá khi độ thành thạo kỹ năng thay đổi
-- Với quy mô đồ án (vài nghìn user, vài trăm nghìn bản ghi), mỗi query chạy tính bằng mili giây nếu có index trên `user_id`, `course_id`, `skill_id`
+- `user_topic_mastery` được cập nhật mỗi khi chấm xong một bài test (qua sự kiện `quiz.submitted` hoặc `submission.graded`)
+- Kết quả gợi ý của từng học viên được cache trong Redis và xoá khi độ thành thạo topic thay đổi
+- Với quy mô đồ án (vài nghìn user, vài trăm nghìn bản ghi), mỗi query chạy tính bằng mili giây nếu có index trên `user_id`, `course_id`, `topic_id`
 
 ### 4.7. Triển khai
 

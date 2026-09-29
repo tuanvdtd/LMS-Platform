@@ -23,6 +23,7 @@ CREATE EXTENSION IF NOT EXISTS unaccent;
 ALTER TABLE course_reviews
   ADD CONSTRAINT chk_review_rating CHECK (rating BETWEEN 1 AND 5);
 
+-- [2026-09-29] Bảng đã đổi thành user_topic_mastery, constraint tạo lại ở 03_taxonomy_topics.sql.
 ALTER TABLE user_skill_mastery
   ADD CONSTRAINT chk_mastery_score CHECK (score >= 0 AND score <= 1);
 
@@ -69,6 +70,7 @@ CREATE TRIGGER trg_category_depth
 
 -- Đồ thị kỹ năng tiên quyết không được tự trỏ vào chính nó.
 -- Prisma sinh bảng m-n ẩn "_SkillPrereq" với 2 cột "A", "B".
+-- [2026-09-29] Đã đổi thành "_TopicPrereq", xem 03_taxonomy_topics.sql.
 ALTER TABLE "_SkillPrereq"
   ADD CONSTRAINT chk_skill_not_self_prereq CHECK ("A" <> "B");
 
@@ -100,6 +102,7 @@ CREATE INDEX idx_courses_search ON courses USING gin ("searchTsv");
 CREATE INDEX idx_courses_title_trgm ON courses USING gin (title gin_trgm_ops); -- gõ sai chính tả
 
 -- Ô "Tìm kiếm một kỹ năng" ở bước 3 onboarding — autocomplete trên toàn catalog.
+-- [2026-09-29] Đã thay bằng idx_topics_name_trgm ở 03_taxonomy_topics.sql.
 CREATE INDEX idx_skills_name_trgm ON skills USING gin (name gin_trgm_ops);
 
 -- ---------------------------------------------------------------------------
@@ -207,6 +210,7 @@ REFRESH MATERIALIZED VIEW mv_course_completion;
 
 -- ---------------------------------------------------------------------------
 --  7. Seed taxonomy — phần IT của Udemy, bỏ Hardware và "Other"
+--  [2026-09-29] Cây này đã bị thay bằng taxonomy Udemy ở 04_taxonomy_seed.sql.
 --  courses."categoryId" NOT NULL nên phải chạy trước khi tạo khoá học đầu tiên.
 -- ---------------------------------------------------------------------------
 INSERT INTO categories (id, "parentId", slug, name, position) VALUES

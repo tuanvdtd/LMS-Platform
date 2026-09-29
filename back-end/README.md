@@ -18,6 +18,17 @@ pnpm start:dev              # http://localhost:4000/api
 Bật extension `pg_cron` trong Supabase Dashboard trước. **Không** đưa vào migration:
 shadow DB của `prisma migrate dev` không tạo được pg_cron.
 
+## Sửa schema (migrate dev)
+
+Có object viết tay mà Prisma không biết: `idx_courses_search`, `idx_courses_title_trgm`, `idx_courses_embedding`, cột generated `courses."searchTsv"`, `idx_topics_name_trgm`, `uq_course_primary_topic`.
+`prisma migrate dev` sẽ sinh `DROP INDEX` / `ALTER ... "searchTsv" DROP DEFAULT` cho chúng và áp dụng luôn. Luôn chạy:
+
+```bash
+pnpm prisma migrate dev --create-only --name <x>   # chỉ sinh file, chưa áp dụng
+# mở migration.sql, xoá mọi câu lệnh động tới các object trên
+pnpm prisma migrate dev                            # áp dụng
+```
+
 ## Admin đầu tiên
 
 Không có endpoint tự nâng quyền. Đăng ký, xác minh email, rồi chạy:
