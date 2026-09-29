@@ -25,6 +25,14 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 
+  // Filter của Sentry không được đổi response trả client.
+  it('/api/debug-sentry (GET) → 500 mặc định của Nest', () => {
+    return request(app.getHttpServer())
+      .get('/api/debug-sentry')
+      .expect(500)
+      .expect({ statusCode: 500, message: 'Internal server error' });
+  });
+
   afterEach(async () => {
     await app.close();
   });

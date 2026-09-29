@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { SentryUser } from "@/components/sentry-user";
 
 const beVietnamPro = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={cn("h-full antialiased font-sans", beVietnamPro.variable, jetbrainsMono.variable)}
     >
       <body className="min-h-full bg-background">
+        <SentryUser />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>

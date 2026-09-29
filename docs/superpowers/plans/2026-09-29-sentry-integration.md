@@ -23,6 +23,7 @@ Lệnh BE chạy từ `/Users/bssgroup/Personal/Project/back-end`, lệnh FE t�
 | `back-end/package.json` | Sửa | `@sentry/nestjs`; script `dev`, `start:prod` nạp `instrument.js` |
 | `back-end/.env.example` | Sửa | `SENTRY_DSN`, `SENTRY_ENVIRONMENT` |
 | `back-end/src/instrument.ts` | Tạo | `Sentry.init` (DSN, environment, sampling, `dataCollection`) |
+| `back-end/src/sentry-redact.ts` (+ `.spec.ts`) | Tạo | Che token reset trong URL (`beforeSendSpan`, `beforeSend`) |
 | `back-end/src/debug.controller.ts` | Tạo | `GET /api/debug-sentry` ném lỗi (không có ở prod) |
 | `back-end/src/app.module.ts` | Sửa | `SentryModule.forRoot()`, `SentryGlobalFilter`, `DebugController` có điều kiện |
 | `back-end/test/app.e2e-spec.ts` | Sửa | Test debug route trả 500 đúng định dạng |
@@ -469,7 +470,7 @@ export function SentryUser() {
 
 - [ ] **Step 4: Gắn vào `src/app/layout.tsx`**
 
-Lưu ý: từ đây mọi trang đều import `auth-client.ts` → thiếu `NEXT_PUBLIC_API_URL` thì mọi trang lỗi ngay khi tải (trước chỉ trang có Header). Local đã có trong `.env.local`; Vercel phải đặt biến này.
+Lưu ý: từ đây mọi trang đều import `auth-client.ts` → thiếu `NEXT_PUBLIC_API_URL` thì mọi trang lỗi ngay khi tải (trước chỉ trang có Header). Local đã có trong `.env`; Vercel phải đặt biến này.
 
 ```tsx
 import { SentryUser } from "@/components/sentry-user";
@@ -537,14 +538,11 @@ Expected: PASS hết (không đổi).
 
 ### Task 9: Cấu hình sentry.io + Alerts (sếp làm trên UI, em hướng dẫn)
 
-- [ ] **Step 1:** Tạo 2 project: `skillpath-api` (platform NestJS), `skillpath-web` (platform Next.js). Copy DSN vào `back-end/.env` (`SENTRY_DSN`) và `it-course-platform/.env.local` (`NEXT_PUBLIC_SENTRY_DSN`)
-- [ ] **Step 2:** Tạo 3 issue alert cho **mỗi** project, action "Send a Discord notification" → kênh `#sentry-alerts`, action interval 30 phút, không lọc environment:
-  1. "A new issue is created"
-  2. "The issue changes state from resolved to unresolved"
-  3. "The issue is seen more than 20 times in 5 minutes"
+- [ ] **Step 1:** Tạo 2 project: `skillpath-api` (platform NestJS), `skillpath-web` (platform Next.js). Copy DSN vào `back-end/.env` (`SENTRY_DSN`) và `it-course-platform/.env` (`NEXT_PUBLIC_SENTRY_DSN`)
+- [ ] **Step 2:** Mỗi project tạo **1** issue alert: When **any** → "A new issue is created", "A resolved issue regresses", "An issue escalates"; If **all** → Any event (không lọc environment); Then → Discord, dán link kênh `#sentry-alerts`; Action Throttle 30 phút; tên `api - lỗi` / `web - lỗi`
 - [ ] **Step 3:** Tạo 2 metric alert cho `skillpath-api`, cửa sổ 10 phút, gửi Discord `#sentry-alerts`:
-  4. p95 thời gian của transaction/span `http.server`: warning > 1500ms, critical > 3000ms
-  5. Failure rate > 5%
+  1. p95 thời gian của transaction/span `http.server`: warning > 1500ms, critical > 3000ms
+  2. Failure rate > 5%
 
   SDK v11 gửi span theo stream: nếu UI không còn tên "transaction duration"/"failure rate", chọn metric tương đương trên span `http.server`, giữ ngưỡng.
 
@@ -559,6 +557,7 @@ Chạy `pnpm dev` ở cả hai repo, đã có DSN.
 - [ ] **Step 5:** Tạm thêm `throw new Error('FE test')` trong onClick một nút ở client component → issue `skillpath-web` có replay, text bị che. **Xoá dòng tạm** sau khi xong
 - [ ] **Step 6:** Đăng nhập sai mật khẩu → **không** có issue mới
 - [ ] **Step 7:** Network tab: event gửi tới `/monitoring?...`, không gọi thẳng `*.ingest.sentry.io`
+- [ ] **Step 8:** Token reset không lên Sentry: yêu cầu quên mật khẩu, mở link trong email (`GET /api/auth/reset-password/<token>`) → trên sentry.io, span `http.server` (url.full, url.path, tên span) và event (nếu có) chỉ hiện `/reset-password/[token]`; span redis (`db.query.text`) chỉ còn tên lệnh (`get`/`set`/`del`), không có key; ở trang FE `/reset-password?token=...` tạm ném lỗi thử → event `request.url`, `contexts.nextjs.request_path`, breadcrumb navigation, span Next server (`http.target`) chỉ hiện `token=[token]`, và **không có replay** cho document này (Replay tắt ở `/reset-password`)
 
 ### Task 11: Tổng kiểm + đề xuất commit (KHÔNG tự commit)
 
