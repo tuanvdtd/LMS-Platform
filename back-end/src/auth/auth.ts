@@ -1,6 +1,8 @@
+import * as Sentry from '@sentry/nestjs';
 import type { PrismaClient } from '@prisma/client';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { isAPIError } from 'better-auth/api';
 import { admin } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
 import { adminAc, defaultStatements } from 'better-auth/plugins/admin/access';
@@ -26,6 +28,11 @@ function oauth(prefix: 'GOOGLE' | 'GITHUB') {
   const clientId = optionalEnv(`${prefix}_CLIENT_ID`);
   const clientSecret = optionalEnv(`${prefix}_CLIENT_SECRET`);
   return clientId && clientSecret ? { clientId, clientSecret } : undefined;
+}
+
+// Chỉ lỗi thật của server lên Sentry; 4xx là lỗi của người dùng.
+export function isServerError(e: unknown): boolean {
+  return !isAPIError(e) || e.status === 'INTERNAL_SERVER_ERROR';
 }
 
 export function createAuth(
@@ -91,6 +98,16 @@ export function createAuth(
     plugins: [
       admin({ ac, roles, defaultRole: 'student', adminRoles: ['admin'] }),
     ],
+    // /api/auth/* mount ngoài pipeline Nest và Better Auth tự catch lỗi →
+    // SentryGlobalFilter không thấy. Khai báo onError thì Better Auth bỏ log
+    // mặc định → tự log lại.
+    onAPIError: {
+      onError: (e, ctx) => {
+        if (!isServerError(e)) return;
+        Sentry.captureException(e);
+        ctx.logger.error('Better Auth error', e);
+      },
+    },
   });
 }
 

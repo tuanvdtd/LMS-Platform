@@ -15,7 +15,7 @@ Gắn Sentry cho những gì **đang có**: NestJS api (auth, Prisma, Redis, mai
 - Gắn user (`id`, `role`) hai phía; chặn thu thập dữ liệu nhạy cảm
 - Tracing FE → API (khác origin)
 - Session Replay chỉ khi có lỗi
-- 5 alert rule gửi Discord `#sentry-alerts`
+- Alert gửi Discord `#sentry-alerts`: 1 issue rule mỗi project + 2 metric rule cho api
 - Quy ước để các module sau (worker, queue, cron, webhook, CI) tự gắn Sentry (§8)
 
 **Ngoài phạm vi**
@@ -73,6 +73,7 @@ back-end/
 │                                 start:prod: node --enable-source-maps --import ./dist/instrument.js dist/main
 └── src/
     ├── instrument.ts             MỚI — import './env.js' trước, rồi Sentry.init
+    ├── sentry-redact.ts          MỚI — che token reset trong URL (+ sentry-redact.spec.ts)
     ├── app.module.ts             + SentryModule.forRoot() (đứng đầu imports), APP_FILTER: SentryGlobalFilter
     ├── auth/auth.ts              + onAPIError.onError → captureException (xem dưới)
     ├── auth/auth.guard.ts        + Sentry.setUser({ id, role }) sau khi có session
@@ -84,6 +85,8 @@ back-end/
 - `import './env.js'` đầu file — không có thì `SENTRY_DSN` trong `.env` chưa được nạp
 - `Sentry.init({ dsn: optionalEnv('SENTRY_DSN'), environment, tracesSampleRate, dataCollection })`
 - `dataCollection`: `userInfo: false`, `cookies: false`, `httpHeaders: false`, `httpBodies: []`, `urlQueryParams: false` (token reset mật khẩu nằm trên query), `databaseQueryData: false`, `stackFrameVariables: false`. Bước đầu tiên của plan sau `pnpm add`: xác nhận tên và kiểu từng trường theo type của `@sentry/nestjs`/`@sentry/nextjs` đã cài
+- Link email đặt lại mật khẩu là `GET /api/auth/reset-password/<token>` — token nằm trong **path** nên `urlQueryParams: false` không che được. `beforeSendSpan: redactSpan` (tên span + mọi attribute chuỗi: `url.full`, `url.path`, `sentry.segment.name`…) và `beforeSend: redactEvent` (`request.url`, `transaction`, breadcrumb `message`/`data.url`) thay `/reset-password/<x>` bằng `/reset-password/[token]`. `POST /api/auth/reset-password` (token trong body) không bị đụng
+- Redis: Better Auth dùng token làm key (`verification:reset-password:<token>`, session token); span redis (`db.system.name: 'redis'`) có `db.query.text` do DC path ghi cả lệnh lẫn mọi đối số (key và giá trị) và `databaseQueryData: false` không áp cho redis → `redactSpan` thay `db.query.text` chỉ bằng tên lệnh (`db.operation.name`, fallback `redis`: `get`/`set`…). Tên span ở stream mode là `<lệnh> host:port`, không chứa key. Prisma: `db.query.text` là SQL tham số hoá (`$1`), không có giá trị → không che
 
 **Stack trace**: dev đã map về `.ts` vì Nest CLI tự thêm `--enable-source-maps`; `start:prod` phải thêm flag này (source map nằm cạnh `dist/*.js`), vì upload source map cho api nằm ngoài phạm vi.
 
@@ -113,6 +116,7 @@ it-course-platform/
 
 - Ba file init dùng chung `dsn`, `environment`, `tracesSampleRate` (dev `1.0`, prod `0.2`) và `dataCollection` như §4
 - Chỉ phía client: `tracePropagationTargets: [process.env.NEXT_PUBLIC_API_URL]` (không có thì trình duyệt không gắn header trace cho request khác origin → trace đứt đôi), `replayIntegration({ maskAllText: true, maskAllInputs: true, blockAllMedia: true })`
+- Token reset nằm trên query FE `/reset-password?token=`: `urlQueryParams: false` không áp cho `event.request.url` (httpContextIntegration), breadcrumb navigation `from`/`to`, `contexts.nextjs.request_path` (do `captureRequestError` đặt từ `req.url`) và `http.target` của span Next server → `src/lib/sentry-redact.ts` gắn vào option chung (`beforeSend`, `beforeSendSpan`, `beforeBreadcrumb`), thay giá trị bằng `[token]`. Replay: rrweb ghi `location.href` vào meta event, không hook nào sửa được → không bật `replayIntegration` khi document mở ở `/reset-password`
 - `<SentryUser />` đặt ở root layout vì các trang auth, `learn` và `onboarding` không có `Header`. `useSession` dùng chung store với header nên không phát sinh thêm request ở trang đã có header
 - `withSentryConfig(nextConfig, { org, project, authToken, tunnelRoute: '/monitoring', widenClientFileUpload: true, silent: !process.env.CI })`. Thiếu `SENTRY_AUTH_TOKEN` thì chỉ bỏ qua upload source map, `pnpm build` vẫn thành công
 
@@ -120,19 +124,17 @@ it-course-platform/
 
 Một kênh `#sentry-alerts` qua Discord integration (đã cài). Không đặt filter environment → báo cả `development` lẫn `production`.
 
-| # | Loại | Điều kiện | Project | Action interval |
+| # | Loại | Điều kiện | Project | Action throttle |
 |---|---|---|---|---|
-| 1 | Issue | Issue mới lần đầu xuất hiện | web, api | 30 phút |
-| 2 | Issue | Issue đã resolve bị tái phát (regression) | web, api | 30 phút |
-| 3 | Issue | Một issue có hơn 20 event trong 5 phút | web, api | 30 phút |
-| 4 | Metric | p95 thời gian transaction HTTP, cửa sổ 10 phút: > 1,5s là warning, > 3s là critical | api | — |
-| 5 | Metric | Tỉ lệ transaction lỗi > 5%, cửa sổ 10 phút | api | — |
+| 1 | Issue | When **any**: issue mới được tạo / issue đã resolve bị tái phát (regresses) / issue **escalates** (Sentry tự phát hiện tăng đột biến so với mức thường của chính issue đó — thay ngưỡng cứng "20 event/5 phút"). If **all**: Any event | web, api (mỗi project 1 rule) | 30 phút |
+| 2 | Metric | p95 thời gian transaction HTTP, cửa sổ 10 phút: > 1,5s là warning, > 3s là critical | api | — |
+| 3 | Metric | Tỉ lệ transaction lỗi > 5%, cửa sổ 10 phút | api | — |
 
 SDK v11 gửi span theo chế độ stream: khi cấu hình, xác nhận trên sentry.io tên metric tương ứng (p95 duration / failure rate của transaction hoặc span `http.server`); nếu tên đã đổi thì chọn metric tương đương, giữ nguyên ngưỡng.
 
-Rule 4–5 không áp dụng cho web: thời gian tải trang phụ thuộc mạng người dùng, dễ báo sai.
+Rule 2–3 không áp dụng cho web: thời gian tải trang phụ thuộc mạng người dùng, dễ báo sai.
 
-Các bước: Settings → Integrations → Discord (đã có) → mỗi project → Alerts → Create Alert → chọn điều kiện theo bảng → action "Send a Discord notification" → server/kênh `#sentry-alerts`.
+Các bước: Settings → Integrations → Discord (đã có) → mỗi project → Alerts → Create Alert → chọn điều kiện theo bảng → action "Send a Discord notification" → server + **link kênh** (`https://discord.com/channels/<server>/<channel>`, chuột phải kênh → Copy Link; bot Sentry cần quyền View Channel + Send Messages).
 
 ## 7. Xử lý lỗi & kiểm tra
 
@@ -162,6 +164,6 @@ Các bước: Settings → Integrations → Discord (đã có) → mỗi project
 | Cron (`@nestjs/schedule`) | Decorator `@SentryCron(slug, config)` hoặc `Sentry.withMonitor()`; Sentry tự cảnh báo khi cron không chạy hoặc chạy quá lâu |
 | Heartbeat video, health check | Đổi `tracesSampleRate` sang `tracesSampler` trả `0` cho các route này (dùng `samplingContext.normalizedRequest`) |
 | Stripe webhook, Judge0 callback | Thêm issue alert riêng: mọi lỗi trên transaction này đều báo, action interval 0 |
-| Dockerfile | `CMD ["node", "--enable-source-maps", "--import", "./dist/instrument.js", "dist/main.js"]`; truyền `SENTRY_DSN`, `SENTRY_ENVIRONMENT=production`, `SENTRY_RELEASE` qua env |
+| Dockerfile | `CMD ["node", "--enable-source-maps", "--import", "./dist/instrument.js", "dist/main.js"]`; truyền `SENTRY_DSN`, `SENTRY_RELEASE` qua env và **bắt buộc** `SENTRY_ENVIRONMENT=production` — thiếu biến này thì `/api/debug-sentry` bị mở công khai và `tracesSampleRate` là 1.0 |
 | CI (tham khảo `example/.github/workflows/ci-cd.yml`) | Sau bước build: `sentry-cli releases new` + `sourcemaps inject` + `sourcemaps upload ./dist` cho `skillpath-api`; `SENTRY_AUTH_TOKEN` để trong GitHub Secrets |
 | Filter lỗi tự viết | Không bắt lỗi trước `SentryGlobalFilter`; nếu cần định dạng lỗi riêng thì dùng `@SentryExceptionCaptured()` trên `catch()` |

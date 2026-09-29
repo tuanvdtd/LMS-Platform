@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import * as Sentry from '@sentry/nestjs';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { Request } from 'express';
 import { AUTH, type Auth, type AuthSession, type Role } from './auth.js';
@@ -34,6 +35,8 @@ export class AuthGuard implements CanActivate {
     if (!session) throw new UnauthorizedException();
     req.user = session.user;
     req.session = session.session;
+    // Chỉ id + role (spec §2); email/tên không rời khỏi hệ thống.
+    Sentry.setUser({ id: session.user.id, role: session.user.role });
 
     const required = this.reflector.getAllAndOverride<Role[] | undefined>(
       ROLES,
