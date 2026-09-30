@@ -75,6 +75,7 @@ ALTER TABLE "_SkillPrereq"
   ADD CONSTRAINT chk_skill_not_self_prereq CHECK ("A" <> "B");
 
 -- Bài học video phải có asset, bài viết phải có nội dung.
+-- [2026-09-30] Bảng lessons đã thay bằng curriculum_items, CHECK mới chk_item_payload ở 05_udemy_curriculum.sql.
 ALTER TABLE lessons
   ADD CONSTRAINT chk_lesson_payload CHECK (
     (type <> 'video'   OR "videoAssetId" IS NOT NULL) AND
@@ -110,6 +111,7 @@ CREATE INDEX idx_skills_name_trgm ON skills USING gin (name gin_trgm_ops);
 --  4. pgvector — recommendation tầng 4 (§3.4)
 --  Chỉ index khoá đã duyệt: index nhỏ hơn, và query luôn lọc status anyway.
 -- ---------------------------------------------------------------------------
+-- [2026-09-30] Tạo lại với WHERE status = 'published' ở 05_udemy_curriculum.sql.
 CREATE INDEX idx_courses_embedding ON courses
   USING hnsw (embedding vector_cosine_ops)
   WHERE status = 'approved';
@@ -159,6 +161,7 @@ CREATE UNIQUE INDEX uq_mv_copurchase ON mv_course_copurchase (course_id, other_c
 CREATE INDEX idx_mv_copurchase_rank ON mv_course_copurchase (course_id, co_count DESC);
 
 -- §3.5b: "Bài học nào nhiều người dừng lại không học tiếp"
+-- [2026-09-30] Thay bằng mv_item_dropoff ở 05_udemy_curriculum.sql.
 CREATE MATERIALIZED VIEW mv_lesson_dropoff AS
 SELECT
   l.id                                        AS lesson_id,
@@ -196,6 +199,7 @@ CREATE UNIQUE INDEX uq_mv_course_completion ON mv_course_completion (course_id);
 
 -- Cron gọi hàm này mỗi đêm. CONCURRENTLY để dashboard không bị khoá khi refresh
 -- (đòi hỏi unique index ở trên, đã có).
+-- [2026-09-30] Định nghĩa mới ở 05_udemy_curriculum.sql.
 CREATE OR REPLACE FUNCTION refresh_analytics_views() RETURNS void
 LANGUAGE plpgsql AS $$
 BEGIN

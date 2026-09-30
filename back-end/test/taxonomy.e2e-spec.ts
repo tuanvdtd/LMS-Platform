@@ -84,7 +84,11 @@ describe('Taxonomy — constraint', () => {
     inRollback(async (tx) => {
       const { course } = await makeCourse(tx);
       const t = await tx.topic.create({ data: { slug: `t-${uid()}`, name: 't' } });
-      const quiz = await tx.quiz.create({ data: { courseId: course.id, title: 'q' } });
+      const section = await tx.section.create({ data: { courseId: course.id, title: 's', position: 1 } });
+      const item = await tx.curriculumItem.create({
+        data: { sectionId: section.id, courseId: course.id, title: 'q', type: 'quiz', position: 1 },
+      });
+      const quiz = await tx.quiz.create({ data: { itemId: item.id, courseId: course.id } });
       await tx.quizTopic.create({ data: { quizId: quiz.id, topicId: t.id } });
       expect(await tx.quizTopic.count({ where: { quizId: quiz.id } })).toBe(1);
     }));

@@ -18,15 +18,32 @@ pnpm start:dev              # http://localhost:4000/api
 Bật extension `pg_cron` trong Supabase Dashboard trước. **Không** đưa vào migration:
 shadow DB của `prisma migrate dev` không tạo được pg_cron.
 
-## Sửa schema (migrate dev)
+## Sửa schema
 
-Có object viết tay mà Prisma không biết: `idx_courses_embedding`, `uq_course_primary_topic`.
-`prisma migrate dev` có thể sinh `DROP INDEX` cho chúng và áp dụng luôn. Luôn chạy:
+Có object viết tay mà Prisma không biết (danh sách đầy đủ ở đầu `prisma/sql/05_udemy_curriculum.sql`):
+
+- **Luôn xuất hiện trong mọi `migrate dev --create-only`/`migrate diff`, phải xoá tay:**
+  `DROP INDEX uq_sections_position`, `uq_items_position`, `uq_questions_position`.
+- **Prisma không nhìn thấy (partial index, CHECK `chk_*`, MV `mv_*`) nên sẽ không sinh lệnh cho chúng —
+  đừng viết SQL động vào chúng:** `idx_courses_embedding`, `uq_course_primary_topic`, `idx_qa_unanswered`,
+  các partial index ở init (`idx_quizzes_final`, `uq_one_final_quiz_per_course`, `idx_certificates_active`,
+  `idx_submissions_inflight`, `idx_reports_open`, `idx_payment_events_unprocessed`), các CHECK `chk_*` và
+  materialized view `mv_*`.
+
+Migration `udemy_curriculum` chỉ an toàn khi các bảng curriculum/quiz/exercise/courses/order_items rỗng
+(cột NOT NULL không default, map enum `CourseStatus` cũ không có) — môi trường có dữ liệu phải viết migration riêng.
+
+**Không dùng `prisma migrate dev` (hay `pnpm db:migrate`) để áp dụng**: nó luôn thấy 3 unique DEFERRABLE
+ở trên là lệch và sẽ tự sinh + áp `DROP INDEX` cho chúng, mất ràng buộc position mà không báo gì.
+`migrate dev` cũng không chạy được trong môi trường không tương tác. Quy trình:
 
 ```bash
-pnpm prisma migrate dev --create-only --name <x>   # chỉ sinh file, chưa áp dụng
-# mở migration.sql, xoá mọi câu lệnh động tới các object trên
-pnpm prisma migrate dev                            # áp dụng
+f=prisma/migrations/$(date -u +%Y%m%d%H%M%S)_<ten>/migration.sql; mkdir -p "$(dirname "$f")"
+pnpm prisma migrate diff \
+  --from-url "$(node --env-file=.env -e 'process.stdout.write(process.env.DIRECT_URL)')" \
+  --to-schema-datamodel prisma/schema.prisma --script > "$f"
+# mở $f, xoá 3 dòng DROP INDEX uq_*_position và mọi câu lệnh động tới các object trên
+pnpm db:deploy                                     # = prisma migrate deploy
 ```
 
 ## Admin đầu tiên
