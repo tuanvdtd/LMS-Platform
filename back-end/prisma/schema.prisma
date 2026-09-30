@@ -18,7 +18,7 @@ generator client {
 
 // Không dùng preview feature postgresqlExtensions: Supabase luôn cài sẵn
 // pg_cron, pgcrypto, supabase_vault… → Prisma coi là drift và đòi reset mãi.
-// vector / pg_trgm / unaccent tạo bằng SQL ở ĐẦU migration init (mục 5).
+// vector / pg_trgm tạo bằng SQL ở ĐẦU migration init (mục 5).
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL") // transaction pooler :6543 ?pgbouncer=true
@@ -283,10 +283,10 @@ model Course {
   totalDurationSec Int     @default(0)
   lessonCount      Int     @default(0)
 
-  // Prisma không có kiểu vector/tsvector → khai Unsupported, thao tác bằng $queryRaw.
+  // Prisma không có kiểu vector → khai Unsupported, thao tác bằng $queryRaw.
   // embedding ghi bởi worker khi nhận event `course.approved` (§4.5).
+  // Tìm kiếm khoá học dùng Elasticsearch, không lưu tsvector trong DB.
   embedding Unsupported("vector(1536)")?
-  searchTsv Unsupported("tsvector")?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -551,6 +551,8 @@ model Topic {
   mastery    UserTopicMastery[]
   targetedBy UserTargetTopic[]
 
+  // Autocomplete ô "Tìm kiếm topic" ở bước 3 onboarding (name % $1). Cần extension pg_trgm.
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_topics_name_trgm")
   @@map("topics")
 }
 

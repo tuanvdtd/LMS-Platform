@@ -83,6 +83,7 @@ ALTER TABLE lessons
 
 -- ---------------------------------------------------------------------------
 --  3. Full-text search tiếng Việt
+--  [2026-09-30] Đã bỏ, tìm kiếm chuyển sang Elasticsearch. Xem migration drop_pg_fulltext.
 --  unaccent() không IMMUTABLE nên không dùng trực tiếp trong generated column.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION immutable_unaccent(text)

@@ -19,6 +19,7 @@ ALTER TABLE "_TopicPrereq"
   ADD CONSTRAINT chk_topic_not_self_prereq CHECK ("A" <> "B");
 
 -- Ô "Tìm kiếm topic" ở bước 3 onboarding: autocomplete trên toàn catalog.
+-- [2026-09-30] Đã khai trong schema.prisma (@@index type: Gin), Prisma tự quản lý.
 CREATE INDEX idx_topics_name_trgm ON topics USING gin (name gin_trgm_ops);
 
 -- Mỗi khoá tối đa 1 topic chính. "Đúng 1 khi publish" kiểm ở service publish.

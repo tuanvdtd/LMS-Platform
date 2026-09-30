@@ -20,8 +20,8 @@ shadow DB của `prisma migrate dev` không tạo được pg_cron.
 
 ## Sửa schema (migrate dev)
 
-Có object viết tay mà Prisma không biết: `idx_courses_search`, `idx_courses_title_trgm`, `idx_courses_embedding`, cột generated `courses."searchTsv"`, `idx_topics_name_trgm`, `uq_course_primary_topic`.
-`prisma migrate dev` sẽ sinh `DROP INDEX` / `ALTER ... "searchTsv" DROP DEFAULT` cho chúng và áp dụng luôn. Luôn chạy:
+Có object viết tay mà Prisma không biết: `idx_courses_embedding`, `uq_course_primary_topic`.
+`prisma migrate dev` có thể sinh `DROP INDEX` cho chúng và áp dụng luôn. Luôn chạy:
 
 ```bash
 pnpm prisma migrate dev --create-only --name <x>   # chỉ sinh file, chưa áp dụng
