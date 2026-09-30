@@ -90,13 +90,52 @@ describe('GET /api/categories/tree', () => {
     });
     expect(dev.children.map((c) => c.slug)).toEqual(devKids.map((k) => k.slug));
     expect(dev.children.every((c) => !('children' in c))).toBe(true);
-    expect(Object.keys(tree[0]).sort()).toEqual(['children', 'name', 'slug']);
-    expect(Object.keys(dev.children[0]).sort()).toEqual(['name', 'slug', 'topics']);
+    expect(Object.keys(tree[0]).sort()).toEqual(['children', 'id', 'name', 'slug']);
+    expect(Object.keys(dev.children[0]).sort()).toEqual(['id', 'name', 'slug', 'topics']);
   });
 
   it('web-development có topic javascript đứng đầu', async () => {
     const { body } = await request(app.getHttpServer()).get('/api/categories/tree');
     const web = (body as CategoryNode[]).flatMap((c) => c.children).find((c) => c.slug === 'web-development')!;
-    expect(web.topics[0]).toEqual({ slug: 'javascript', name: 'JavaScript' });
+    const js = await prisma.topic.findUniqueOrThrow({ where: { slug: 'javascript' } });
+    expect(web.topics[0]).toEqual({ id: js.id, slug: 'javascript', name: 'JavaScript' });
+    expect(web.id).toBe((await prisma.category.findUniqueOrThrow({ where: { slug: 'web-development' } })).id);
+  });
+});
+
+describe('GET /api/topics', () => {
+  let app: INestApplication<App>;
+
+  beforeAll(async () => {
+    const mod = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    app = mod.createNestApplication({ bodyParser: false });
+    setupApp(app);
+    await app.init();
+  });
+  afterAll(() => app.close());
+
+  it('public, tìm theo tên không phân biệt hoa thường, mặc định ≤ 10', async () => {
+    const { body } = await request(app.getHttpServer()).get('/api/topics?q=JAVA').expect(200);
+    const topics = body as { id: string; slug: string; name: string }[];
+    expect(topics.length).toBeGreaterThan(0);
+    expect(topics.length).toBeLessThanOrEqual(10);
+    for (const t of topics) {
+      expect(Object.keys(t).sort()).toEqual(['id', 'name', 'slug']);
+      expect(t.name.toLowerCase()).toContain('java');
+    }
+  });
+
+  it('limit giới hạn số kết quả', async () => {
+    const { body } = await request(app.getHttpServer()).get('/api/topics?q=a&limit=2').expect(200);
+    expect(body).toHaveLength(2);
+  });
+
+  it('q rỗng / thiếu, limit ngoài 1–20 → 400 có path', async () => {
+    const res = await request(app.getHttpServer()).get('/api/topics?q=%20').expect(400);
+    expect(res.body).toMatchObject({ statusCode: 400, message: 'Dữ liệu không hợp lệ' });
+    expect(res.body.errors[0].path).toEqual(['q']);
+    await request(app.getHttpServer()).get('/api/topics').expect(400);
+    const bad = await request(app.getHttpServer()).get('/api/topics?q=a&limit=21').expect(400);
+    expect(bad.body.errors[0].path).toEqual(['limit']);
   });
 });

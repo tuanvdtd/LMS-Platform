@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "nextjs": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/nextjs/SKILL.md",
+      "computedHash": "d61f1dfec6cb644b0a60835f292ad2b832d3d2e0a26fb8d7385248b5fb47825d"
+    },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "d04e43ec01e921558b93bb8046c14a42a22556689a2827243df900825a4e1604"
+    }
+  }
+}

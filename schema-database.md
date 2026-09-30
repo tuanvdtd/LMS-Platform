@@ -367,9 +367,10 @@ model Course {
   //  categoryId — chủ đề khoá nói về cái gì. Dùng để duyệt/lọc/breadcrumb (kiểu Udemy).
   //  track      — nghề nghiệp học viên nhắm tới. Dùng để khớp users.targetTrack
   //               trong recommendation tầng 1 (§3.4). Udemy không có trục này.
-  categoryId           String       @db.Uuid
-  track                Track
-  level                SkillLevel
+  // Nháp được để trống (spec 2026-09-30-course-create-basics C2); checklist gửi duyệt bắt buộc đủ.
+  categoryId           String?      @db.Uuid
+  track                Track?
+  level                SkillLevel?
   language             String       @default("vi")
   priceAmount          Int          @default(0) // đơn vị nhỏ nhất của currency
   currency             String       @default("VND")
@@ -377,12 +378,11 @@ model Course {
   publishedAt          DateTime?
   copyrightConfirmedAt DateTime?
 
-  // Trang "Học viên mục tiêu" + "Tin nhắn khoá học" của Udemy. Độ dài/số mục kiểm lúc gửi duyệt (service).
+  // Trang "Học viên mục tiêu" của Udemy. Độ dài/số mục kiểm lúc gửi duyệt (service).
+  // Bỏ trang "Tin nhắn khoá học" → không có welcomeMessage/congratsMessage (spec course-create-basics C7).
   learningObjectives String[] @default([]) // ≥4 mục, ≤160 ký tự/mục
   requirements       String[] @default([]) // ≥1
   targetAudience     String[] @default([]) // ≥1
-  welcomeMessage     String? // ≤1000
-  congratsMessage    String? // ≤1000
   qaEnabled          Boolean  @default(true)
 
   // Denormalized — worker cập nhật, không phải nguồn sự thật.
@@ -401,7 +401,7 @@ model Course {
   updatedAt DateTime @updatedAt
 
   instructor    User              @relation("courseInstructor", fields: [instructorId], references: [id])
-  category      Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category      Category?         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   sections      Section[]
   items         CurriculumItem[]
   approvals     CourseApproval[]
