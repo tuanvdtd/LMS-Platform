@@ -80,8 +80,8 @@ model User {
   cartItems            CartItem[]
   orders               Order[]
   earnings             OrderItem[]             @relation("itemInstructor")
-  skillMastery         UserSkillMastery[]
-  targetSkills         UserTargetSkill[]
+  topicMastery         UserTopicMastery[]
+  targetTopics         UserTargetTopic[]
   questionsCreated     Question[]
   quizAttempts         QuizAttempt[]
   submissions          Submission[]
@@ -300,7 +300,7 @@ model Course {
   enrollments  Enrollment[]
   cartItems    CartItem[]
   orderItems   OrderItem[]
-  skills       CourseSkill[]
+  topics       CourseTopic[]
   questions    Question[]
   quizzes      Quiz[]
   exercises    Exercise[]
@@ -527,78 +527,83 @@ model PaymentEvent {
 }
 
 // ============================================================================
-//  6. KỸ NĂNG — lõi của hồ sơ năng lực (§3.3) và recommendation tầng 2 (§3.4)
+//  6. TOPIC — taxonomy kiểu Udemy + lõi hồ sơ năng lực (§3.3), gợi ý tầng 2 (§3.4)
 // ============================================================================
 
-model Skill {
+// Topic kiểu Udemy ("react", "docker", slug theo udemy.com/topic/<slug>).
+// Không gắn cứng vào một category: một topic xuất hiện ở nhiều nhánh cấp 2
+// (Python ở cả Khoa học dữ liệu và Ngôn ngữ lập trình). Menu "Chủ đề phổ biến"
+// của từng nhánh được tính từ course_topics của các khoá đã duyệt (approved) trong nhánh đó.
+// Đây cũng là đơn vị đo năng lực: mastery, đồ thị tiên quyết, gợi ý tầng 2.
+model Topic {
   id          String  @id @default(uuid(7)) @db.Uuid
-  slug        String  @unique // "react-hooks", "sql-join"
+  slug        String  @unique
   name        String
-  track       Track?
   description String?
 
-  // Đồ thị tiên quyết: JS → React → Next.js. Duyệt bằng WITH RECURSIVE (§4.6).
-  prerequisites Skill[] @relation("SkillPrereq")
-  requiredBy    Skill[] @relation("SkillPrereq")
+  // Đồ thị tiên quyết: JavaScript → React → Next.js. Duyệt bằng WITH RECURSIVE (§4.6).
+  prerequisites Topic[] @relation("TopicPrereq")
+  requiredBy    Topic[] @relation("TopicPrereq")
 
-  courses     CourseSkill[]
-  questions   QuestionSkill[]
-  exercises   ExerciseSkill[]
-  mastery     UserSkillMastery[]
-  targetedBy  UserTargetSkill[]
+  courses    CourseTopic[]
+  quizzes    QuizTopic[]
+  exercises  ExerciseTopic[]
+  mastery    UserTopicMastery[]
+  targetedBy UserTargetTopic[]
 
-  @@index([track]) // chip "Phổ biến với học viên như bạn" ở bước 3 onboarding
-  @@map("skills")
+  @@map("topics")
 }
 
-model CourseSkill {
-  courseId String  @db.Uuid
-  skillId  String  @db.Uuid
-  weight   Decimal @default(1.0) @db.Decimal(4, 2)
+// isPrimary = "khoá học chủ yếu dạy gì?" của Udemy. Tối đa 1 dòng true mỗi khoá
+// (partial unique index uq_course_primary_topic); "đúng 1 khi publish" kiểm ở service.
+model CourseTopic {
+  courseId  String  @db.Uuid
+  topicId   String  @db.Uuid
+  isPrimary Boolean @default(false)
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  skill  Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  topic  Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  @@id([courseId, skillId])
-  @@index([skillId]) // "khoá nào dạy kỹ năng đang yếu"
-  @@map("course_skills")
+  @@id([courseId, topicId])
+  @@index([topicId]) // "khoá nào dạy topic đang yếu"
+  @@map("course_topics")
 }
 
-// Độ thành thạo 0..1. Cập nhật khi nhận event `submission.graded` (§4.5),
-// đồng thời xoá cache gợi ý của user trong Redis.
-model UserSkillMastery {
+// Mastery cập nhật bằng EMA sau mỗi quiz/bài tập (spec §4):
+// score = attemptsCount == 0 ? s : 0.7·score + 0.3·s
+model UserTopicMastery {
   userId          String   @db.Uuid
-  skillId         String   @db.Uuid
+  topicId         String   @db.Uuid
   score           Decimal  @default(0) @db.Decimal(4, 3)
   attemptsCount   Int      @default(0)
-  correctCount    Int      @default(0)
   lastEvaluatedAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  @@id([userId, skillId])
-  @@index([userId, score]) // lấy kỹ năng score < 0.6
-  @@map("user_skill_mastery")
+  @@id([userId, topicId])
+  @@index([userId, score]) // lấy topic score < 0.6
+  @@map("user_topic_mastery")
 }
 
-// Kỹ năng học viên TỰ KHAI muốn học — bước 3 onboarding (kiểu /personalize/skills
-// của Udemy: đa chọn, có ô tìm kiếm + chip gợi ý theo nghề).
+// Topic học viên TỰ KHAI muốn học ở bước 3 onboarding (kiểu /personalize/skills
+// của Udemy: đa chọn, có ô tìm kiếm và chip gợi ý theo nghề).
 //
-// Khác user_skill_mastery = kỹ năng ĐO ĐƯỢC từ bài test. Chênh lệch giữa hai bảng
+// Khác user_topic_mastery là topic ĐO ĐƯỢC từ bài test. Chênh lệch giữa hai bảng
 // là tín hiệu chính của recommendation tầng 2, và quan trọng hơn: nó cho tầng 2
-// chạy được NGAY NGÀY ĐẦU, khi user_skill_mastery còn rỗng hoàn toàn.
-model UserTargetSkill {
+// chạy được NGAY NGÀY ĐẦU, khi user_topic_mastery còn rỗng hoàn toàn.
+// Chip "Phổ biến với học viên như bạn" = topic của các khoá có track = user.targetTrack.
+model UserTargetTopic {
   userId    String   @db.Uuid
-  skillId   String   @db.Uuid
-  createdAt DateTime @default(now()) // Udemy gọi là "theo dõi" — thêm/bỏ dần theo thời gian
+  topicId   String   @db.Uuid
+  createdAt DateTime @default(now()) // Udemy gọi là "theo dõi", thêm/bỏ dần theo thời gian
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  @@id([userId, skillId])
-  @@index([skillId])
-  @@map("user_target_skills")
+  @@id([userId, topicId])
+  @@index([topicId])
+  @@map("user_target_topics")
 }
 
 // ============================================================================
@@ -620,7 +625,6 @@ model Question {
   course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   createdBy User             @relation(fields: [createdById], references: [id])
   options   QuestionOption[]
-  skills    QuestionSkill[]
   inQuizzes QuizQuestion[]
   answers   QuizAnswer[]
   stats     StatQuestion[]
@@ -642,17 +646,18 @@ model QuestionOption {
   @@map("question_options")
 }
 
-// "Mỗi câu gắn tag kỹ năng" (§3.3) — nguồn để tính user_skill_mastery.
-model QuestionSkill {
-  questionId String @db.Uuid
-  skillId    String @db.Uuid
+// Tag topic ở cấp QUIZ (không tag từng câu): điểm lần làm quiz cộng vào mastery
+// của mọi topic ở đây. 1–3 topic, phải thuộc course_topics của khoá (kiểm ở service).
+model QuizTopic {
+  quizId  String @db.Uuid
+  topicId String @db.Uuid
 
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  quiz  Quiz  @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  @@id([questionId, skillId])
-  @@index([skillId])
-  @@map("question_skills")
+  @@id([quizId, topicId])
+  @@index([topicId])
+  @@map("quiz_topics")
 }
 
 model Quiz {
@@ -672,6 +677,7 @@ model Quiz {
   course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lesson    Lesson?        @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   questions QuizQuestion[]
+  topics    QuizTopic[]
   attempts  QuizAttempt[]
   stats     StatQuestion[]
 
@@ -758,7 +764,7 @@ model Exercise {
   lesson      Lesson?               @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   starters    ExerciseStarterCode[]
   testCases   ExerciseTestCase[]
-  skills      ExerciseSkill[]
+  topics      ExerciseTopic[]
   submissions Submission[]
   stats       StatExercise?
 
@@ -793,16 +799,16 @@ model ExerciseTestCase {
   @@map("exercise_test_cases")
 }
 
-model ExerciseSkill {
+model ExerciseTopic {
   exerciseId String @db.Uuid
-  skillId    String @db.Uuid
+  topicId    String @db.Uuid
 
   exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  topic    Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  @@id([exerciseId, skillId])
-  @@index([skillId])
-  @@map("exercise_skills")
+  @@id([exerciseId, topicId])
+  @@index([topicId])
+  @@map("exercise_topics")
 }
 
 model Submission {

@@ -17,9 +17,9 @@ Phạm vi: toàn bộ mức **Bắt buộc** và **Nên có** trong §3.6. Bỏ 
 | 3 | Khoá học & nội dung | `categories` `courses` `sections` `lessons` `lesson_resources` `course_reviews` | §3.1, §3.2 |
 | 4 | Ghi danh & tiến độ | `enrollments` `lesson_progress` | §3.1, §3.5b |
 | 5 | Thương mại | `cart_items` `orders` `order_items` `refunds` `payment_events` | §3.1, §3.5a |
-| 6 | Kỹ năng | `skills` `_SkillPrereq` `course_skills` `user_skill_mastery` `user_target_skills` | §3.3 hồ sơ năng lực, §3.4 tầng 2 |
-| 7 | Trắc nghiệm | `questions` `question_options` `question_skills` `quizzes` `quiz_questions` `quiz_attempts` `quiz_answers` | §3.3, §3.5c |
-| 8 | Bài tập lập trình | `exercises` `exercise_starter_codes` `exercise_test_cases` `exercise_skills` `submissions` `submission_results` | §3.3, §4.5 |
+| 6 | Topic | `topics` `_TopicPrereq` `course_topics` `user_topic_mastery` `user_target_topics` | §3.3 hồ sơ năng lực, §3.4 tầng 2 |
+| 7 | Trắc nghiệm | `questions` `question_options` `quizzes` `quiz_questions` `quiz_topics` `quiz_attempts` `quiz_answers` | §3.3, §3.5c |
+| 8 | Bài tập lập trình | `exercises` `exercise_starter_codes` `exercise_test_cases` `exercise_topics` `submissions` `submission_results` | §3.3, §4.5 |
 | 9 | Chứng chỉ | `certificates` | §3.3 |
 | 10 | Thống kê dashboard | `stat_course_daily` `stat_video_buckets` `stat_questions` `stat_exercises` `stat_student_risk` `email_logs` | §3.5 |
 | — | Materialized view | `mv_course_copurchase` `mv_lesson_dropoff` `mv_course_completion` | §3.4 tầng 3, §3.5b |
@@ -28,10 +28,10 @@ Phạm vi: toàn bộ mức **Bắt buộc** và **Nên có** trong §3.6. Bỏ 
 
 | Quyết định | Lý do |
 |---|---|
-| **Tách kỹ năng TỰ KHAI khỏi kỹ năng ĐO ĐƯỢC** | `user_target_skills` (học viên chọn lúc onboarding) vs `user_skill_mastery` (tính từ bài test). Chênh lệch hai bảng là tín hiệu tầng 2, và bảng đầu cho tầng 2 **chạy ngay ngày đăng ký** thay vì phải chờ có dữ liệu test. Không gộp làm một vì "muốn học" và "đang yếu" là hai việc khác nhau — yếu `sql-join` nhưng không quan tâm SQL thì không nên gợi ý. |
+| **Tách topic TỰ KHAI khỏi topic ĐO ĐƯỢC** | `user_target_topics` (học viên chọn lúc onboarding) vs `user_topic_mastery` (tính từ bài test). Chênh lệch hai bảng là tín hiệu tầng 2, và bảng đầu cho tầng 2 **chạy ngay ngày đăng ký** thay vì phải chờ có dữ liệu test. Không gộp làm một vì "muốn học" và "đang yếu" là hai việc khác nhau — yếu `sql` nhưng không quan tâm SQL thì không nên gợi ý. |
 | **Hai trục phân loại tách rời** | `categories` = chủ đề (kiểu Udemy, để duyệt/lọc/breadcrumb). `Track` = nghề nghiệp học viên nhắm tới (để khớp `users.targetTrack` ở recommendation tầng 1). Udemy chỉ có trục đầu; §3.4 cần cả hai. Gộp làm một enum thì mất breadcrumb và thêm danh mục phải migrate. |
 | **`categories` là bảng tự tham chiếu, không phải enum** | Một bảng thay vì ba (`category`/`subcategory`/`topic`). Admin thêm danh mục không cần redeploy — Udemy sửa taxonomy của họ định kỳ. Trigger chặn ở 2 tầng. |
-| **Không có tầng "topic" của Udemy** | `skills` + `course_skills` đã là tầng mịn và làm việc thật (mastery, đồ thị tiên quyết, tầng 2). Thêm `topics` là khái niệm thứ ba chồng lấn, không ai tiêu thụ. |
+| **Topic kiểu Udemy thay cho skill** | Một bảng `topics` (slug theo udemy.com/topic) làm cả taxonomy duyệt lẫn đơn vị đo năng lực. Topic không gắn cứng vào category; "Chủ đề phổ biến" của nhánh cấp 2 tính từ course_topics. Tag ở cấp quiz, không tag từng câu (spec 2026-09-29-udemy-taxonomy-topics). |
 | **UUID v7** cho mọi khoá chính | Sắp theo thời gian → B-tree không phân mảnh như UUID v4. Better Auth phải cấu hình `generateId` cùng loại, xem ghi chú trong schema. |
 | **Không có bảng lưu heartbeat thô** | §4.5: Supabase free giới hạn 500MB. Worker Kafka gom batch rồi ghi thẳng vào `stat_video_buckets` và `lesson_progress`. |
 | **Session ở Redis + DB** | §4.4: `secondaryStorage` = Redis để đọc nhanh, `storeSessionInDatabase: true` để bảng `session` vẫn là nguồn chính — admin liệt kê/revoke được, Redis restart không đăng xuất mọi người. |
@@ -59,14 +59,14 @@ user ─┬─< instructor_applications ──> (admin duyệt)
       │            │                        ├─── quizzes ─< quiz_questions >─ questions
       │            │                        ├─── exercises ─< exercise_test_cases
       │            │                        └─< stat_video_buckets
-      │            ├─< course_skills >─ skills ─< _SkillPrereq (tự tham chiếu)
+      │            ├─< course_topics >─ topics ─< _TopicPrereq (tự tham chiếu)
       │            ├─< course_reviews
       │            └─< stat_course_daily
       ├─< enrollments ─< lesson_progress >─ lessons
       ├─< orders ─< order_items ─< refunds
       ├─< cart_items
-      ├─< user_skill_mastery >─ skills          ← kỹ năng ĐO ĐƯỢC (từ bài test)
-      ├─< user_target_skills >─ skills          ← kỹ năng TỰ KHAI (onboarding)
+      ├─< user_topic_mastery >─ topics          ← topic ĐO ĐƯỢC (từ bài test)
+      ├─< user_target_topics >─ topics          ← topic TỰ KHAI (onboarding)
       │                                            chênh lệch 2 bảng = tầng 2
       ├─< quiz_attempts ─< quiz_answers >─ questions
       ├─< submissions ─< submission_results >─ exercise_test_cases
@@ -74,11 +74,11 @@ user ─┬─< instructor_applications ──> (admin duyệt)
       ├─< stat_student_risk
       └─< email_logs
 
-questions >─< question_skills >─ skills        ← "mỗi câu gắn tag kỹ năng"
-exercises >─< exercise_skills  >─ skills
+quizzes   >─< quiz_topics     >─ topics        ← "mỗi quiz gắn 1–3 topic"
+exercises >─< exercise_topics >─ topics
 ```
 
-Luồng tính **hồ sơ năng lực**: `quiz_answers` / `submissions` → tag qua `question_skills` / `exercise_skills` → cập nhật `user_skill_mastery` → nuôi recommendation tầng 2 và radar chart §3.5d.
+Luồng tính **hồ sơ năng lực**: `quiz_attempts` / `submissions` → topic qua `quiz_topics` / `exercise_topics` → EMA vào `user_topic_mastery` → nuôi recommendation tầng 2 và radar chart §3.5d.
 
 ---
 
@@ -167,8 +167,8 @@ model User {
   cartItems            CartItem[]
   orders               Order[]
   earnings             OrderItem[]             @relation("itemInstructor")
-  skillMastery         UserSkillMastery[]
-  targetSkills         UserTargetSkill[]
+  topicMastery         UserTopicMastery[]
+  targetTopics         UserTargetTopic[]
   questionsCreated     Question[]
   quizAttempts         QuizAttempt[]
   submissions          Submission[]
@@ -387,7 +387,7 @@ model Course {
   enrollments  Enrollment[]
   cartItems    CartItem[]
   orderItems   OrderItem[]
-  skills       CourseSkill[]
+  topics       CourseTopic[]
   questions    Question[]
   quizzes      Quiz[]
   exercises    Exercise[]
@@ -614,78 +614,83 @@ model PaymentEvent {
 }
 
 // ============================================================================
-//  6. KỸ NĂNG — lõi của hồ sơ năng lực (§3.3) và recommendation tầng 2 (§3.4)
+//  6. TOPIC — taxonomy kiểu Udemy + lõi hồ sơ năng lực (§3.3), gợi ý tầng 2 (§3.4)
 // ============================================================================
 
-model Skill {
+// Topic kiểu Udemy ("react", "docker", slug theo udemy.com/topic/<slug>).
+// Không gắn cứng vào một category: một topic xuất hiện ở nhiều nhánh cấp 2
+// (Python ở cả Khoa học dữ liệu và Ngôn ngữ lập trình). Menu "Chủ đề phổ biến"
+// của từng nhánh được tính từ course_topics của các khoá đã duyệt (approved) trong nhánh đó.
+// Đây cũng là đơn vị đo năng lực: mastery, đồ thị tiên quyết, gợi ý tầng 2.
+model Topic {
   id          String  @id @default(uuid(7)) @db.Uuid
-  slug        String  @unique // "react-hooks", "sql-join"
+  slug        String  @unique
   name        String
-  track       Track?
   description String?
 
-  // Đồ thị tiên quyết: JS → React → Next.js. Duyệt bằng WITH RECURSIVE (§4.6).
-  prerequisites Skill[] @relation("SkillPrereq")
-  requiredBy    Skill[] @relation("SkillPrereq")
+  // Đồ thị tiên quyết: JavaScript → React → Next.js. Duyệt bằng WITH RECURSIVE (§4.6).
+  prerequisites Topic[] @relation("TopicPrereq")
+  requiredBy    Topic[] @relation("TopicPrereq")
 
-  courses     CourseSkill[]
-  questions   QuestionSkill[]
-  exercises   ExerciseSkill[]
-  mastery     UserSkillMastery[]
-  targetedBy  UserTargetSkill[]
+  courses    CourseTopic[]
+  quizzes    QuizTopic[]
+  exercises  ExerciseTopic[]
+  mastery    UserTopicMastery[]
+  targetedBy UserTargetTopic[]
 
-  @@index([track]) // chip "Phổ biến với học viên như bạn" ở bước 3 onboarding
-  @@map("skills")
+  @@map("topics")
 }
 
-model CourseSkill {
-  courseId String  @db.Uuid
-  skillId  String  @db.Uuid
-  weight   Decimal @default(1.0) @db.Decimal(4, 2)
+// isPrimary = "khoá học chủ yếu dạy gì?" của Udemy. Tối đa 1 dòng true mỗi khoá
+// (partial unique index uq_course_primary_topic); "đúng 1 khi publish" kiểm ở service.
+model CourseTopic {
+  courseId  String  @db.Uuid
+  topicId   String  @db.Uuid
+  isPrimary Boolean @default(false)
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  skill  Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  topic  Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  @@id([courseId, skillId])
-  @@index([skillId]) // "khoá nào dạy kỹ năng đang yếu"
-  @@map("course_skills")
+  @@id([courseId, topicId])
+  @@index([topicId]) // "khoá nào dạy topic đang yếu"
+  @@map("course_topics")
 }
 
-// Độ thành thạo 0..1. Cập nhật khi nhận event `submission.graded` (§4.5),
-// đồng thời xoá cache gợi ý của user trong Redis.
-model UserSkillMastery {
+// Mastery cập nhật bằng EMA sau mỗi quiz/bài tập (spec §4):
+// score = attemptsCount == 0 ? s : 0.7·score + 0.3·s
+model UserTopicMastery {
   userId          String   @db.Uuid
-  skillId         String   @db.Uuid
+  topicId         String   @db.Uuid
   score           Decimal  @default(0) @db.Decimal(4, 3)
   attemptsCount   Int      @default(0)
-  correctCount    Int      @default(0)
   lastEvaluatedAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  @@id([userId, skillId])
-  @@index([userId, score]) // lấy kỹ năng score < 0.6
-  @@map("user_skill_mastery")
+  @@id([userId, topicId])
+  @@index([userId, score]) // lấy topic score < 0.6
+  @@map("user_topic_mastery")
 }
 
-// Kỹ năng học viên TỰ KHAI muốn học — bước 3 onboarding (kiểu /personalize/skills
-// của Udemy: đa chọn, có ô tìm kiếm + chip gợi ý theo nghề).
+// Topic học viên TỰ KHAI muốn học ở bước 3 onboarding (kiểu /personalize/skills
+// của Udemy: đa chọn, có ô tìm kiếm và chip gợi ý theo nghề).
 //
-// Khác user_skill_mastery = kỹ năng ĐO ĐƯỢC từ bài test. Chênh lệch giữa hai bảng
+// Khác user_topic_mastery là topic ĐO ĐƯỢC từ bài test. Chênh lệch giữa hai bảng
 // là tín hiệu chính của recommendation tầng 2, và quan trọng hơn: nó cho tầng 2
-// chạy được NGAY NGÀY ĐẦU, khi user_skill_mastery còn rỗng hoàn toàn.
-model UserTargetSkill {
+// chạy được NGAY NGÀY ĐẦU, khi user_topic_mastery còn rỗng hoàn toàn.
+// Chip "Phổ biến với học viên như bạn" = topic của các khoá có track = user.targetTrack.
+model UserTargetTopic {
   userId    String   @db.Uuid
-  skillId   String   @db.Uuid
-  createdAt DateTime @default(now()) // Udemy gọi là "theo dõi" — thêm/bỏ dần theo thời gian
+  topicId   String   @db.Uuid
+  createdAt DateTime @default(now()) // Udemy gọi là "theo dõi", thêm/bỏ dần theo thời gian
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  @@id([userId, skillId])
-  @@index([skillId])
-  @@map("user_target_skills")
+  @@id([userId, topicId])
+  @@index([topicId])
+  @@map("user_target_topics")
 }
 
 // ============================================================================
@@ -707,7 +712,6 @@ model Question {
   course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   createdBy User             @relation(fields: [createdById], references: [id])
   options   QuestionOption[]
-  skills    QuestionSkill[]
   inQuizzes QuizQuestion[]
   answers   QuizAnswer[]
   stats     StatQuestion[]
@@ -729,17 +733,18 @@ model QuestionOption {
   @@map("question_options")
 }
 
-// "Mỗi câu gắn tag kỹ năng" (§3.3) — nguồn để tính user_skill_mastery.
-model QuestionSkill {
-  questionId String @db.Uuid
-  skillId    String @db.Uuid
+// Tag topic ở cấp QUIZ (không tag từng câu): điểm lần làm quiz cộng vào mastery
+// của mọi topic ở đây. 1–3 topic, phải thuộc course_topics của khoá (kiểm ở service).
+model QuizTopic {
+  quizId  String @db.Uuid
+  topicId String @db.Uuid
 
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  quiz  Quiz  @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  @@id([questionId, skillId])
-  @@index([skillId])
-  @@map("question_skills")
+  @@id([quizId, topicId])
+  @@index([topicId])
+  @@map("quiz_topics")
 }
 
 model Quiz {
@@ -759,6 +764,7 @@ model Quiz {
   course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lesson    Lesson?        @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   questions QuizQuestion[]
+  topics    QuizTopic[]
   attempts  QuizAttempt[]
   stats     StatQuestion[]
 
@@ -845,7 +851,7 @@ model Exercise {
   lesson      Lesson?               @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   starters    ExerciseStarterCode[]
   testCases   ExerciseTestCase[]
-  skills      ExerciseSkill[]
+  topics      ExerciseTopic[]
   submissions Submission[]
   stats       StatExercise?
 
@@ -880,16 +886,16 @@ model ExerciseTestCase {
   @@map("exercise_test_cases")
 }
 
-model ExerciseSkill {
+model ExerciseTopic {
   exerciseId String @db.Uuid
-  skillId    String @db.Uuid
+  topicId    String @db.Uuid
 
   exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  topic    Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  @@id([exerciseId, skillId])
-  @@index([skillId])
-  @@map("exercise_skills")
+  @@id([exerciseId, topicId])
+  @@index([topicId])
+  @@map("exercise_topics")
 }
 
 model Submission {
@@ -1242,7 +1248,7 @@ CREATE EXTENSION IF NOT EXISTS unaccent;
 ALTER TABLE course_reviews
   ADD CONSTRAINT chk_review_rating CHECK (rating BETWEEN 1 AND 5);
 
-ALTER TABLE user_skill_mastery
+ALTER TABLE user_topic_mastery
   ADD CONSTRAINT chk_mastery_score CHECK (score >= 0 AND score <= 1);
 
 ALTER TABLE quizzes
@@ -1286,10 +1292,12 @@ CREATE TRIGGER trg_category_depth
   BEFORE INSERT OR UPDATE ON categories
   FOR EACH ROW EXECUTE FUNCTION chk_category_depth();
 
--- Đồ thị kỹ năng tiên quyết không được tự trỏ vào chính nó.
--- Prisma sinh bảng m-n ẩn "_SkillPrereq" với 2 cột "A", "B".
-ALTER TABLE "_SkillPrereq"
-  ADD CONSTRAINT chk_skill_not_self_prereq CHECK ("A" <> "B");
+-- Lưu ý: chk_mastery_score và chk_topic_not_self_prereq (topic) nay nằm ở prisma/sql/03_taxonomy_topics.sql;
+-- 01_post_migrate.sql giữ tên skill cũ kèm comment trỏ sang 03.
+-- Đồ thị topic tiên quyết không được tự trỏ vào chính nó.
+-- Prisma sinh bảng m-n ẩn "_TopicPrereq" với 2 cột "A", "B".
+ALTER TABLE "_TopicPrereq"
+  ADD CONSTRAINT chk_topic_not_self_prereq CHECK ("A" <> "B");
 
 -- Bài học video phải có asset, bài viết phải có nội dung.
 ALTER TABLE lessons
@@ -1318,8 +1326,8 @@ ALTER TABLE courses ADD COLUMN "searchTsv" tsvector
 CREATE INDEX idx_courses_search ON courses USING gin ("searchTsv");
 CREATE INDEX idx_courses_title_trgm ON courses USING gin (title gin_trgm_ops); -- gõ sai chính tả
 
--- Ô "Tìm kiếm một kỹ năng" ở bước 3 onboarding — autocomplete trên toàn catalog.
-CREATE INDEX idx_skills_name_trgm ON skills USING gin (name gin_trgm_ops);
+-- Ô "Tìm kiếm một topic" ở bước 3 onboarding — autocomplete trên toàn catalog.
+CREATE INDEX idx_topics_name_trgm ON topics USING gin (name gin_trgm_ops);
 
 -- ---------------------------------------------------------------------------
 --  4. pgvector — recommendation tầng 4 (§3.4)
@@ -1350,6 +1358,9 @@ CREATE INDEX idx_quizzes_final ON quizzes ("courseId")
 -- Chỉ có 1 quiz cuối khoá cho mỗi khoá học.
 CREATE UNIQUE INDEX uq_one_final_quiz_per_course ON quizzes ("courseId")
   WHERE "isFinal" = true;
+
+-- Mỗi khoá tối đa 1 topic chính. "Đúng 1 khi publish" kiểm ở service publish.
+CREATE UNIQUE INDEX uq_course_primary_topic ON course_topics ("courseId") WHERE "isPrimary";
 
 -- ---------------------------------------------------------------------------
 --  6. Materialized view — cron REFRESH hằng đêm (§4.5, §4.6)
@@ -1425,34 +1436,11 @@ REFRESH MATERIALIZED VIEW mv_lesson_dropoff;
 REFRESH MATERIALIZED VIEW mv_course_completion;
 
 -- ---------------------------------------------------------------------------
---  7. Seed taxonomy — phần IT của Udemy, bỏ Hardware và "Other"
---  courses."categoryId" NOT NULL nên phải chạy trước khi tạo khoá học đầu tiên.
+--  7. Seed taxonomy — xem back-end/prisma/sql/04_taxonomy_seed.sql
+--  4 category cấp 1, 25 cấp 2, 159 topic, 17 cạnh tiên quyết; idempotent
+--  (chạy lại không nhân đôi). Phải chạy trước khi tạo khoá học đầu tiên
+--  vì courses."categoryId" NOT NULL.
 -- ---------------------------------------------------------------------------
-INSERT INTO categories (id, "parentId", slug, name, position) VALUES
-  (gen_random_uuid(), NULL, 'lap-trinh',        'Lập trình',         1),
-  (gen_random_uuid(), NULL, 'khoa-hoc-du-lieu', 'Khoa học dữ liệu',  2),
-  (gen_random_uuid(), NULL, 'cntt-ha-tang',     'CNTT & Hạ tầng',    3);
-
-INSERT INTO categories (id, "parentId", slug, name, position)
-SELECT gen_random_uuid(), p.id, s.slug, s.name, s.position
-FROM (VALUES
-  ('lap-trinh',        'web',              'Phát triển Web',            1),
-  ('lap-trinh',        'mobile',           'Phát triển Mobile',         2),
-  ('lap-trinh',        'ngon-ngu',         'Ngôn ngữ lập trình',        3),
-  ('lap-trinh',        'co-so-du-lieu',    'Cơ sở dữ liệu',             4),
-  ('lap-trinh',        'game',             'Lập trình Game',            5),
-  ('lap-trinh',        'kiem-thu',         'Kiểm thử phần mềm',         6),
-  ('lap-trinh',        'ky-thuat-pm',      'Kỹ thuật phần mềm',         7),
-  ('lap-trinh',        'cong-cu',          'Công cụ lập trình',         8),
-  ('khoa-hoc-du-lieu', 'data-science',     'Data Science',              1),
-  ('khoa-hoc-du-lieu', 'phan-tich-du-lieu','Phân tích dữ liệu',         2),
-  ('khoa-hoc-du-lieu', 'ai-ml',            'AI & Machine Learning',     3),
-  ('cntt-ha-tang',     'devops-cloud',     'DevOps & Cloud',            1),
-  ('cntt-ha-tang',     'mang-bao-mat',     'Mạng & Bảo mật',            2),
-  ('cntt-ha-tang',     'he-dieu-hanh',     'Hệ điều hành & Máy chủ',    3),
-  ('cntt-ha-tang',     'chung-chi',        'Chứng chỉ CNTT',            4)
-) AS s(parent_slug, slug, name, position)
-JOIN categories p ON p.slug = s.parent_slug;
 
 -- ---------------------------------------------------------------------------
 --  8. Dọn user chưa xác minh email sau 7 ngày (pg_cron, 3h sáng giờ VN hằng ngày; pg_cron chạy theo UTC nên lịch là 20:00 UTC)
@@ -1512,126 +1500,126 @@ ORDER BY c."enrollmentCount" DESC
 LIMIT 20;
 
 -- ---------------------------------------------------------------------------
---  ONBOARDING BƯỚC 3 — hai truy vấn cho màn chọn kỹ năng
+--  ONBOARDING BƯỚC 3 — hai truy vấn cho màn chọn topic
 -- ---------------------------------------------------------------------------
 
--- Chip "Phổ biến với học viên như bạn": kỹ năng của nghề đã chọn, xếp theo số
--- khoá dạy nó. $1 = users.targetTrack
-SELECT s.id, s.name, COUNT(cs."courseId")::int AS course_count
-FROM skills s
-LEFT JOIN course_skills cs ON cs."skillId" = s.id
-WHERE s.track = $1::"Track"
-GROUP BY s.id, s.name
+-- Chip "Phổ biến với học viên như bạn": topic của các khoá có track = user.targetTrack,
+-- xếp theo số khoá dạy nó. $1 = users.targetTrack
+SELECT t.id, t.name, COUNT(*)::int AS course_count
+FROM topics t
+JOIN course_topics ct ON ct."topicId" = t.id
+JOIN courses c ON c.id = ct."courseId"
+WHERE c.track = $1::"Track" AND c.status = 'approved'
+GROUP BY t.id, t.name
 ORDER BY course_count DESC
 LIMIT 20;
 
--- Ô "Tìm kiếm một kỹ năng": autocomplete toàn catalog. $1 = chuỗi người dùng gõ
+-- Ô "Tìm kiếm một topic": autocomplete toàn catalog. $1 = chuỗi người dùng gõ
 SELECT s.id, s.name, similarity(s.name, $1) AS sim
-FROM skills s
-WHERE s.name % $1 -- dùng idx_skills_name_trgm
+FROM topics s
+WHERE s.name % $1 -- dùng idx_topics_name_trgm
 ORDER BY sim DESC
 LIMIT 10;
 
 -- ---------------------------------------------------------------------------
---  TẦNG 2 ⭐ — theo lỗ hổng kỹ năng, có chặn bằng đồ thị tiên quyết
+--  TẦNG 2 ⭐ — theo lỗ hổng topic, có chặn bằng đồ thị tiên quyết
 --  $1 = userId
 --
 --  Ý tưởng:
---   weak        — kỹ năng cần học, gồm HAI nguồn:
---                   (a) đo được yếu   — user_skill_mastery.score < 0.6
---                   (b) tự khai muốn học nhưng chưa có điểm — user_target_skills
+--   weak        — topic cần học, gồm HAI nguồn:
+--                   (a) đo được yếu   — user_topic_mastery.score < 0.6
+--                   (b) tự khai muốn học nhưng chưa có điểm — user_target_topics
 --                 Nhờ (b), truy vấn này chạy được ngay ngày đầu đăng ký, khi
---                 user_skill_mastery còn rỗng. Đây là lời giải cold start cho
+--                 user_topic_mastery còn rỗng. Đây là lời giải cold start cho
 --                 tầng 2, không phải chỉ tầng 1.
---   candidate   — khoá dạy đúng kỹ năng đó, chưa mua
---   blocked     — khoá mà học viên CHƯA vững một kỹ năng tiên quyết nào đó
+--   candidate   — khoá dạy đúng topic đó, chưa mua
+--   blocked     — khoá mà học viên CHƯA vững một topic tiên quyết nào đó
 --                 (duyệt đệ quy toàn bộ chuỗi JS → React → Next.js)
---  Kết quả = candidate − blocked, ưu tiên kỹ năng nằm trong mục tiêu tự khai.
+--  Kết quả = candidate − blocked, ưu tiên topic nằm trong mục tiêu tự khai.
 -- ---------------------------------------------------------------------------
 WITH weak AS (
   -- (a) đo được yếu
-  SELECT m."skillId",
+  SELECT m."topicId",
          m.score,
          true AS measured,
-         EXISTS (SELECT 1 FROM user_target_skills t
-                 WHERE t."userId" = $1 AND t."skillId" = m."skillId") AS is_target
-  FROM user_skill_mastery m
+         EXISTS (SELECT 1 FROM user_target_topics t
+                 WHERE t."userId" = $1 AND t."topicId" = m."topicId") AS is_target
+  FROM user_topic_mastery m
   WHERE m."userId" = $1 AND m.score < 0.6
 
   UNION
 
   -- (b) tự khai muốn học, chưa đo bao giờ → coi như score 0
-  SELECT t."skillId", 0::numeric, false, true
-  FROM user_target_skills t
+  SELECT t."topicId", 0::numeric, false, true
+  FROM user_target_topics t
   WHERE t."userId" = $1
-    AND NOT EXISTS (SELECT 1 FROM user_skill_mastery m
-                    WHERE m."userId" = $1 AND m."skillId" = t."skillId")
+    AND NOT EXISTS (SELECT 1 FROM user_topic_mastery m
+                    WHERE m."userId" = $1 AND m."topicId" = t."topicId")
 ),
 owned AS (
   SELECT "courseId" FROM enrollments WHERE "userId" = $1
 ),
 candidate AS (
-  SELECT cs."courseId", w."skillId", w.score, w.measured, w.is_target
-  FROM course_skills cs
-  JOIN weak w ON w."skillId" = cs."skillId"
+  SELECT cs."courseId", w."topicId", w.score, w.measured, w.is_target
+  FROM course_topics cs
+  JOIN weak w ON w."topicId" = cs."topicId"
   WHERE cs."courseId" NOT IN (SELECT "courseId" FROM owned)
 ),
--- Toàn bộ kỹ năng tiên quyết (bắc cầu) của các kỹ năng mà khoá ứng viên dạy.
--- "_SkillPrereq"."A" = skill, "B" = skill mà A yêu cầu (quan hệ Skill.prerequisites).
+-- Toàn bộ topic tiên quyết (bắc cầu) của các topic mà khoá ứng viên dạy.
+-- "_TopicPrereq"."A" = topic, "B" = topic mà A yêu cầu (quan hệ Topic.prerequisites).
 prereq_closure AS (
-  WITH RECURSIVE walk("courseId", "skillId") AS (
+  WITH RECURSIVE walk("courseId", "topicId") AS (
     SELECT cs."courseId", sp."B"
-    FROM course_skills cs
-    JOIN "_SkillPrereq" sp ON sp."A" = cs."skillId"
+    FROM course_topics cs
+    JOIN "_TopicPrereq" sp ON sp."A" = cs."topicId"
     WHERE cs."courseId" IN (SELECT "courseId" FROM candidate)
 
     UNION -- UNION (không ALL) tự chống vòng lặp nếu đồ thị bị khai sai
 
     SELECT w."courseId", sp."B"
     FROM walk w
-    JOIN "_SkillPrereq" sp ON sp."A" = w."skillId"
+    JOIN "_TopicPrereq" sp ON sp."A" = w."topicId"
   )
   SELECT * FROM walk
 ),
 blocked AS (
   SELECT DISTINCT pc."courseId"
   FROM prereq_closure pc
-  LEFT JOIN user_skill_mastery m
-    ON m."userId" = $1 AND m."skillId" = pc."skillId"
-  WHERE COALESCE(m.score, 0) < 0.6 -- chưa học hoặc chưa vững kỹ năng tiên quyết
+  LEFT JOIN user_topic_mastery m
+    ON m."userId" = $1 AND m."topicId" = pc."topicId"
+  WHERE COALESCE(m.score, 0) < 0.6 -- chưa học hoặc chưa vững topic tiên quyết
 )
 SELECT
   c.id,
   c.title,
   MIN(cand.score)                                    AS weakest_score,
   bool_or(cand.is_target)                            AS hits_declared_goal,
-  ARRAY_AGG(DISTINCT s.name)                         AS targets_skills,
+  ARRAY_AGG(DISTINCT s.name)                         AS targets_topics,
   -- Lý do hiển thị khác nhau tuỳ nguồn tín hiệu (§3.4: "gợi ý có giải thích lý do")
   CASE
     WHEN bool_and(NOT cand.measured)
       THEN 'Gợi ý vì bạn muốn học ' || (ARRAY_AGG(s.name ORDER BY cand.score))[1]
-    ELSE 'Gợi ý vì bạn đạt ' || ROUND(MIN(cand.score) * 100) || '% ở kỹ năng ' ||
+    ELSE 'Gợi ý vì bạn đạt ' || ROUND(MIN(cand.score) * 100) || '% ở topic ' ||
          (ARRAY_AGG(s.name ORDER BY cand.score))[1]
   END AS reason
 FROM candidate cand
 JOIN courses c ON c.id = cand."courseId"
-JOIN skills  s ON s.id = cand."skillId"
+JOIN topics  s ON s.id = cand."topicId"
 WHERE c.status = 'approved'
   AND c.id NOT IN (SELECT "courseId" FROM blocked)
 GROUP BY c.id, c.title
--- Kỹ năng học viên tự khai muốn học được ưu tiên trước: yếu sql-join nhưng không
+-- Topic học viên tự khai muốn học được ưu tiên trước: yếu sql nhưng không
 -- quan tâm SQL thì không nên đẩy lên đầu.
 ORDER BY hits_declared_goal DESC, weakest_score ASC, c."ratingAvg" DESC
 LIMIT 10;
 
 -- Biến thể: bài học cần ôn lại TRONG khoá đang học (§3.4 tầng 2, vế đầu).
 -- $1 = userId, $2 = courseId
-SELECT DISTINCT l.id, l.title, s.name AS skill, m.score
-FROM user_skill_mastery m
-JOIN skills s           ON s.id = m."skillId"
-JOIN question_skills qs ON qs."skillId" = m."skillId"
-JOIN quiz_questions qq  ON qq."questionId" = qs."questionId"
-JOIN quizzes q          ON q.id = qq."quizId" AND q."courseId" = $2
+SELECT DISTINCT l.id, l.title, s.name AS topic, m.score
+FROM user_topic_mastery m
+JOIN topics s           ON s.id = m."topicId"
+JOIN quiz_topics qt     ON qt."topicId" = m."topicId"
+JOIN quizzes q          ON q.id = qt."quizId" AND q."courseId" = $2
 JOIN lessons l          ON l.id = q."lessonId"
 WHERE m."userId" = $1 AND m.score < 0.6
 ORDER BY m.score ASC
