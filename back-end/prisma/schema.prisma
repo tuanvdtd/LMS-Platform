@@ -29,7 +29,7 @@ datasource db {
 //  1. AUTH — Better Auth sở hữu 4 model dưới đây
 // ============================================================================
 //
-//  Cấu hình bắt buộc trong auth.ts để id khớp với 40 bảng còn lại:
+//  Cấu hình bắt buộc trong auth.ts để id khớp với 47 bảng còn lại:
 //
 //    import { v7 as uuidv7 } from 'uuid';
 //    betterAuth({
@@ -67,27 +67,31 @@ model User {
   sessions Session[]
   accounts Account[]
 
-  instructorProfile    InstructorProfile?
-  applications         InstructorApplication[] @relation("applicant")
-  applicationsReviewed InstructorApplication[] @relation("applicationReviewer")
-  courses              Course[]                @relation("courseInstructor")
-  approvalsSubmitted   CourseApproval[]        @relation("approvalSubmitter")
-  approvalsReviewed    CourseApproval[]        @relation("approvalReviewer")
-  reportsFiled         ContentReport[]         @relation("reporter")
-  reportsHandled       ContentReport[]         @relation("reportHandler")
-  reviews              CourseReview[]
-  enrollments          Enrollment[]
-  cartItems            CartItem[]
-  orders               Order[]
-  earnings             OrderItem[]             @relation("itemInstructor")
-  topicMastery         UserTopicMastery[]
-  targetTopics         UserTargetTopic[]
-  questionsCreated     Question[]
-  quizAttempts         QuizAttempt[]
-  submissions          Submission[]
-  certificates         Certificate[]
-  riskScores           StatStudentRisk[]
-  emailLogs            EmailLog[]
+  instructorProfile     InstructorProfile?
+  applications          InstructorApplication[] @relation("applicant")
+  applicationsReviewed  InstructorApplication[] @relation("applicationReviewer")
+  courses               Course[]                @relation("courseInstructor")
+  approvalsSubmitted    CourseApproval[]        @relation("approvalSubmitter")
+  approvalsReviewed     CourseApproval[]        @relation("approvalReviewer")
+  reportsFiled          ContentReport[]         @relation("reporter")
+  reportsHandled        ContentReport[]         @relation("reportHandler")
+  reviews               CourseReview[]
+  enrollments           Enrollment[]
+  cartItems             CartItem[]
+  orders                Order[]
+  earnings              OrderItem[]             @relation("itemInstructor")
+  topicMastery          UserTopicMastery[]
+  targetTopics          UserTargetTopic[]
+  quizAttempts          QuizAttempt[]
+  submissions           Submission[]
+  certificates          Certificate[]
+  riskScores            StatStudentRisk[]
+  emailLogs             EmailLog[]
+  assets                Asset[]
+  couponsCreated        Coupon[]
+  announcementsAuthored Announcement[]
+  qaQuestions           CourseQuestion[]
+  qaAnswers             CourseAnswer[]
 
   @@index([role])
   @@map("user")
@@ -277,12 +281,20 @@ model Course {
   publishedAt          DateTime?
   copyrightConfirmedAt DateTime?
 
+  // Trang "Học viên mục tiêu" + "Tin nhắn khoá học" của Udemy. Độ dài/số mục kiểm lúc gửi duyệt (service).
+  learningObjectives String[] @default([]) // ≥4 mục, ≤160 ký tự/mục
+  requirements       String[] @default([]) // ≥1
+  targetAudience     String[] @default([]) // ≥1
+  welcomeMessage     String? // ≤1000
+  congratsMessage    String? // ≤1000
+  qaEnabled          Boolean  @default(true)
+
   // Denormalized — worker cập nhật, không phải nguồn sự thật.
   ratingAvg        Decimal @default(0) @db.Decimal(3, 2)
   ratingCount      Int     @default(0)
   enrollmentCount  Int     @default(0)
   totalDurationSec Int     @default(0)
-  lessonCount      Int     @default(0)
+  lectureCount     Int     @default(0) // lecture đã xuất bản
 
   // Prisma không có kiểu vector → khai Unsupported, thao tác bằng $queryRaw.
   // embedding ghi bởi worker khi nhận event `course.approved` (§4.5).
@@ -292,22 +304,24 @@ model Course {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  instructor   User              @relation("courseInstructor", fields: [instructorId], references: [id])
-  category     Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  sections     Section[]
-  lessons      Lesson[]
-  approvals    CourseApproval[]
-  reviews      CourseReview[]
-  enrollments  Enrollment[]
-  cartItems    CartItem[]
-  orderItems   OrderItem[]
-  topics       CourseTopic[]
-  questions    Question[]
-  quizzes      Quiz[]
-  exercises    Exercise[]
-  certificates Certificate[]
-  dailyStats   StatCourseDaily[]
-  riskScores   StatStudentRisk[]
+  instructor    User              @relation("courseInstructor", fields: [instructorId], references: [id])
+  category      Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  sections      Section[]
+  items         CurriculumItem[]
+  approvals     CourseApproval[]
+  reviews       CourseReview[]
+  enrollments   Enrollment[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  topics        CourseTopic[]
+  quizzes       Quiz[]
+  exercises     Exercise[]
+  certificates  Certificate[]
+  dailyStats    StatCourseDaily[]
+  riskScores    StatStudentRisk[]
+  coupons       Coupon[]
+  announcements Announcement[]
+  qaQuestions   CourseQuestion[]
 
   @@index([instructorId])
   @@index([status, categoryId, level]) // duyệt danh mục
@@ -315,71 +329,118 @@ model Course {
   @@map("courses")
 }
 
+// Unique (courseId, position) KHÔNG khai ở đây: tạo bằng SQL dạng DEFERRABLE INITIALLY DEFERRED
+// (prisma/sql/05) để kéo thả đổi chỗ section trong một transaction. Prisma không tạo được deferrable.
 model Section {
-  id       String @id @default(uuid(7)) @db.Uuid
-  courseId String @db.Uuid
-  title    String
-  position Int
+  id          String  @id @default(uuid(7)) @db.Uuid
+  courseId    String  @db.Uuid
+  title       String
+  description String? // "mục tiêu của phần"
+  position    Int
 
-  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons Lesson[]
+  course Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  items  CurriculumItem[]
 
-  @@unique([courseId, position])
   @@map("sections")
 }
 
-// Một bảng cho cả 4 loại bài học. Cột theo type để nullable, quiz/exercise trỏ ngược
-// về lessonId — rẻ hơn 4 bảng con + 4 join.
-model Lesson {
-  id          String     @id @default(uuid(7)) @db.Uuid
-  sectionId   String     @db.Uuid
-  courseId    String     @db.Uuid // denormalized: gần như mọi query đều lọc theo khoá
-  type        LessonType
+// Mục trong khung chương trình kiểu Udemy. Một bảng cho mọi loại, cột riêng từng loại để nullable;
+// quiz/exercise là bảng 1-1 trỏ về itemId. Số "Bài giảng 3" tính lúc đọc (ROW_NUMBER theo type).
+// Unique (sectionId, position) DEFERRABLE tạo ở prisma/sql/05. Payload lecture kiểm bằng chk_item_payload.
+model CurriculumItem {
+  id          String             @id @default(uuid(7)) @db.Uuid
+  sectionId   String             @db.Uuid
+  courseId    String             @db.Uuid // denormalized: gần như mọi query đều lọc theo khoá
+  type        CurriculumItemType
   title       String
   position    Int
-  isPreview   Boolean    @default(false) // xem thử không cần mua
-  durationSec Int        @default(0)
+  isPublished Boolean            @default(false)
 
-  videoAssetId String? // type=video: id trên Bunny/CF Stream, URL ký lúc phát (§3.2)
-  articleBody  String? // type=article
+  // Chỉ lecture. lectureKind null = chưa chọn nội dung (không được xuất bản).
+  lectureKind     LectureKind?
+  videoAssetId    String?      @db.Uuid
+  documentAssetId String?      @db.Uuid
+  description     String?
+  isPreview       Boolean      @default(false) // xem thử không cần mua
+  isDownloadable  Boolean      @default(false)
+  durationSec     Int          @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  section   Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  course    Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  resources LessonResource[]
-  progress  LessonProgress[]
-  quiz      Quiz?
-  exercise  Exercise?
-  buckets   StatVideoBucket[]
+  section          Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  course           Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  videoAsset       Asset?            @relation("ItemVideo", fields: [videoAssetId], references: [id], onDelete: Restrict)
+  documentAsset    Asset?            @relation("ItemDocument", fields: [documentAssetId], references: [id], onDelete: Restrict)
+  resources        LectureResource[]
+  progress         ItemProgress[]
+  buckets          StatVideoBucket[]
+  notes            Note[]
+  quiz             Quiz?
+  exercise         Exercise?         @relation("ExerciseItem")
+  relatedQuestions Question[]
+  relatedExercises Exercise[]        @relation("ExerciseRelatedLecture")
+  qaQuestions      CourseQuestion[]
 
-  @@unique([sectionId, position])
+  // Không cần @@index([sectionId]): unique (sectionId, position) ở sql/05 đã là index bắt đầu bằng sectionId.
   @@index([courseId])
-  @@map("lessons")
+  @@index([videoAssetId])
+  @@index([documentAssetId])
+  @@map("curriculum_items")
 }
 
-model LessonResource {
-  id        String @id @default(uuid(7)) @db.Uuid
-  lessonId  String @db.Uuid
-  title     String
-  fileUrl   String
-  sizeBytes Int    @default(0)
+// Thư viện file của giảng viên ("Thêm từ thư viện" = WHERE ownerId = me AND status = 'ready').
+// document chỉ nhận PDF (chk_asset_pdf). FK từ item/resource là Restrict: không xoá asset đang dùng.
+model Asset {
+  id          String      @id @default(uuid(7)) @db.Uuid
+  ownerId     String      @db.Uuid
+  kind        AssetKind
+  fileName    String
+  mimeType    String
+  sizeBytes   BigInt // video ≤4GB, PDF ≤1GB — kiểm ở service upload
+  storageKey  String      @unique // key trên S3
+  hlsKey      String? // video sau khi transcode
+  status      AssetStatus @default(uploading)
+  durationSec Int?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  owner         User              @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  videoItems    CurriculumItem[]  @relation("ItemVideo")
+  documentItems CurriculumItem[]  @relation("ItemDocument")
+  resources     LectureResource[]
 
-  @@index([lessonId])
-  @@map("lesson_resources")
+  @@index([ownerId, createdAt])
+  @@map("assets")
+}
+
+// Tài liệu đính kèm bài giảng: chỉ file PDF (asset kind = document, kiểm ở service).
+model LectureResource {
+  id       String @id @default(uuid(7)) @db.Uuid
+  itemId   String @db.Uuid
+  assetId  String @db.Uuid
+  title    String
+  position Int
+
+  item  CurriculumItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  asset Asset          @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  // Unique thường (không DEFERRABLE như sections/items/questions): đổi thứ tự phải renumber 2 bước.
+  @@unique([itemId, position])
+  @@index([assetId])
+  @@map("lecture_resources")
 }
 
 model CourseReview {
-  id        String   @id @default(uuid(7)) @db.Uuid
-  courseId  String   @db.Uuid
-  userId    String   @db.Uuid
-  rating    Int // 1..5 — CHECK trong SQL
-  comment   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String    @id @default(uuid(7)) @db.Uuid
+  courseId            String    @db.Uuid
+  userId              String    @db.Uuid
+  rating              Int // 1..5 — CHECK trong SQL
+  comment             String?
+  instructorReply     String?
+  instructorRepliedAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -398,37 +459,41 @@ model Enrollment {
   userId         String    @db.Uuid
   courseId       String    @db.Uuid
   orderId        String?   @db.Uuid // null = khoá free hoặc admin cấp tay
+  couponId       String?   @db.Uuid // coupon free: ghi danh không qua order
   progressPct    Decimal   @default(0) @db.Decimal(5, 2)
   completedAt    DateTime?
   lastAccessedAt DateTime?
   createdAt      DateTime  @default(now())
 
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  order    Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  progress LessonProgress[]
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  order    Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  coupon   Coupon?        @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  progress ItemProgress[]
+  notes    Note[]
 
   @@unique([userId, courseId]) // idempotency cho Stripe webhook (§4.5)
   @@index([courseId])
   @@index([userId, lastAccessedAt]) // điểm rủi ro bỏ học
+  @@index([couponId])
   @@map("enrollments")
 }
 
 // Heartbeat 15s KHÔNG ghi trực tiếp vào đây — worker gom batch rồi update (§4.5).
-model LessonProgress {
+model ItemProgress {
   enrollmentId    String    @db.Uuid
-  lessonId        String    @db.Uuid
+  itemId          String    @db.Uuid
   watchedSec      Int       @default(0)
   lastPositionSec Int       @default(0)
   completedAt     DateTime?
   updatedAt       DateTime  @updatedAt
 
-  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  lesson     Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  enrollment Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  item       CurriculumItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-  @@id([enrollmentId, lessonId])
-  @@index([lessonId]) // mv_lesson_dropoff
-  @@map("lesson_progress")
+  @@id([enrollmentId, itemId])
+  @@index([itemId]) // mv_item_dropoff
+  @@map("item_progress")
 }
 
 // ============================================================================
@@ -478,6 +543,8 @@ model OrderItem {
   id                   String    @id @default(uuid(7)) @db.Uuid
   orderId              String    @db.Uuid
   courseId             String    @db.Uuid
+  couponId             String?   @db.Uuid
+  listPriceAmount      Int // giá gốc lúc mua; giảm giá = listPriceAmount - unitPriceAmount
   instructorId         String    @db.Uuid
   unitPriceAmount      Int
   platformFeeAmount    Int
@@ -486,12 +553,14 @@ model OrderItem {
 
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   course     Course   @relation(fields: [courseId], references: [id])
+  coupon     Coupon?  @relation(fields: [couponId], references: [id], onDelete: SetNull)
   instructor User     @relation("itemInstructor", fields: [instructorId], references: [id])
   refunds    Refund[]
 
   @@unique([orderId, courseId])
   @@index([instructorId])
   @@index([courseId])
+  @@index([couponId])
   @@map("order_items")
 }
 
@@ -527,6 +596,33 @@ model PaymentEvent {
   @@map("payment_events")
 }
 
+// Coupon giảng viên tạo cho 1 khoá (Udemy rút gọn). Luật tháng/thời hạn/bậc giá kiểm ở service;
+// CHECK hình dạng dữ liệu ở prisma/sql/05. Trừ lượt bằng 1 câu UPDATE ... RETURNING (spec §3.5).
+model Coupon {
+  id             String     @id @default(uuid(7)) @db.Uuid
+  courseId       String     @db.Uuid
+  createdById    String     @db.Uuid
+  code           String // ^[A-Z0-9_-]{6,20}$
+  type           CouponType
+  priceAmount    Int? // fixed_price: > 0; free: null
+  startsAt       DateTime
+  endsAt         DateTime
+  maxRedemptions Int? // free: bắt buộc
+  redeemedCount  Int        @default(0)
+  disabledAt     DateTime?
+  createdAt      DateTime   @default(now())
+
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  orderItems  OrderItem[]
+  enrollments Enrollment[]
+
+  @@unique([courseId, code])
+  @@index([courseId, createdAt])
+  @@index([createdById])
+  @@map("coupons")
+}
+
 // ============================================================================
 //  6. TOPIC — taxonomy kiểu Udemy + lõi hồ sơ năng lực (§3.3), gợi ý tầng 2 (§3.4)
 // ============================================================================
@@ -534,7 +630,7 @@ model PaymentEvent {
 // Topic kiểu Udemy ("react", "docker", slug theo udemy.com/topic/<slug>).
 // Không gắn cứng vào một category: một topic xuất hiện ở nhiều nhánh cấp 2
 // (Python ở cả Khoa học dữ liệu và Ngôn ngữ lập trình). Menu "Chủ đề phổ biến"
-// của từng nhánh được tính từ course_topics của các khoá đã duyệt (approved) trong nhánh đó.
+// của từng nhánh được tính từ course_topics của các khoá đã duyệt (published) trong nhánh đó.
 // Đây cũng là đơn vị đo năng lực: mastery, đồ thị tiên quyết, gợi ý tầng 2.
 model Topic {
   id          String  @id @default(uuid(7)) @db.Uuid
@@ -630,35 +726,37 @@ model UserTargetTopic {
 //  7. TRẮC NGHIỆM (§3.3)
 // ============================================================================
 
+// Câu hỏi THUỘC quiz (bỏ ngân hàng câu hỏi, giống Udemy). Unique (quizId, position) DEFERRABLE ở sql/05.
 model Question {
-  id          String       @id @default(uuid(7)) @db.Uuid
-  courseId    String       @db.Uuid // ngân hàng câu hỏi thuộc phạm vi khoá
-  createdById String       @db.Uuid
-  type        QuestionType
-  stem        String
-  explanation String?
-  points      Int          @default(1)
-  archivedAt  DateTime? // thay vì xoá — attempt cũ vẫn tham chiếu
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String       @id @default(uuid(7)) @db.Uuid
+  quizId        String       @db.Uuid
+  position      Int
+  type          QuestionType
+  stemHtml      String
+  relatedItemId String?      @db.Uuid // bài giảng liên quan, cùng khoá (service)
+  points        Int          @default(1)
+  archivedAt    DateTime? // thay vì xoá — attempt cũ vẫn tham chiếu
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  createdBy User             @relation(fields: [createdById], references: [id])
-  options   QuestionOption[]
-  inQuizzes QuizQuestion[]
-  answers   QuizAnswer[]
-  stats     StatQuestion[]
+  quiz        Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  relatedItem CurriculumItem?  @relation(fields: [relatedItemId], references: [id], onDelete: SetNull)
+  options     QuestionOption[]
+  answers     QuizAnswer[]
+  stats       StatQuestion?
 
-  @@index([courseId])
+  // Không cần @@index([quizId]): unique (quizId, position) ở sql/05 đã là index bắt đầu bằng quizId.
+  @@index([relatedItemId])
   @@map("questions")
 }
 
 model QuestionOption {
-  id         String  @id @default(uuid(7)) @db.Uuid
-  questionId String  @db.Uuid
-  content    String
-  isCorrect  Boolean @default(false)
-  position   Int
+  id          String  @id @default(uuid(7)) @db.Uuid
+  questionId  String  @db.Uuid
+  content     String
+  isCorrect   Boolean @default(false)
+  explanation String? // giải thích từng đáp án, ≤600 ký tự (service); tối đa 15 đáp án/câu (service)
+  position    Int
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
@@ -680,11 +778,12 @@ model QuizTopic {
   @@map("quiz_topics")
 }
 
+// Dùng chung cho item quiz và practice_test (loại lấy từ curriculum_items.type).
+// practice_test bắt buộc timeLimitSec > 0 (service).
 model Quiz {
   id           String   @id @default(uuid(7)) @db.Uuid
+  itemId       String   @unique @db.Uuid
   courseId     String   @db.Uuid
-  lessonId     String?  @unique @db.Uuid // null = quiz độc lập, không nằm trong chương
-  title        String
   description  String?
   timeLimitSec Int?
   passScorePct Int      @default(70)
@@ -694,29 +793,14 @@ model Quiz {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  item      CurriculumItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
   course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lesson    Lesson?        @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-  questions QuizQuestion[]
+  questions Question[]
   topics    QuizTopic[]
   attempts  QuizAttempt[]
-  stats     StatQuestion[]
 
   @@index([courseId])
   @@map("quizzes")
-}
-
-model QuizQuestion {
-  quizId         String @db.Uuid
-  questionId     String @db.Uuid
-  position       Int
-  pointsOverride Int?
-
-  quiz     Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@id([quizId, questionId])
-  @@unique([quizId, position])
-  @@map("quiz_questions")
 }
 
 model QuizAttempt {
@@ -765,23 +849,28 @@ model QuizAnswer {
 //  8. BÀI TẬP LẬP TRÌNH (§3.3, §4.5)
 // ============================================================================
 
+// Nhiều ngôn ngữ: test stdin/stdout của Judge0 không phụ thuộc ngôn ngữ (spec D8).
+// Mỗi languageId trong allowedLanguageIds có đúng 1 dòng exercise_starter_codes (service).
 model Exercise {
-  id                 String     @id @default(uuid(7)) @db.Uuid
-  courseId           String     @db.Uuid
-  lessonId           String?    @unique @db.Uuid
-  title              String
-  statement          String // markdown
-  difficulty         Difficulty @default(medium)
-  timeLimitMs        Int        @default(2000)
-  memoryLimitKb      Int        @default(128000)
-  allowedLanguageIds Int[] // id ngôn ngữ của Judge0
-  referenceSolution  String?
-  totalPoints        Int        @default(100)
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  id                  String     @id @default(uuid(7)) @db.Uuid
+  itemId              String     @unique @db.Uuid
+  courseId            String     @db.Uuid
+  learningObjective   String? // ≤200 ký tự (service)
+  instructionsHtml    String
+  hints               String[]   @default([])
+  solutionExplanation String?
+  relatedItemId       String?    @db.Uuid
+  difficulty          Difficulty @default(medium)
+  timeLimitMs         Int        @default(2000)
+  memoryLimitKb       Int        @default(128000)
+  allowedLanguageIds  Int[] // id ngôn ngữ của Judge0, ≥1 (chk_exercise_languages)
+  totalPoints         Int        @default(100)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
+  item        CurriculumItem        @relation("ExerciseItem", fields: [itemId], references: [id], onDelete: Cascade)
+  relatedItem CurriculumItem?       @relation("ExerciseRelatedLecture", fields: [relatedItemId], references: [id], onDelete: SetNull)
   course      Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lesson      Lesson?               @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   starters    ExerciseStarterCode[]
   testCases   ExerciseTestCase[]
   topics      ExerciseTopic[]
@@ -789,13 +878,15 @@ model Exercise {
   stats       StatExercise?
 
   @@index([courseId])
+  @@index([relatedItemId])
   @@map("exercises")
 }
 
 model ExerciseStarterCode {
-  exerciseId String @db.Uuid
-  languageId Int
-  code       String
+  exerciseId   String  @db.Uuid
+  languageId   Int
+  code         String
+  solutionCode String? // lời giải mẫu, để giảng viên chạy thử bộ test trước khi xuất bản
 
   exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 
@@ -936,21 +1027,20 @@ model StatCourseDaily {
 // Một bucket = 15s video. Gộp đường giữ chân, điểm rơi bỏ và điểm tua lại vào
 // một bảng — cùng khoá chính, cùng nguồn sự kiện.
 model StatVideoBucket {
-  lessonId    String @db.Uuid
+  itemId      String @db.Uuid
   bucketIndex Int
   viewers     Int    @default(0) // số người xem tới mốc này
   rewatches   Int    @default(0) // số lượt tua lại đoạn này
 
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  item CurriculumItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-  @@id([lessonId, bucketIndex])
+  @@id([itemId, bucketIndex])
   @@map("stat_video_buckets")
 }
 
-// Discrimination index chia nhóm theo điểm của TỪNG quiz → khoá chính phải có quizId.
+// Câu hỏi thuộc đúng 1 quiz nên khoá chính là questionId.
 model StatQuestion {
-  quizId     String @db.Uuid
-  questionId String @db.Uuid
+  questionId String @id @db.Uuid
 
   attempts            Int      @default(0)
   correctCount        Int      @default(0)
@@ -959,10 +1049,8 @@ model StatQuestion {
   optionDistribution  Json     @default("{}") // { optionId: count } — đáp án nhiễu
   computedAt          DateTime @default(now())
 
-  quiz     Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  @@id([quizId, questionId])
   @@map("stat_questions")
 }
 
@@ -1018,6 +1106,88 @@ model EmailLog {
 }
 
 // ============================================================================
+//  11. TƯƠNG TÁC — thông báo, ghi chú, hỏi đáp (spec 2026-09-30-udemy-curriculum §3.6)
+// ============================================================================
+
+model Announcement {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  courseId  String   @db.Uuid
+  authorId  String   @db.Uuid
+  title     String
+  bodyHtml  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([courseId, createdAt(sort: Desc)])
+  @@index([authorId])
+  @@map("announcements")
+}
+
+// Ghi chú riêng của học viên, gắn mốc thời gian video.
+model Note {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  enrollmentId String   @db.Uuid
+  itemId       String   @db.Uuid
+  positionSec  Int // ≥0 (chk_note_position)
+  body         String // ≤1000 ký tự (service)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enrollment Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  item       CurriculumItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([enrollmentId, itemId, positionSec])
+  @@index([itemId])
+  @@map("notes")
+}
+
+// Hỏi đáp, chỉ khi courses.qaEnabled (service). answerCount/instructorAnsweredAt cập nhật cùng
+// transaction với insert course_answers. Partial index "chưa phản hồi" ở sql/05.
+// answerCount/instructorAnsweredAt là denormalized, worker/cron tính lại được.
+model CourseQuestion {
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  courseId             String    @db.Uuid
+  itemId               String?   @db.Uuid
+  userId               String    @db.Uuid
+  title                String // ≤255 (service)
+  bodyHtml             String?
+  answerCount          Int       @default(0)
+  instructorAnsweredAt DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  course  Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  item    CurriculumItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers CourseAnswer[]
+
+  @@index([courseId, createdAt])
+  @@index([itemId])
+  @@index([userId])
+  @@map("course_questions")
+}
+
+model CourseAnswer {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  questionId   String   @db.Uuid
+  userId       String   @db.Uuid
+  bodyHtml     String
+  isInstructor Boolean  @default(false) // chụp lúc trả lời
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  question CourseQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([questionId, createdAt])
+  @@index([userId])
+  @@map("course_answers")
+}
+
+// ============================================================================
 //  ENUMS
 // ============================================================================
 
@@ -1053,27 +1223,21 @@ enum ApprovalStatus {
   rejected
 }
 
+// Chuyển trạng thái: spec §3.4. unpublished → published luôn phải qua in_review.
 enum CourseStatus {
   draft
-  pending_review
-  approved
-  rejected
-  unlisted // bị ẩn do báo cáo vi phạm
-  archived
-}
-
-enum LessonType {
-  video
-  article
-  quiz
-  coding
+  in_review
+  published
+  unpublished
 }
 
 enum ReportTargetType {
   course
-  lesson
+  item
   review
-  question
+  quiz_question
+  qa_question
+  qa_answer
 }
 
 enum ReportReason {
@@ -1111,7 +1275,6 @@ enum RefundStatus {
 enum QuestionType {
   single_choice
   multiple_choice
-  true_false
 }
 
 enum AttemptStatus {
@@ -1144,4 +1307,33 @@ enum EmailStatus {
   delivered
   bounced
   failed
+}
+
+enum CurriculumItemType {
+  lecture
+  quiz
+  practice_test
+  coding_exercise
+}
+
+enum LectureKind {
+  video
+  document
+}
+
+enum AssetKind {
+  video
+  document
+}
+
+enum AssetStatus {
+  uploading
+  processing
+  ready
+  failed
+}
+
+enum CouponType {
+  fixed_price
+  free
 }

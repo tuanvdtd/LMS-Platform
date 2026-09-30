@@ -29,6 +29,7 @@
 - Đăng ký, đăng nhập, phân quyền theo vai trò
 - Quản lý khoá học (chương, bài học, video), học video và lưu tiến độ
 - Giỏ hàng, thanh toán
+- Coupon giảng viên tạo, thông báo khoá học, ghi chú theo mốc video, hỏi đáp
 
 ### 3.2. Xác minh & kiểm duyệt nội dung
 
@@ -43,7 +44,7 @@
 
 | Chức năng | Mô tả |
 |---|---|
-| Ngân hàng câu hỏi | Giảng viên tạo câu hỏi trắc nghiệm, **mỗi quiz gắn 1–3 topic** của khoá (vd `react`, `sql`), topic theo taxonomy Udemy |
+| Câu hỏi trắc nghiệm | Giảng viên soạn câu hỏi ngay trong từng quiz (1 hoặc nhiều đáp án đúng, giải thích từng đáp án, gắn bài giảng liên quan), **mỗi quiz gắn 1–3 topic** của khoá (vd `react`, `sql`), topic theo taxonomy Udemy |
 | Bài tập lập trình | Đề bài, test case công khai và test ẩn, giới hạn thời gian và bộ nhớ, hỗ trợ nhiều ngôn ngữ |
 | Chấm tự động | Trắc nghiệm chấm ngay. Bài code chạy trong sandbox cô lập, trả về kết quả Accepted / Wrong Answer / Time Limit / Runtime Error và điểm theo số test đạt |
 | Hồ sơ năng lực | Tự động tính **độ thành thạo từng topic** của học viên từ kết quả các bài kiểm tra |
