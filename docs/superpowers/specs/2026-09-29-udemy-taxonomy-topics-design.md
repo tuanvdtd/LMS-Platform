@@ -23,7 +23,7 @@ Dữ liệu tham chiếu lấy từ menu "Khám phá" của udemy.com (bản ti�
 | D1 | Tag ở **cấp quiz** (`quiz_topics`), bỏ `question_skills` | Giảng viên không phải tag từng câu. Mastery vẫn có nguồn dữ liệu |
 | D2 | **AI là category cấp 1 thật**, không làm khối "Khám phá theo mục tiêu" | Không thêm bảng. Phần AI/LLM chuyển khỏi Khoa học dữ liệu để hai nhánh không trùng |
 | D3 | **Gộp Skill = Topic**: đổi tên `skills` → `topics`, không có tầng kỹ năng con | Chỉ một bộ phân loại. Tag đã ở cấp quiz nên tầng con không có ai dùng |
-| D4 | Menu "Chủ đề phổ biến" của mỗi cấp 2 được **tính ra** từ khoá đã duyệt (approved), không lưu bảng | Không có dữ liệu bị lệch với thực tế |
+| D4 | Menu "Chủ đề phổ biến" của mỗi cấp 2 được **tính ra** từ khoá đã duyệt (approved), không lưu bảng | Không có dữ liệu bị lệch với thực tế. **[2026-09-30] Thay bằng bảng curated `category_topics`, xem `2026-09-30-explore-menu-design.md` E1.** |
 
 Đảo lại quyết định cũ trong `schema-database.md` ("Không có tầng topic của Udemy"): tầng topic giờ
 **thay hẳn** skill chứ không chồng thêm một tầng, nên lý do "khái niệm thứ ba chồng lấn" không còn đúng.
@@ -83,6 +83,8 @@ với mỗi topic của quiz/bài tập:
 - `stat_questions` (độ khó, độ phân biệt từng câu) không đổi, vì không cần tag.
 
 ## 5. Menu "Chủ đề phổ biến" (query, không có bảng)
+
+> [2026-09-30] Đã thay: menu đọc bảng `category_topics` (spec 2026-09-30-explore-menu §3). Query dưới đây không còn dùng.
 
 ```sql
 SELECT ct."topicId", sum(c."enrollmentCount") AS score

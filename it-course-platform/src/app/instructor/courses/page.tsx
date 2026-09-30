@@ -84,7 +84,7 @@ export default function InstructorCoursesPage() {
                         <BarChart2 size={14} style={{ color: 'var(--muted-foreground)' }} />
                       </Link>
                       <Link
-                        href={`/courses/${c.slug}`}
+                        href={`/course/${c.slug}`}
                         className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                         aria-label="Xem trước"
                       >

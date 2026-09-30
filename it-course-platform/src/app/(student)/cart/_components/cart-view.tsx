@@ -51,7 +51,7 @@ export default function CartView() {
                 />
                 <div className="flex-1 min-w-0">
                   <Link
-                    href={`/courses/${course.slug}`}
+                    href={`/course/${course.slug}`}
                     className="font-semibold text-sm hover:text-blue-600 transition-colors line-clamp-2"
                     style={{ color: 'var(--foreground)' }}
                   >

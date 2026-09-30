@@ -163,3 +163,21 @@ export interface RecommendationReason {
 export interface RecommendedCourse extends Course {
   reason: RecommendationReason;
 }
+
+// Cây menu "Khám phá" — khớp GET /api/categories/tree (back-end/src/categories)
+export interface TopicLink {
+  slug: string;
+  name: string;
+}
+
+export interface SubcategoryNode {
+  slug: string;
+  name: string;
+  topics: TopicLink[];
+}
+
+export interface CategoryNode {
+  slug: string;
+  name: string;
+  children: SubcategoryNode[];
+}

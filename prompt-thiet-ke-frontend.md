@@ -209,7 +209,9 @@ Nội dung do **giảng viên đã được xác minh** đăng; khoá học ph�
 /onboarding
 /courses                        Tìm kiếm / danh sách
 /categories/[track]
-/courses/[slug]                 Chi tiết khoá
+/courses/[l1]/[l2]              Danh mục cấp 1 / cấp 2 (menu Khám phá)
+/topic/[slug]                   Topic
+/course/[slug]                  Chi tiết khoá
 /instructors/[id]               Hồ sơ giảng viên công khai
 /verify/[code]                  Xác thực chứng chỉ
 /teach                          Landing trở thành giảng viên

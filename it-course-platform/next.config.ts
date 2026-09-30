@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
 
 const nextConfig: NextConfig = {
+  // Cache chủ động bằng 'use cache' + cacheLife (spec E5). Xem docs 01-getting-started/08-caching.md
+  cacheComponents: true,
   images: {
     remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }],
   },

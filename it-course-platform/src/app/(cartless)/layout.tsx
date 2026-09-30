@@ -1,9 +1,9 @@
-import Header from "@/components/layout/header";
+import SiteHeader from "@/components/layout/site-header";
 
 export default function CartlessLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Header cartCount={0} />
+      <SiteHeader cartCount={0} />
       <main>{children}</main>
     </>
   );
