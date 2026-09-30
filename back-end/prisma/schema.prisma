@@ -153,17 +153,17 @@ model Verification {
 // ============================================================================
 
 model InstructorApplication {
-  id     String            @id @default(uuid(7)) @db.Uuid
-  userId String            @db.Uuid
-  status ApplicationStatus @default(pending)
+  id           String            @id @default(uuid(7)) @db.Uuid
+  userId       String            @db.Uuid
+  status       ApplicationStatus @default(pending)
   // [{ type: "degree"|"certificate"|"portfolio"|"cv", url, name, sizeBytes }]
-  documents    Json      @default("[]")
+  documents    Json              @default("[]")
   experience   String?
-  reviewedById String?   @db.Uuid
+  reviewedById String?           @db.Uuid
   reviewedAt   DateTime?
   rejectReason String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   user       User  @relation("applicant", fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy User? @relation("applicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
@@ -244,23 +244,24 @@ model Category {
   name     String
   position Int     @default(0)
 
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children Category[] @relation("CategoryTree")
-  courses  Course[]
+  parent        Category?       @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children      Category[]      @relation("CategoryTree")
+  courses       Course[]
+  popularTopics CategoryTopic[] // chỉ node cấp 2, xem CategoryTopic
 
   @@index([parentId, position])
   @@map("categories")
 }
 
 model Course {
-  id                   String       @id @default(uuid(7)) @db.Uuid
-  instructorId         String       @db.Uuid
-  slug                 String       @unique
-  title                String
-  subtitle             String?
-  description          String?
-  thumbnailUrl         String?
-  promoVideoUrl        String?
+  id            String  @id @default(uuid(7)) @db.Uuid
+  instructorId  String  @db.Uuid
+  slug          String  @unique
+  title         String
+  subtitle      String?
+  description   String?
+  thumbnailUrl  String?
+  promoVideoUrl String?
 
   // HAI TRỤC PHÂN LOẠI, không trùng nhau:
   //  categoryId — chủ đề khoá nói về cái gì. Dùng để duyệt/lọc/breadcrumb (kiểu Udemy).
@@ -550,10 +551,27 @@ model Topic {
   exercises  ExerciseTopic[]
   mastery    UserTopicMastery[]
   targetedBy UserTargetTopic[]
+  categories CategoryTopic[]
 
   // Autocomplete ô "Tìm kiếm topic" ở bước 3 onboarding (name % $1). Cần extension pg_trgm.
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_topics_name_trgm")
   @@map("topics")
+}
+
+// "Các chủ đề phổ biến" trong menu Khám phá: danh sách curated theo category cấp 2
+// (spec 2026-09-30-explore-menu E1, thay D4 của spec taxonomy). Chỉ seed ghi bảng này;
+// "chỉ gắn vào cấp 2" do seed đảm bảo, khi có admin sửa thì kiểm ở service.
+model CategoryTopic {
+  categoryId String @db.Uuid
+  topicId    String @db.Uuid
+  position   Int    @default(0)
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  topic    Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, topicId])
+  @@index([categoryId, position])
+  @@map("category_topics")
 }
 
 // isPrimary = "khoá học chủ yếu dạy gì?" của Udemy. Tối đa 1 dòng true mỗi khoá

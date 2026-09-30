@@ -282,7 +282,7 @@ export function EmptyState({
 export function CourseCard({ course, progress }: { course: Course; progress?: number }) {
   return (
     <Link
-      href={`/courses/${course.slug}`}
+      href={`/course/${course.slug}`}
       className="group block rounded-xl overflow-hidden border hover:shadow-lg transition-all duration-200"
       style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
     >
@@ -333,7 +333,7 @@ export function CourseCard({ course, progress }: { course: Course; progress?: nu
 export function RecommendationCard({ course }: { course: RecommendedCourse }) {
   return (
     <Link
-      href={`/courses/${course.slug}`}
+      href={`/course/${course.slug}`}
       className="group block rounded-xl overflow-hidden border hover:shadow-lg transition-all duration-200"
       style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
     >

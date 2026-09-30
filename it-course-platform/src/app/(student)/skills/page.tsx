@@ -122,9 +122,9 @@ export default function SkillsPage() {
         </div>
         <ol className="space-y-3">
           {[
-            { step: 1, action: 'Củng cố React Hooks', reason: 'Hiện tại 35% — cần đạt 70% trước khi học Next.js', link: '/courses/react-mastery-2024', color: '#ef4444' },
-            { step: 2, action: 'Học State Management (Zustand)', reason: 'Phụ thuộc vào React Hooks, hiện 28%', link: '/courses/react-mastery-2024', color: '#eab308' },
-            { step: 3, action: 'Tiến lên Next.js 15', reason: 'Sau khi vững React Hooks + State Mgmt ≥70%', link: '/courses/nextjs-fullstack', color: '#22c55e' },
+            { step: 1, action: 'Củng cố React Hooks', reason: 'Hiện tại 35% — cần đạt 70% trước khi học Next.js', link: '/course/react-mastery-2024', color: '#ef4444' },
+            { step: 2, action: 'Học State Management (Zustand)', reason: 'Phụ thuộc vào React Hooks, hiện 28%', link: '/course/react-mastery-2024', color: '#eab308' },
+            { step: 3, action: 'Tiến lên Next.js 15', reason: 'Sau khi vững React Hooks + State Mgmt ≥70%', link: '/course/nextjs-fullstack', color: '#22c55e' },
           ].map(({ step, action, reason, link, color }) => (
             <li key={step} className="flex items-start gap-3">
               <div
