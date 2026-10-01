@@ -13,6 +13,7 @@ import { DragHandle } from './drag-handle';
 import { InlineTitle } from './inline-title';
 import { ItemRow } from './item-row';
 
+// Thẻ phần: header nền xám, các mục là dòng liền nhau kẻ ngăn, dòng "+ Mục" ở cuối.
 export function SectionCard({
   section,
   index,
@@ -41,12 +42,16 @@ export function SectionCard({
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       aria-label={name}
-      className={cn('flex flex-col gap-2 rounded-xl border bg-card p-3', isDragging && 'relative z-10 opacity-70 shadow-xl')}
+      className={cn(
+        'overflow-hidden rounded-xl border bg-card',
+        isDragging && 'relative z-10 opacity-80 shadow-xl',
+      )}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 border-b bg-muted/70 py-2 pr-3 pl-2">
         <DragHandle ref={setActivatorNodeRef} label={`Kéo để đổi chỗ ${name}`} disabled={locked} {...attributes} {...listeners} />
-        <span className="shrink-0 text-sm font-bold">{name}:</span>
+        <span className="shrink-0 text-[15px] font-bold">{name}:</span>
         <InlineTitle
+          className="[&_input]:text-[15px] [&_input]:font-semibold"
           value={section.title}
           label={`Tên ${name}`}
           disabled={locked}
@@ -57,13 +62,14 @@ export function SectionCard({
         </Button>
       </div>
       <SortableContext items={section.items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-        <ul className="flex min-h-10 flex-col gap-1.5 sm:pl-7">
+        {/* min-h: phần rỗng vẫn là vùng thả được */}
+        <ul className="flex min-h-2 flex-col divide-y">
           {section.items.map((item) => (
             <ItemRow key={item.id} item={item} label={labels.get(item.id) ?? ''} />
           ))}
         </ul>
       </SortableContext>
-      <div className="sm:pl-7">
+      <div className={cn('px-3 py-1.5', section.items.length > 0 && 'border-t')}>
         <AddItemForm sectionId={section.id} />
       </div>
     </section>
