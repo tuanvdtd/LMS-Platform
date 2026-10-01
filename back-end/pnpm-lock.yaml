@@ -41,6 +41,9 @@ importers:
       uuid:
         specifier: ^14.0.2
         version: 14.0.2
+      zod:
+        specifier: ^4
+        version: 4.6.5
     devDependencies:
       '@nestjs/cli':
         specifier: ^12.0.0

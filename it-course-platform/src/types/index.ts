@@ -164,19 +164,23 @@ export interface RecommendedCourse extends Course {
   reason: RecommendationReason;
 }
 
-// Cây menu "Khám phá" — khớp GET /api/categories/tree (back-end/src/categories)
+// Cây menu "Khám phá" — khớp GET /api/categories/tree (back-end/src/categories).
+// id dùng cho PATCH categoryId/primaryTopicId ở trang quản lý khoá.
 export interface TopicLink {
+  id: string;
   slug: string;
   name: string;
 }
 
 export interface SubcategoryNode {
+  id: string;
   slug: string;
   name: string;
   topics: TopicLink[];
 }
 
 export interface CategoryNode {
+  id: string;
   slug: string;
   name: string;
   children: SubcategoryNode[];

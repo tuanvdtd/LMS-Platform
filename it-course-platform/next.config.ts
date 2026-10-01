@@ -8,7 +8,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }],
   },
   async redirects() {
-    return [{ source: "/instructor/dashboard", destination: "/instructor", permanent: false }];
+    return [
+      { source: "/instructor/dashboard", destination: "/instructor", permanent: false },
+      // Trang quản lý không có mục mặc định (spec course-create-basics §5.4)
+      { source: "/instructor/courses/:id/manage", destination: "/instructor/courses/:id/manage/goals", permanent: false },
+    ];
   },
 };
 
