@@ -1,9 +1,18 @@
 'use client';
 
-import { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCourse } from '@/lib/api/instructor-courses';
@@ -14,7 +23,13 @@ type CourseContextValue = {
   setCourse: (course: CourseDetail) => void; // sau khi lưu: cập nhật thanh trên + checklist
   dirty: boolean; // form đang mở có thay đổi chưa lưu
   setDirty: (dirty: boolean) => void;
+  saveRef: React.RefObject<SaveFn | null>; // form đang mở đăng ký hàm lưu, dùng cho "Lưu & tiếp tục"
+  discardRef: React.RefObject<DiscardFn | null>; // và hàm reset, dùng cho "Bỏ thay đổi"
+  requestLeave: (href: string) => void; // GuardedLink gọi khi còn thay đổi chưa lưu
 };
+
+type SaveFn = () => Promise<boolean>;
+type DiscardFn = () => Promise<void>; // resolve khi form đã render lại xong sau reset()
 
 const CourseContext = createContext<CourseContextValue | null>(null);
 
@@ -24,13 +39,46 @@ export function useCourse(): CourseContextValue {
   return value;
 }
 
-// Form báo trạng thái dirty lên provider; unmount thì reset (provider sống ở layout, không remount khi đổi trang).
-export function useDirtySync(isDirty: boolean) {
-  const { setDirty } = useCourse();
+// Form báo trạng thái dirty + hàm lưu/huỷ lên provider; unmount thì reset (provider sống ở layout, không remount khi đổi trang).
+// Huỷ trả Promise, resolve sau khi commit render isDirty=false: cacheComponents ẩn trang cũ bằng React Activity ngay
+// khi chuyển trang, lúc đó effect của react-hook-form (useFieldArray) bị dừng → phải đợi reset áp xong mới navigate.
+export function useDirtySync(isDirty: boolean, save: SaveFn, discard: () => void) {
+  const { setDirty, saveRef, discardRef } = useCourse();
+  const discarded = useRef<(() => void) | null>(null);
   useEffect(() => {
     setDirty(isDirty);
+    if (!isDirty) {
+      discarded.current?.();
+      discarded.current = null;
+    }
     return () => setDirty(false);
   }, [isDirty, setDirty]);
+  useEffect(() => {
+    saveRef.current = save;
+    discardRef.current = () =>
+      new Promise<void>((resolve) => {
+        if (!isDirty) return resolve();
+        discarded.current = resolve;
+        discard();
+      });
+    return () => {
+      saveRef.current = null;
+      discardRef.current = null;
+    };
+  });
+}
+
+// Checklist bấm vào một mục thiếu → cuộn tới ô và nháy viền (CSS [data-flash] ở globals.css).
+// Ô có thể chưa render khi vừa đổi trang nên thử lại vài lần.
+export function flashAnchor(id: string, tries = 20) {
+  const el = document.getElementById(id);
+  if (!el) {
+    if (tries > 0) setTimeout(() => flashAnchor(id, tries - 1), 50);
+    return;
+  }
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.dataset.flash = '';
+  setTimeout(() => delete el.dataset.flash, 1600);
 }
 
 export function ManageSkeleton() {
@@ -56,6 +104,11 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [error, setError] = useState<'not_found' | 'failed' | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
+  const saveRef = useRef<SaveFn | null>(null);
+  const discardRef = useRef<DiscardFn | null>(null);
+  const router = useRouter();
 
   const load = useCallback(
     () =>
@@ -81,7 +134,31 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  const value = useMemo(() => (course ? { course, setCourse, dirty, setDirty } : null), [course, dirty]);
+  const value = useMemo(
+    () => (course ? { course, setCourse, dirty, setDirty, saveRef, discardRef, requestLeave: setPendingHref } : null),
+    [course, dirty],
+  );
+
+  async function leave(save: boolean) {
+    const href = pendingHref;
+    if (!href) return;
+    if (save) {
+      setLeaving(true);
+      const ok = (await saveRef.current?.()) ?? false;
+      setLeaving(false);
+      if (!ok) {
+        setPendingHref(null); // lưu lỗi: ở lại để thấy lỗi dưới từng ô
+        return;
+      }
+    } else {
+      await discardRef.current?.();
+    }
+    setDirty(false);
+    setPendingHref(null);
+    router.push(href);
+    const anchor = href.split('#')[1];
+    if (anchor) flashAnchor(anchor);
+  }
 
   if (error === 'not_found') {
     return (
@@ -110,5 +187,28 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     );
   }
   if (!value) return <ManageSkeleton />;
-  return <CourseContext value={value}>{children}</CourseContext>;
+  return (
+    <CourseContext value={value}>
+      {children}
+      <AlertDialog open={!!pendingHref} onOpenChange={(open) => !open && !leaving && setPendingHref(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rời trang khi chưa lưu?</AlertDialogTitle>
+            <AlertDialogDescription>Các thay đổi trên trang này sẽ mất nếu bạn rời đi mà không lưu.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel variant="ghost" disabled={leaving}>
+              Ở lại
+            </AlertDialogCancel>
+            <Button variant="destructive" disabled={leaving} onClick={() => void leave(false)}>
+              Bỏ thay đổi
+            </Button>
+            <Button disabled={leaving} onClick={() => void leave(true)}>
+              {leaving ? 'Đang lưu…' : 'Lưu & tiếp tục'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </CourseContext>
+  );
 }

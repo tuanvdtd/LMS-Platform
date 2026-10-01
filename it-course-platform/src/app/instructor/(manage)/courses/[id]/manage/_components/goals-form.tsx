@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { updateCourse } from '@/lib/api/instructor-courses';
 import { useCourse, useDirtySync } from './course-provider';
-import { applySaveError, SaveButton } from './form-save';
+import { applySaveError, PageHeader, SaveBar, submitToPromise } from './form-save';
 import { MAX_ITEM_LENGTH, MAX_ITEMS, StringListEditor } from './string-list-editor';
 
 // Giới hạn khớp BE (spec §4.3). Ô rỗng được phép trong form, bỏ đi khi gửi.
@@ -41,9 +41,7 @@ export function GoalsForm() {
     },
   });
 
-  useDirtySync(isDirty);
-
-  async function onSubmit(values: GoalsValues) {
+  async function onSubmit(values: GoalsValues): Promise<boolean> {
     try {
       const updated = await updateCourse(course.id, {
         learningObjectives: toList(values.learningObjectives),
@@ -53,6 +51,7 @@ export function GoalsForm() {
       setCourse(updated);
       reset(values);
       toast.success('Đã lưu');
+      return true;
     } catch (err) {
       applySaveError(
         err,
@@ -61,28 +60,28 @@ export function GoalsForm() {
         // ['learningObjectives', '2'] → 'learningObjectives.2.value' (index sau khi BE bỏ ô rỗng, gần đúng)
         (path) => (path.length > 1 ? `${path[0]}.${path[1]}.value` : path[0]),
       );
+      return false;
     }
   }
+
+  useDirtySync(isDirty, submitToPromise(handleSubmit, onSubmit), () => reset());
 
   const listProps = { control, register, errors };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-8">
-      <div className="flex items-center justify-between gap-4 border-b pb-4">
-        <h1 className="text-2xl font-extrabold">Học viên mục tiêu</h1>
-        <SaveButton isDirty={isDirty} isSubmitting={isSubmitting} locked={locked} />
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Các mô tả dưới đây hiển thị công khai trên trang tổng quan khoá học, giúp học viên quyết định khoá học có
-        phù hợp với họ hay không.
-      </p>
-      <fieldset disabled={locked} className="space-y-10">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-6">
+      <PageHeader
+        title="Học viên mục tiêu"
+        description="Những mô tả này hiển thị công khai trên trang khoá học và giúp học viên quyết định khoá có phù hợp với họ không."
+      />
+      <fieldset disabled={locked} className="flex min-w-0 flex-col gap-5">
         <StringListEditor
           name="learningObjectives"
           anchor="objectives"
           title="Học viên sẽ học được gì trong khoá học của bạn?"
           hint="Nhập ít nhất 4 mục tiêu hoặc kết quả học tập mà học viên đạt được sau khi hoàn thành khoá học."
           placeholder="Ví dụ: Xây dựng ứng dụng React có định tuyến và gọi API"
+          min={4}
           {...listProps}
         />
         <StringListEditor
@@ -91,6 +90,7 @@ export function GoalsForm() {
           title="Yêu cầu hoặc điều kiện tiên quyết để tham gia khoá học là gì?"
           hint="Liệt kê kỹ năng, kinh nghiệm, công cụ hoặc thiết bị học viên cần có trước khi học. Nếu không có, hãy ghi rõ điều đó."
           placeholder="Ví dụ: Biết JavaScript cơ bản"
+          min={1}
           {...listProps}
         />
         <StringListEditor
@@ -99,9 +99,11 @@ export function GoalsForm() {
           title="Khoá học này dành cho đối tượng nào?"
           hint="Mô tả rõ những học viên sẽ thấy nội dung khoá học có giá trị."
           placeholder="Ví dụ: Lập trình viên frontend mới bắt đầu với React"
+          min={1}
           {...listProps}
         />
       </fieldset>
+      <SaveBar isDirty={isDirty} isSubmitting={isSubmitting} locked={locked} onDiscard={() => reset()} />
     </form>
   );
 }

@@ -4,17 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, BookOpen, HelpCircle, Code2, BarChart2, User,
+  LayoutDashboard, BookOpen, BarChart2, User,
   ChevronLeft, ChevronRight, DollarSign, Activity, FileCheck, Users,
   ShieldCheck, ChevronDown, BookMarked, MessageCircle, MessagesSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const NAV = [
+export const INSTRUCTOR_NAV = [
   { icon: LayoutDashboard, label: 'Tổng quan', to: '/instructor' },
   { icon: BookOpen, label: 'Khoá học', to: '/instructor/courses' },
-  { icon: HelpCircle, label: 'Ngân hàng câu hỏi', to: '/instructor/questions' },
-  { icon: Code2, label: 'Bài tập lập trình', to: '/instructor/problems' },
   { icon: MessageCircle, label: 'Hỏi đáp (Q&A)', to: '/instructor/qa' },
   { icon: MessagesSquare, label: 'Tin nhắn riêng', to: '/instructor/messages' },
   {
@@ -39,7 +37,7 @@ export default function InstructorSidebar() {
 
   return (
     <aside
-      className="shrink-0 flex flex-col border-r transition-all duration-200"
+      className="hidden shrink-0 flex-col border-r transition-all duration-200 lg:flex"
       style={{
         width: collapsed ? 56 : 220,
         background: 'var(--card)',
@@ -48,7 +46,7 @@ export default function InstructorSidebar() {
       }}
     >
       <div className="flex-1 py-3 overflow-y-auto">
-        {NAV.map((item) => {
+        {INSTRUCTOR_NAV.map((item) => {
           // '/instructor' is the dashboard root, so it must match exactly or it would stay active everywhere
           const isActive = pathname === item.to || (item.to !== '/instructor' && pathname.startsWith(item.to + '/'));
           const Icon = item.icon;

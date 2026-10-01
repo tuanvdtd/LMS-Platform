@@ -19,9 +19,9 @@ export function CategoryPicker({
   onChange: (id: string | null) => void;
   invalid?: boolean;
 }) {
-  const [parentId, setParentId] = useState<string | null>(
-    () => categories.find((c) => c.children.some((s) => s.id === value))?.id ?? null,
-  );
+  // Cấp 1 suy từ value để reset() của form kéo được cả ô cấp 1; chỉ dùng state khi chưa chọn cấp 2.
+  const [picked, setPicked] = useState<string | null>(null);
+  const parentId = categories.find((c) => c.children.some((s) => s.id === value))?.id ?? picked;
 
   if (categories.length === 0) {
     return <p className="text-sm text-muted-foreground">Không tải được danh mục, thử tải lại trang.</p>;
@@ -34,7 +34,7 @@ export function CategoryPicker({
         items={labels(categories)}
         value={parentId}
         onValueChange={(id) => {
-          setParentId(id);
+          setPicked(id);
           onChange(null);
         }}
       >

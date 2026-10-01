@@ -1,16 +1,65 @@
 'use client';
 
 import axios from 'axios';
-import type { FieldValues, Path, UseFormSetError } from 'react-hook-form';
+import type { FieldValues, Path, UseFormHandleSubmit, UseFormSetError } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
-export function SaveButton({ isDirty, isSubmitting, locked }: { isDirty: boolean; isSubmitting: boolean; locked: boolean }) {
+export function PageHeader({ title, description }: { title: string; description: string }) {
   return (
-    <Button type="submit" disabled={locked || !isDirty || isSubmitting}>
-      {isSubmitting ? 'Đang lưu…' : 'Lưu'}
-    </Button>
+    <div className="flex flex-col gap-1.5">
+      <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+      <p className="max-w-2xl text-sm/relaxed text-muted-foreground">{description}</p>
+    </div>
   );
+}
+
+// Thanh lưu dính đáy, chỉ hiện khi form có thay đổi (spec C3: không autosave, Lưu chỉ bật khi có thay đổi).
+export function SaveBar({
+  isDirty,
+  isSubmitting,
+  locked,
+  onDiscard,
+}: {
+  isDirty: boolean;
+  isSubmitting: boolean;
+  locked: boolean;
+  onDiscard: () => void;
+}) {
+  if (!isDirty || locked) return null;
+  return (
+    <div className="sticky bottom-4 z-10 flex items-center gap-3 rounded-xl bg-slate-900 py-2.5 pr-2.5 pl-4 text-slate-50 shadow-xl">
+      <span className="size-2 shrink-0 rounded-full bg-brand-accent" aria-hidden />
+      <span className="flex-1 text-sm">Bạn có thay đổi chưa lưu</span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="text-slate-200 hover:bg-slate-800 hover:text-white"
+        disabled={isSubmitting}
+        onClick={onDiscard}
+      >
+        Huỷ thay đổi
+      </Button>
+      <Button type="submit" size="sm" disabled={isSubmitting}>
+        {isSubmitting ? 'Đang lưu…' : 'Lưu'}
+      </Button>
+    </div>
+  );
+}
+
+// Hàm lưu cho dialog "Lưu & tiếp tục": chạy validate + onSubmit, trả true nếu lưu xong.
+export function submitToPromise<T extends FieldValues>(
+  handleSubmit: UseFormHandleSubmit<T>,
+  onSubmit: (values: T) => Promise<boolean>,
+) {
+  return () =>
+    new Promise<boolean>((resolve) => {
+      void handleSubmit(
+        async (values) => resolve(await onSubmit(values)),
+        () => resolve(false),
+      )();
+    });
 }
 
 type ApiFieldError = { path: string[]; message: string };

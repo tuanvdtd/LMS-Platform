@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { searchTopics } from '@/lib/api/instructor-courses';
@@ -36,11 +35,20 @@ export function TopicPicker({
 
   if (value) {
     return (
-      <div id="topic-search" className="flex items-center gap-2">
-        <Badge variant="secondary">{value.name}</Badge>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label="Bỏ chọn chủ đề" onClick={() => onChange(null)}>
-          <X />
-        </Button>
+      <div id="topic-search" className="flex">
+        <span className="inline-flex h-9 items-center gap-1 rounded-full bg-primary/10 pr-1 pl-3.5 text-sm font-semibold text-primary">
+          {value.name}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-full text-primary hover:bg-primary/15 hover:text-primary"
+            aria-label="Bỏ chọn chủ đề"
+            onClick={() => onChange(null)}
+          >
+            <X />
+          </Button>
+        </span>
       </div>
     );
   }
@@ -52,7 +60,8 @@ export function TopicPicker({
         value={q}
         maxLength={50}
         autoComplete="off"
-        placeholder="Ví dụ: React, Docker, Python"
+        placeholder="Tìm chủ đề, ví dụ: React, Docker…"
+        className="h-10"
         aria-invalid={invalid}
         onChange={(e) => {
           setQ(e.target.value);
@@ -60,12 +69,12 @@ export function TopicPicker({
         }}
       />
       {q.trim() && results.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border bg-popover py-1 shadow-md">
+        <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border bg-popover py-1 shadow-lg">
           {results.map((t) => (
             <li key={t.id}>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                className="w-full px-3 py-2.5 text-left text-sm hover:bg-primary/10 focus-visible:bg-primary/10 focus-visible:outline-none"
                 onClick={() => {
                   onChange(t);
                   setQ('');

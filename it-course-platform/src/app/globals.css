@@ -173,6 +173,12 @@ code, pre, .font-mono {
   outline-offset: 2px;
 }
 
+/* Checklist nhảy tới ô còn thiếu → nháy viền (flashAnchor ở trang quản lý khoá) */
+[data-flash] {
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent), 0 0 0 1px var(--ring);
+  transition: box-shadow 0.3s;
+}
+
 /* Transitions */
 .transition-colors {
   transition: color 0.15s, background-color 0.15s, border-color 0.15s;

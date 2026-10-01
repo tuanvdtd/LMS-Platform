@@ -12,14 +12,15 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogClose,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { createCourse } from '@/lib/api/instructor-courses';
 
 const MAX = 60;
@@ -66,41 +67,41 @@ export function CreateCourseDialog() {
         if (!next) reset();
       }}
     >
-      <DialogTrigger render={<Button />}>
+      <DialogTrigger render={<Button variant="accent" />}>
         <Plus data-icon="inline-start" /> Tạo khoá học
       </DialogTrigger>
-      <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4">
+      <DialogContent className="sm:max-w-lg">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
           <DialogHeader>
-            <DialogTitle>Tạo khoá học</DialogTitle>
-            <DialogDescription>Đặt một tên tạm, bạn có thể đổi lại sau ở Trang tổng quan.</DialogDescription>
+            <DialogTitle className="text-xl">Đặt tên cho khoá học</DialogTitle>
+            <DialogDescription>
+              Chưa nghĩ ra tên hay? Cứ đặt tạm, bạn đổi được bất cứ lúc nào trong Trang tổng quan.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-1.5">
-            <Label htmlFor="new-course-title">Tên khoá học</Label>
-            <div className="relative">
-              <Input
-                id="new-course-title"
-                autoFocus
-                maxLength={MAX}
-                placeholder="Ví dụ: Lập trình React từ số 0"
-                className="pr-12"
-                aria-invalid={!!errors.title}
-                aria-describedby={errors.title ? 'new-course-title-error' : undefined}
-                {...register('title')}
-              />
-              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted-foreground">
-                {MAX - title.length}
-              </span>
+          <Field data-invalid={!!errors.title || undefined}>
+            <div className="flex items-center justify-between gap-2">
+              <FieldLabel htmlFor="new-course-title">Tên khoá học</FieldLabel>
+              <span className="font-mono text-xs text-muted-foreground">{MAX - title.length}</span>
             </div>
-            {errors.title && (
-              <p id="new-course-title-error" className="text-xs text-destructive">
-                {errors.title.message}
-              </p>
+            <Input
+              id="new-course-title"
+              autoFocus
+              maxLength={MAX}
+              placeholder="Ví dụ: NestJS từ cơ bản đến triển khai"
+              aria-invalid={!!errors.title}
+              aria-describedby={errors.title ? 'new-course-title-error' : undefined}
+              {...register('title')}
+            />
+            {errors.title ? (
+              <FieldError id="new-course-title-error">{errors.title.message}</FieldError>
+            ) : (
+              <FieldDescription>Bấm Enter để tạo nhanh.</FieldDescription>
             )}
-          </div>
+          </Field>
           <DialogFooter>
+            <DialogClose render={<Button type="button" variant="ghost" />}>Huỷ</DialogClose>
             <Button type="submit" disabled={!title.trim() || isSubmitting}>
-              {isSubmitting ? 'Đang tạo…' : 'Tạo'}
+              {isSubmitting ? 'Đang tạo…' : 'Tạo khoá học'}
             </Button>
           </DialogFooter>
         </form>
