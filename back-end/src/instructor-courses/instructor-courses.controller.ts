@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put } from '@nestjs/common';
 import type { AuthSession } from '../auth/auth.js';
 import { CurrentUser, Roles } from '../auth/decorators.js';
 import { ZodValidationPipe } from '../common/zod.pipe.js';
-import { createCourseSchema, updateCourseSchema } from './instructor-courses.schemas.js';
-import type { CreateCourseInput, UpdateCourseInput } from './instructor-courses.schemas.js';
+import { createCourseSchema, setThumbnailSchema, updateCourseSchema } from './instructor-courses.schemas.js';
+import type { CreateCourseInput, SetThumbnailInput, UpdateCourseInput } from './instructor-courses.schemas.js';
 import { InstructorCoursesService } from './instructor-courses.service.js';
 
 type User = AuthSession['user'];
@@ -35,5 +35,14 @@ export class InstructorCoursesController {
     @Body(new ZodValidationPipe(updateCourseSchema)) body: UpdateCourseInput,
   ) {
     return this.courses.update(id, user.id, body);
+  }
+
+  @Put(':id/thumbnail')
+  setThumbnail(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(setThumbnailSchema)) body: SetThumbnailInput,
+  ) {
+    return this.courses.setThumbnail(id, user.id, body.key);
   }
 }

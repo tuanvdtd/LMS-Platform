@@ -28,6 +28,7 @@ import {
 import { CategoryPicker } from './category-picker';
 import { useCourse, useDirtySync } from './course-provider';
 import { applySaveError, PageHeader, SaveBar, submitToPromise } from './form-save';
+import { ThumbnailUpload } from './thumbnail-upload';
 import { TopicPicker } from './topic-picker';
 
 const TITLE_MAX = 60;
@@ -212,16 +213,7 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
               <CardTitle className="text-base">Hình ảnh &amp; video</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              <div id="thumbnail" className="grid scroll-mt-20 gap-4 rounded-lg transition-shadow sm:grid-cols-2">
-                <MediaPlaceholder icon={<ImageIcon />} caption="750 × 422 px" />
-                <div className="flex flex-col gap-1.5">
-                  <p className="text-sm font-semibold">Ảnh bìa</p>
-                  <p className="text-[13px]/relaxed text-muted-foreground">
-                    JPG/PNG, tối thiểu 750×422 px, không chèn chữ quá nhiều. Ảnh hiển thị ở trang khoá và thẻ tìm kiếm.
-                  </p>
-                  <span className="text-xs text-muted-foreground">Tải ảnh lên · sắp có (đợt 2)</span>
-                </div>
-              </div>
+              <ThumbnailUpload disabled={locked} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <MediaPlaceholder icon={<Video />} />
                 <div className="flex flex-col gap-1.5">

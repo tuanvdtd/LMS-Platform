@@ -35,3 +35,6 @@ export const updateCourseSchema = z
   .partial()
   .strict();
 export type UpdateCourseInput = z.output<typeof updateCourseSchema>;
+
+export const setThumbnailSchema = z.object({ key: z.string().max(200) }).strict();
+export type SetThumbnailInput = z.output<typeof setThumbnailSchema>;

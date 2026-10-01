@@ -21,6 +21,7 @@ import type { CourseDetail } from '@/types/instructor-course';
 type CourseContextValue = {
   course: CourseDetail;
   setCourse: (course: CourseDetail) => void; // sau khi lưu: cập nhật thanh trên + checklist
+  patchCourse: (patch: Partial<CourseDetail>) => void; // ghi đè vài trường (checklist sau khi sửa khung chương trình, status khi 409)
   dirty: boolean; // form đang mở có thay đổi chưa lưu
   setDirty: (dirty: boolean) => void;
   saveRef: React.RefObject<SaveFn | null>; // form đang mở đăng ký hàm lưu, dùng cho "Lưu & tiếp tục"
@@ -109,6 +110,10 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   const saveRef = useRef<SaveFn | null>(null);
   const discardRef = useRef<DiscardFn | null>(null);
   const router = useRouter();
+  const patchCourse = useCallback(
+    (patch: Partial<CourseDetail>) => setCourse((c) => (c ? { ...c, ...patch } : c)),
+    [],
+  );
 
   const load = useCallback(
     () =>
@@ -135,8 +140,11 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   }, [dirty]);
 
   const value = useMemo(
-    () => (course ? { course, setCourse, dirty, setDirty, saveRef, discardRef, requestLeave: setPendingHref } : null),
-    [course, dirty],
+    () =>
+      course
+        ? { course, setCourse, patchCourse, dirty, setDirty, saveRef, discardRef, requestLeave: setPendingHref }
+        : null,
+    [course, dirty, patchCourse],
   );
 
   async function leave(save: boolean) {

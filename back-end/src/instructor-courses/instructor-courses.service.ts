@@ -1,8 +1,9 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { z } from 'zod';
-import { type FieldError, validationError } from '../common/zod.pipe.js';
+import { imageInfo, THUMBNAIL_MAX_BYTES, THUMBNAIL_MIN } from '../assets/file-check.js';
+import { type FieldError, isGuid, validationError } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
+import { StorageService } from '../infra/storage.service.js';
 import { buildChecklist } from './course-checklist.js';
 import type { UpdateCourseInput } from './instructor-courses.schemas.js';
 import { courseSlug } from './slugify.js';
@@ -27,15 +28,18 @@ const COURSE_SELECT = {
   category: { select: { id: true, slug: true, name: true, parent: REF } },
   topics: { where: { isPrimary: true }, select: { topic: REF } },
 } satisfies Prisma.CourseSelect;
-type CourseRow = Prisma.CourseGetPayload<{ select: typeof COURSE_SELECT }>;
-type LectureStats = { published: number; videoSeconds: number };
+export type CourseRow = Prisma.CourseGetPayload<{ select: typeof COURSE_SELECT }>;
+export type LectureStats = { published: number; videoSeconds: number };
 
 // DB dev là pooler Supabase ở xa (~1-2s/query): mặc định 5s của interactive transaction không đủ.
-const TX_OPTIONS = { maxWait: 10_000, timeout: 15_000 };
+export const TX_OPTIONS = { maxWait: 10_000, timeout: 15_000 };
 
 @Injectable()
 export class InstructorCoursesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   // Trùng slug (P2002) → sinh hậu tố mới, thử 1 lần nữa (spec §4.1). Khoá mới không đụng
   // unique nào khác nên P2002 ở đây chỉ có thể là slug.
@@ -56,7 +60,7 @@ export class InstructorCoursesService {
     });
     const stats = await this.lectureStats(courses.map((c) => c.id));
     return courses.map((c) => {
-      const checklist = this.checklistOf(c, stats.get(c.id));
+      const checklist = this.checklistFor(c, stats.get(c.id));
       return {
         id: c.id,
         title: c.title,
@@ -69,25 +73,18 @@ export class InstructorCoursesService {
   }
 
   async detail(id: string, instructorId: string) {
-    const course = await this.findOwned(id, instructorId);
+    const course = await this.assertOwned(id, instructorId);
     const stats = await this.lectureStats([course.id]);
     const { topics, ...rest } = course;
     return {
       ...rest,
       primaryTopic: topics[0]?.topic ?? null,
-      checklist: this.checklistOf(course, stats.get(course.id)),
+      checklist: this.checklistFor(course, stats.get(course.id)),
     };
   }
 
   async update(id: string, instructorId: string, body: UpdateCourseInput) {
-    const course = await this.findOwned(id, instructorId);
-    if (course.status === 'in_review') {
-      throw new ConflictException({
-        statusCode: 409,
-        code: 'COURSE_LOCKED',
-        message: 'Khoá học đang chờ duyệt, không sửa được',
-      });
-    }
+    await this.assertEditable(id, instructorId);
     const { primaryTopicId, ...fields } = body;
 
     const errors: FieldError[] = [];
@@ -148,14 +145,51 @@ export class InstructorCoursesService {
     );
   }
 
-  // Không phải chủ khoá cũng trả 404 để không lộ khoá của người khác (spec §4.1).
-  // id sai định dạng → Postgres ném lỗi uuid, nên chặn trước và coi như không tồn tại.
-  private async findOwned(id: string, instructorId: string): Promise<CourseRow> {
-    const course = z.guid().safeParse(id).success
+  // Không phải chủ khoá cũng trả 404 để không lộ khoá của người khác (spec course-create-basics §4.1).
+  // Module curriculum dùng lại (spec curriculum-upload §4.1).
+  async assertOwned(id: string, instructorId: string): Promise<CourseRow> {
+    const course = isGuid(id)
       ? await this.prisma.course.findFirst({ where: { id, instructorId }, select: COURSE_SELECT })
       : null;
     if (!course) throw new NotFoundException();
     return course;
+  }
+
+  // Như assertOwned + khoá đang chờ duyệt thì không sửa được (409 COURSE_LOCKED).
+  async assertEditable(id: string, instructorId: string): Promise<CourseRow> {
+    const course = await this.assertOwned(id, instructorId);
+    if (course.status === 'in_review') {
+      throw new ConflictException({
+        statusCode: 409,
+        code: 'COURSE_LOCKED',
+        message: 'Khoá học đang chờ duyệt, không sửa được',
+      });
+    }
+    return course;
+  }
+
+  // Ảnh bìa (spec curriculum-upload §4.3): key do POST /instructor/assets/uploads sinh, ảnh đã nằm trên R2 public.
+  async setThumbnail(id: string, instructorId: string, key: string) {
+    const course = await this.assertEditable(id, instructorId);
+    const ext = new RegExp(`^thumbnails/${instructorId}/[0-9a-f-]{36}\\.(jpg|png|webp)$`).exec(key)?.[1];
+    if (!ext) throw validationError([{ path: ['key'], message: 'Ảnh không hợp lệ' }]);
+    const problem = await this.checkThumbnail(key, ext);
+    if (problem) {
+      await this.storage.delete('public', key);
+      throw validationError([{ path: ['key'], message: problem }]);
+    }
+    await this.prisma.course.update({
+      where: { id },
+      data: { thumbnailUrl: this.storage.publicUrl(key), updatedAt: new Date() },
+    });
+    const oldKey = this.storage.keyOfPublicUrl(course.thumbnailUrl);
+    // Xoá ảnh cũ lỗi chỉ để lại rác trên R2, không làm hỏng request (StorageService đã gửi Sentry).
+    // Cùng key gắn cho khoá khác thì giữ object.
+    const shared = oldKey
+      ? await this.prisma.course.count({ where: { thumbnailUrl: course.thumbnailUrl, id: { not: id } } })
+      : 0;
+    if (oldKey && oldKey !== key && shared === 0) await this.storage.delete('public', oldKey).catch(() => undefined);
+    return this.detail(id, instructorId);
   }
 
   // Lecture đã xuất bản + tổng giây video của chúng, một query cho nhiều khoá.
@@ -176,7 +210,7 @@ export class InstructorCoursesService {
     return stats;
   }
 
-  private checklistOf(c: CourseRow, s: LectureStats | undefined) {
+  checklistFor(c: CourseRow, s: LectureStats | undefined) {
     return buildChecklist({
       ...c,
       hasPrimaryTopic: c.topics.length > 0,
@@ -184,5 +218,18 @@ export class InstructorCoursesService {
       publishedLectureCount: s?.published ?? 0,
       videoSeconds: s?.videoSeconds ?? 0,
     });
+  }
+
+  private async checkThumbnail(key: string, ext: string): Promise<string | null> {
+    const head = await this.storage.head('public', key);
+    if (!head) return 'Chưa tải ảnh lên';
+    if (head.size > THUMBNAIL_MAX_BYTES) return 'Ảnh tối đa 5 MB';
+    // Đọc cả ảnh (≤5 MB): JPEG có EXIF lớn có thể đặt kích thước sau 64 KB đầu.
+    const info = imageInfo(await this.storage.read('public', key));
+    if (!info || info.type !== ext) return 'File không phải ảnh JPG, PNG hoặc WebP';
+    if (info.width < THUMBNAIL_MIN.width || info.height < THUMBNAIL_MIN.height) {
+      return `Ảnh tối thiểu ${THUMBNAIL_MIN.width}×${THUMBNAIL_MIN.height} px`;
+    }
+    return null;
   }
 }

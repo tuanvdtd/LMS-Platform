@@ -25,3 +25,6 @@ export class ZodValidationPipe<T extends z.ZodType> implements PipeTransform<unk
     );
   }
 }
+
+// id trên URL sai định dạng → Postgres ném lỗi uuid; service coi như không tồn tại (404).
+export const isGuid = (id: string) => z.guid().safeParse(id).success;
