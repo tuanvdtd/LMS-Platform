@@ -39,7 +39,6 @@ async function makeCourse(tx: Prisma.TransactionClient) {
       slug: `c-${uid()}`,
       title: 't',
       categoryId: leaf.id,
-      track: 'frontend',
       level: 'beginner',
     },
   });

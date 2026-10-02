@@ -22,8 +22,6 @@ import {
   type Ref,
   SKILL_LEVEL_LABEL,
   type SkillLevel,
-  type Track,
-  TRACK_LABEL,
 } from '@/types/instructor-course';
 import { CategoryPicker } from './category-picker';
 import { useCourse, useDirtySync } from './course-provider';
@@ -43,7 +41,6 @@ const schema = z.object({
   description: z.string().refine((s) => countWords(s) <= 5000, 'Tối đa 5000 từ'),
   language: z.custom<CourseLanguage>(),
   level: z.custom<SkillLevel | null>(),
-  track: z.custom<Track | null>(),
   categoryId: z.string().nullable(),
   primaryTopic: z.custom<Ref | null>(),
 });
@@ -55,7 +52,6 @@ const toValues = (c: CourseDetail): Values => ({
   description: c.description ?? '',
   language: c.language,
   level: c.level,
-  track: c.track,
   categoryId: c.category?.id ?? null,
   primaryTopic: c.primaryTopic,
 });
@@ -71,9 +67,9 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
     setError,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: toValues(course) });
-  const [title, subtitle, description, level, track, primaryTopic] = useWatch({
+  const [title, subtitle, description, level, primaryTopic] = useWatch({
     control,
-    name: ['title', 'subtitle', 'description', 'level', 'track', 'primaryTopic'],
+    name: ['title', 'subtitle', 'description', 'level', 'primaryTopic'],
   });
   const words = countWords(description);
 
@@ -152,7 +148,7 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
               <CardTitle className="text-base">Thông tin cơ bản</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <FormField label="Ngôn ngữ" htmlFor="language">
                   <Controller
                     control={control}
@@ -168,15 +164,6 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
                     name="level"
                     render={({ field }) => (
                       <EnumSelect id="level" labels={SKILL_LEVEL_LABEL} value={field.value} onChange={field.onChange} placeholder="Chọn cấp độ" />
-                    )}
-                  />
-                </FormField>
-                <FormField label="Track" htmlFor="track" error={errors.track?.message}>
-                  <Controller
-                    control={control}
-                    name="track"
-                    render={({ field }) => (
-                      <EnumSelect id="track" labels={TRACK_LABEL} value={field.value} onChange={field.onChange} placeholder="Chọn track" />
                     )}
                   />
                 </FormField>
@@ -243,10 +230,9 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
             <div className="flex flex-col gap-1.5 p-3.5">
               <p className="text-[15px]/snug font-bold">{title.trim() || 'Tiêu đề khoá học'}</p>
               <p className="text-[13px]/snug text-muted-foreground">{subtitle.trim() || 'Phụ đề sẽ hiện ở đây'}</p>
-              {(level || track || primaryTopic) && (
+              {(level || primaryTopic) && (
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
                   {level && <Badge variant="secondary" className="rounded-md">{SKILL_LEVEL_LABEL[level]}</Badge>}
-                  {track && <Badge variant="secondary" className="rounded-md">{TRACK_LABEL[track]}</Badge>}
                   {primaryTopic && <Badge variant="secondary" className="rounded-md">{primaryTopic.name}</Badge>}
                 </div>
               )}

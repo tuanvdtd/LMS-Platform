@@ -1,4 +1,4 @@
-import { SkillLevel, Track } from '@prisma/client';
+import { SkillLevel } from '@prisma/client';
 import { z } from 'zod';
 import { countWords } from './course-checklist.js';
 
@@ -24,7 +24,6 @@ export const updateCourseSchema = z
       .transform(emptyToNull),
     language: z.enum(['vi', 'en']),
     level: z.enum(SkillLevel).nullable(),
-    track: z.enum(Track).nullable(),
     // guid: chỉ kiểm dạng 8-4-4-4-12; tồn tại/cấp 2 do service kiểm.
     categoryId: z.guid().nullable(),
     primaryTopicId: z.guid().nullable(),

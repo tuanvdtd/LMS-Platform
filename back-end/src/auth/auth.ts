@@ -81,9 +81,11 @@ export function createAuth(
       ...(github && { github }),
     },
     user: {
+      // Chỉ ghi qua PATCH /me/preferences (có validate enum). input: false → client gửi kèm
+      // lúc sign-up/updateUser thì Better Auth trả 400 FIELD_NOT_ALLOWED.
       additionalFields: {
-        targetTrack: { type: 'string', required: false },
-        level: { type: 'string', required: false },
+        occupation: { type: 'string', required: false, input: false },
+        level: { type: 'string', required: false, input: false },
       },
     },
     rateLimit: {

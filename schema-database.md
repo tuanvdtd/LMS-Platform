@@ -30,7 +30,7 @@ Phạm vi: toàn bộ mức **Bắt buộc** và **Nên có** trong §3.6. Bỏ 
 | Quyết định | Lý do |
 |---|---|
 | **Tách topic TỰ KHAI khỏi topic ĐO ĐƯỢC** | `user_target_topics` (học viên chọn lúc onboarding) vs `user_topic_mastery` (tính từ bài test). Chênh lệch hai bảng là tín hiệu tầng 2, và bảng đầu cho tầng 2 **chạy ngay ngày đăng ký** thay vì phải chờ có dữ liệu test. Không gộp làm một vì "muốn học" và "đang yếu" là hai việc khác nhau — yếu `sql` nhưng không quan tâm SQL thì không nên gợi ý. |
-| **Hai trục phân loại tách rời** | `categories` = chủ đề (kiểu Udemy, để duyệt/lọc/breadcrumb). `Track` = nghề nghiệp học viên nhắm tới (để khớp `users.targetTrack` ở recommendation tầng 1). Udemy chỉ có trục đầu; §3.4 cần cả hai. Gộp làm một enum thì mất breadcrumb và thêm danh mục phải migrate. |
+| **Khoá không gắn nghề** | `categories` = chủ đề (kiểu Udemy, để duyệt/lọc/breadcrumb). Nghề học viên (`users.occupation`) nối với khoá qua `occupation_topics` → `course_topics` (spec 2026-10-02-personalize-occupation). |
 | **`categories` là bảng tự tham chiếu, không phải enum** | Một bảng thay vì ba (`category`/`subcategory`/`topic`). Admin thêm danh mục không cần redeploy — Udemy sửa taxonomy của họ định kỳ. Trigger chặn ở 2 tầng. |
 | **Topic kiểu Udemy thay cho skill** | Một bảng `topics` (slug theo udemy.com/topic) làm cả taxonomy duyệt lẫn đơn vị đo năng lực. Topic không gắn cứng vào category; "Chủ đề phổ biến" của nhánh cấp 2 tính từ course_topics. Tag ở cấp quiz, không tag từng câu (spec 2026-09-29-udemy-taxonomy-topics). |
 | **UUID v7** cho mọi khoá chính | Sắp theo thời gian → B-tree không phân mảnh như UUID v4. Better Auth phải cấu hình `generateId` cùng loại, xem ghi chú trong schema. |
@@ -133,8 +133,8 @@ datasource db {
 //      secondaryStorage: redisStore,        // §4.4: đọc session từ Redis
 //      session: { storeSessionInDatabase: true }, // bảng session vẫn là nguồn chính
 //      user: { additionalFields: {
-//        targetTrack: { type: 'string', required: false },
-//        level:       { type: 'string', required: false },
+//        occupation: { type: 'string', required: false, input: false },
+//        level:      { type: 'string', required: false, input: false },
 //      }},
 //      plugins: [admin()],                  // role / banned / banReason / banExpires
 //    });
@@ -156,9 +156,9 @@ model User {
   banReason  String?
   banExpires DateTime?
 
-  // additionalFields — chọn lúc đăng ký, nuôi recommendation tầng 1 (§3.4)
-  targetTrack Track?
-  level       SkillLevel?
+  // additionalFields — chọn ở onboarding (PATCH /me/preferences), nuôi recommendation tầng 1 (§3.4)
+  occupation Occupation?
+  level      SkillLevel?
 
   sessions Session[]
   accounts Account[]
@@ -363,13 +363,10 @@ model Course {
   thumbnailUrl  String?
   promoVideoUrl String?
 
-  // HAI TRỤC PHÂN LOẠI, không trùng nhau:
-  //  categoryId — chủ đề khoá nói về cái gì. Dùng để duyệt/lọc/breadcrumb (kiểu Udemy).
-  //  track      — nghề nghiệp học viên nhắm tới. Dùng để khớp users.targetTrack
-  //               trong recommendation tầng 1 (§3.4). Udemy không có trục này.
+  // Khoá KHÔNG gắn nghề: nghề → topic qua occupation_topics, topic → khoá qua course_topics
+  // (spec 2026-10-02-personalize-occupation P1). categoryId dùng để duyệt/lọc/breadcrumb (kiểu Udemy).
   // Nháp được để trống (spec 2026-09-30-course-create-basics C2); checklist gửi duyệt bắt buộc đủ.
   categoryId           String?      @db.Uuid
-  track                Track?
   level                SkillLevel?
   language             String       @default("vi")
   priceAmount          Int          @default(0) // đơn vị nhỏ nhất của currency
@@ -421,7 +418,6 @@ model Course {
 
   @@index([instructorId])
   @@index([status, categoryId, level]) // duyệt danh mục
-  @@index([status, track, level]) // recommendation tầng 1
   @@map("courses")
 }
 
@@ -743,9 +739,10 @@ model Topic {
   exercises  ExerciseTopic[]
   mastery    UserTopicMastery[]
   targetedBy UserTargetTopic[]
+  occupations OccupationTopic[]
   categories CategoryTopic[]
 
-  // Autocomplete ô "Tìm kiếm topic" ở bước 3 onboarding (name % $1). Cần extension pg_trgm.
+  // Autocomplete ô "Tìm kiếm topic" ở bước 2 onboarding (name % $1). Cần extension pg_trgm.
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_topics_name_trgm")
   @@map("topics")
 }
@@ -798,13 +795,13 @@ model UserTopicMastery {
   @@map("user_topic_mastery")
 }
 
-// Topic học viên TỰ KHAI muốn học ở bước 3 onboarding (kiểu /personalize/skills
+// Topic học viên TỰ KHAI muốn học ở bước 2 onboarding (kiểu /personalize/skills
 // của Udemy: đa chọn, có ô tìm kiếm và chip gợi ý theo nghề).
 //
 // Khác user_topic_mastery là topic ĐO ĐƯỢC từ bài test. Chênh lệch giữa hai bảng
 // là tín hiệu chính của recommendation tầng 2, và quan trọng hơn: nó cho tầng 2
 // chạy được NGAY NGÀY ĐẦU, khi user_topic_mastery còn rỗng hoàn toàn.
-// Chip "Phổ biến với học viên như bạn" = topic của các khoá có track = user.targetTrack.
+// Chip "Phổ biến với học viên như bạn" = occupation_topics của users.occupation.
 model UserTargetTopic {
   userId    String   @db.Uuid
   topicId   String   @db.Uuid
@@ -816,6 +813,20 @@ model UserTargetTopic {
   @@id([userId, topicId])
   @@index([topicId])
   @@map("user_target_topics")
+}
+
+// Nghề → topic phổ biến (curated, seed ở prisma/sql/06). Nuôi chip "Phổ biến với học viên
+// như bạn" ở bước 2 onboarding và recommendation tầng 1 (spec 2026-10-02-personalize-occupation §3).
+model OccupationTopic {
+  occupation Occupation
+  topicId    String     @db.Uuid
+  position   Int        @default(0)
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([occupation, topicId])
+  @@index([occupation, position])
+  @@map("occupation_topics")
 }
 
 // ============================================================================
@@ -1287,16 +1298,20 @@ model CourseAnswer {
 //  ENUMS
 // ============================================================================
 
-// Trục NGHỀ NGHIỆP, không phải trục chủ đề. Chủ đề nằm ở bảng `categories`.
-// Là enum (không phải bảng) vì danh sách này ổn định và chỉ có ~7 giá trị —
-// học viên chọn một lần lúc đăng ký, không ai cần admin thêm nghề mới runtime.
-enum Track {
-  backend
-  frontend
-  fullstack
-  mobile
-  data
-  devops
+// Trục NGHỀ NGHIỆP của học viên (bước 1 onboarding, kiểu /personalize/occupation của Udemy).
+// Enum vì danh sách ổn định, không cần admin thêm runtime. Khoá học không gắn nghề.
+enum Occupation {
+  frontend_developer
+  backend_developer
+  fullstack_developer
+  mobile_developer
+  devops_engineer
+  data_engineer
+  data_analyst
+  ml_engineer
+  qa_engineer
+  software_architect
+  game_developer
   other
 }
 
@@ -1547,7 +1562,7 @@ ALTER TABLE courses ADD COLUMN "searchTsv" tsvector
 CREATE INDEX idx_courses_search ON courses USING gin ("searchTsv");
 CREATE INDEX idx_courses_title_trgm ON courses USING gin (title gin_trgm_ops); -- gõ sai chính tả
 
--- Ô "Tìm kiếm một topic" ở bước 3 onboarding — autocomplete trên toàn catalog.
+-- Ô "Tìm kiếm một topic" ở bước 2 onboarding — autocomplete trên toàn catalog.
 CREATE INDEX idx_topics_name_trgm ON topics USING gin (name gin_trgm_ops);
 
 -- ---------------------------------------------------------------------------
@@ -1827,18 +1842,18 @@ Bản mẫu cho 4 tầng recommendation (§3.4, §4.6) và 2 chỉ số chất l
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
---  TẦNG 1 — theo mục tiêu (cold start: học viên mới chưa có dữ liệu)
---  $1 = user.targetTrack, $2 = user.level
+--  TẦNG 1 — theo nghề (cold start). $1 = users.occupation, $2 = users.level (có thể NULL)
+--  Khớp level: đúng mức hoặc all_levels; level NULL → không lọc (spec personalize-occupation §6)
 -- ---------------------------------------------------------------------------
-SELECT c.id, c.title, c."ratingAvg",
-       'Phù hợp với mục tiêu ' || $1 || ' trình độ ' || $2 AS reason
+SELECT c.id, c.title, c."ratingAvg", COUNT(*)::int AS matched_topics
 FROM courses c
+JOIN course_topics ct ON ct."courseId" = c.id
+JOIN occupation_topics ot ON ot."topicId" = ct."topicId" AND ot.occupation = $1::"Occupation"
 WHERE c.status = 'published'
-  AND c.track = $1::"Track"
-  -- khoá 'all_levels' hợp với mọi trình độ, không được lọc mất
-  AND c.level IN ($2::"SkillLevel", 'all_levels')
-ORDER BY c."ratingAvg" DESC, c."enrollmentCount" DESC
-LIMIT 10;
+  AND ($2::"SkillLevel" IS NULL OR c.level IN ($2::"SkillLevel", 'all_levels'))
+GROUP BY c.id
+ORDER BY matched_topics DESC, (c.level = $2::"SkillLevel") DESC, c."ratingAvg" DESC
+LIMIT 12;
 
 -- ---------------------------------------------------------------------------
 --  DUYỆT DANH MỤC (không phải recommendation) — breadcrumb + đếm khoá
@@ -1855,19 +1870,15 @@ ORDER BY c."enrollmentCount" DESC
 LIMIT 20;
 
 -- ---------------------------------------------------------------------------
---  ONBOARDING BƯỚC 3 — hai truy vấn cho màn chọn topic
+--  ONBOARDING BƯỚC 2 — hai truy vấn cho màn chọn topic
 -- ---------------------------------------------------------------------------
 
--- Chip "Phổ biến với học viên như bạn": topic của các khoá có track = user.targetTrack,
--- xếp theo số khoá dạy nó. $1 = users.targetTrack
-SELECT t.id, t.name, COUNT(*)::int AS course_count
-FROM topics t
-JOIN course_topics ct ON ct."topicId" = t.id
-JOIN courses c ON c.id = ct."courseId"
-WHERE c.track = $1::"Track" AND c.status = 'published'
-GROUP BY t.id, t.name
-ORDER BY course_count DESC
-LIMIT 20;
+-- Chip "Phổ biến với học viên như bạn": curated theo nghề. $1 = users.occupation
+SELECT t.id, t.slug, t.name
+FROM occupation_topics ot
+JOIN topics t ON t.id = ot."topicId"
+WHERE ot.occupation = $1::"Occupation"
+ORDER BY ot.position;
 
 -- Ô "Tìm kiếm một topic": autocomplete toàn catalog. $1 = chuỗi người dùng gõ
 SELECT s.id, s.name, similarity(s.name, $1) AS sim

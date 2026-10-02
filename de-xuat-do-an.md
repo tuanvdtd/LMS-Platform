@@ -56,7 +56,7 @@ Gợi ý dựa trên **năng lực thực tế** của học viên (lấy từ k
 
 | Tầng | Gợi ý | Dữ liệu sử dụng |
 |---|---|---|
-| 1. Theo mục tiêu | Khoá học phù hợp cho người mới | Mục tiêu (Backend, Frontend, Data…) và trình độ chọn lúc đăng ký. Dùng cho người mới chưa có dữ liệu (cold start) |
+| 1. Theo nghề | Khoá học hợp với nghề và trình độ đã chọn | Nghề (Frontend, Backend, Data…), kỹ năng quan tâm và trình độ chọn ở bước onboarding. Dùng cho người mới chưa có dữ liệu (cold start) |
 | 2. Theo lỗ hổng topic ⭐ | Bài học cần ôn lại trong khoá, và khoá học nên học tiếp | Độ thành thạo từng topic + **đồ thị topic tiên quyết** (vd JS → React → Next.js). Chỉ gợi ý khoá khi học viên đã vững topic tiên quyết |
 | 3. Theo hành vi chung | "Học viên mua khoá này cũng mua…" | Tần suất các khoá được mua cùng nhau (item-based collaborative filtering) |
 | 4. Theo nội dung (bổ sung) | Khoá có nội dung gần giống khoá vừa học | Embedding mô tả khoá học lưu bằng **pgvector**, tìm theo độ tương đồng cosine. Giúp cả khoá mới chưa ai mua (cold start phía khoá học) |
@@ -255,7 +255,7 @@ Không dùng mô hình học máy. Đây là hệ gợi ý **dựa trên tri th�
 
 | Tầng | Dữ liệu | Cách tính trong PostgreSQL |
 |---|---|---|
-| 1. Theo mục tiêu | `courses(track, level, rating)`, mục tiêu học viên chọn lúc đăng ký | Lọc theo `track` và `level`, sắp xếp theo `rating` |
+| 1. Theo nghề | `users(occupation, level)`, `occupation_topics`, `course_topics` | Lấy topic của nghề, tìm khoá dạy các topic đó, lọc `level` (đúng mức hoặc `all_levels`), xếp theo số topic khớp → đúng level trước → `rating` |
 | 2. Theo lỗ hổng topic | `user_topic_mastery(user_id, topic_id, score)`, `course_topics(course_id, topic_id)`, `_TopicPrereq(A, B)` | Lấy các topic có `score < 0.6`, tìm khoá dạy topic đó, loại khoá đã mua. Duyệt đồ thị tiên quyết bằng `WITH RECURSIVE` để loại khoá mà học viên chưa đạt topic tiên quyết |
 | 3. Theo hành vi chung | `enrollments(user_id, course_id)` | Self-join `enrollments` để đếm số lần hai khoá được mua cùng nhau. Lưu kết quả vào **materialized view**, `REFRESH` hằng đêm bằng cron |
 | 4. Theo nội dung | `courses.embedding vector(N)` + index HNSW | `ORDER BY embedding <=> $1` kết hợp bộ lọc `status`, `level` |

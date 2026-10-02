@@ -14,7 +14,6 @@ export type ChecklistInput = {
   subtitle: string | null;
   description: string | null;
   level: string | null;
-  track: string | null;
   thumbnailUrl: string | null;
   learningObjectives: string[];
   requirements: string[];
@@ -66,7 +65,6 @@ export function buildChecklist(c: ChecklistInput): ChecklistItem[] {
   if (words < MIN_DESCRIPTION_WORDS)
     basics.push({ message: `Mô tả còn thiếu ${MIN_DESCRIPTION_WORDS - words} từ`, anchor: 'description' });
   if (!c.level) basics.push({ message: 'Chưa chọn cấp độ', anchor: 'level' });
-  if (!c.track) basics.push({ message: 'Chưa chọn track', anchor: 'track' });
   if (c.categoryDepth !== 2) basics.push({ message: 'Chưa chọn thể loại con', anchor: 'category' });
   if (!c.hasPrimaryTopic) basics.push({ message: 'Chưa chọn chủ đề chính', anchor: 'topic' });
   if (!c.thumbnailUrl) basics.push({ message: 'Chưa có ảnh bìa', anchor: 'thumbnail' });
