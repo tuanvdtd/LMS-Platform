@@ -14,7 +14,7 @@ import { InlineTitle } from './inline-title';
 import { LectureDetailPanel } from './lecture-detail-panel';
 
 // Icon + màu nền theo loại mục (bài giảng PDF dùng icon tài liệu).
-const TYPE_ICON: Record<ItemType, { icon: typeof Play; className: string }> = {
+export const TYPE_ICON: Record<ItemType, { icon: typeof Play; className: string }> = {
   lecture: { icon: Play, className: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300' },
   quiz: { icon: CircleHelp, className: 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-300' },
   practice_test: { icon: ClipboardCheck, className: 'bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-300' },

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { addItem, addSection } from '@/lib/api/curriculum';
 import { ITEM_TYPE_LABEL, type ItemType, MAX_TITLE } from '@/types/curriculum';
 import { useCurriculum } from './curriculum-context';
+import { TYPE_ICON } from './item-row';
 
 // Thêm mục: chọn loại + tiêu đề, Enter thêm, Esc huỷ (như bản phác thảo).
 export function AddItemForm({ sectionId }: { sectionId: string }) {
@@ -46,19 +47,23 @@ export function AddItemForm({ sectionId }: { sectionId: string }) {
       className="flex flex-col gap-2.5 rounded-lg border border-dashed bg-background p-3"
     >
       <div role="radiogroup" aria-label="Loại mục" className="flex flex-wrap gap-1.5">
-        {(Object.keys(ITEM_TYPE_LABEL) as ItemType[]).map((t) => (
-          <Button
-            key={t}
-            type="button"
-            size="sm"
-            role="radio"
-            aria-checked={type === t}
-            variant={type === t ? 'secondary' : 'outline'}
-            onClick={() => setType(t)}
-          >
-            {ITEM_TYPE_LABEL[t]}
-          </Button>
-        ))}
+        {(Object.keys(ITEM_TYPE_LABEL) as ItemType[]).map((t) => {
+          const Icon = TYPE_ICON[t].icon;
+          return (
+            <Button
+              key={t}
+              type="button"
+              size="sm"
+              role="radio"
+              aria-checked={type === t}
+              variant={type === t ? 'default' : 'outline'}
+              onClick={() => setType(t)}
+            >
+              <Icon data-icon="inline-start" />
+              {ITEM_TYPE_LABEL[t]}
+            </Button>
+          );
+        })}
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
         <Input

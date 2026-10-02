@@ -121,34 +121,30 @@
   --skill-strong-bg: #052e16;
 }
 
-* {
-  box-sizing: border-box;
-}
-
 /* Tailwind v4 mặc định viền = currentColor (đen); như template shadcn, viền mặc định dùng token --border.
-   Trong @layer base nên class border-* riêng vẫn thắng. */
+   Mọi rule nền để trong @layer base: rule ngoài layer luôn thắng utility (outline-none, font-*, ring-*…). */
 @layer base {
   *,
   ::before,
   ::after {
     border-color: var(--color-border);
   }
-}
 
-html {
-  font-family: var(--font-body);
-  background-color: var(--background);
-  color: var(--foreground);
-}
+  html {
+    font-family: var(--font-body);
+    background-color: var(--background);
+    color: var(--foreground);
+  }
 
-body {
-  margin: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  body {
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-code, pre, .font-mono {
-  font-family: var(--font-code);
+  code, pre {
+    font-family: var(--font-code);
+  }
 }
 
 ::-webkit-scrollbar {
@@ -178,19 +174,17 @@ code, pre, .font-mono {
   scrollbar-width: none;
 }
 
-/* Focus ring */
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+/* Focus ring — trong @layer base để outline-none/ring-* của component (Input…) thắng, tránh viền kép */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
-/* Checklist nhảy tới ô còn thiếu → nháy viền (flashAnchor ở trang quản lý khoá) */
+/* Checklist nhảy tới ô còn thiếu → nháy viền (flashAnchor ở trang quản lý khoá).
+   Cố ý để ngoài layer: phải thắng class shadow và ring của ô đích. */
 [data-flash] {
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent), 0 0 0 1px var(--ring);
   transition: box-shadow 0.3s;
-}
-
-/* Transitions */
-.transition-colors {
-  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
 }
