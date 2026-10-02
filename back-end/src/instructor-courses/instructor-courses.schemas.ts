@@ -35,5 +35,6 @@ export const updateCourseSchema = z
   .strict();
 export type UpdateCourseInput = z.output<typeof updateCourseSchema>;
 
-export const setThumbnailSchema = z.object({ key: z.string().max(200) }).strict();
-export type SetThumbnailInput = z.output<typeof setThumbnailSchema>;
+// Key do POST /instructor/assets/uploads sinh: ảnh bìa, video giới thiệu.
+export const mediaKeySchema = z.object({ key: z.string().max(200) }).strict();
+export type MediaKeyInput = z.output<typeof mediaKeySchema>;

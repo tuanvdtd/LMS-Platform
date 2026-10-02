@@ -394,7 +394,7 @@ model Asset {
   kind        AssetKind
   fileName    String
   mimeType    String
-  sizeBytes   BigInt // video ≤4GB, PDF ≤1GB — kiểm ở service upload
+  sizeBytes   BigInt // video ≤1GB, PDF ≤1GB — kiểm ở service upload
   storageKey  String      @unique // key trên S3
   hlsKey      String? // video sau khi transcode
   status      AssetStatus @default(uploading)

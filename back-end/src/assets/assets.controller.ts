@@ -26,7 +26,7 @@ export class AssetsController {
 
   @Get()
   library(@CurrentUser() user: User, @Query(new ZodValidationPipe(libraryQuerySchema)) query: LibraryQuery) {
-    return this.assets.library(user.id, query.q);
+    return this.assets.library(user.id, query.kind, query.q);
   }
 
   @Get(':id/url')

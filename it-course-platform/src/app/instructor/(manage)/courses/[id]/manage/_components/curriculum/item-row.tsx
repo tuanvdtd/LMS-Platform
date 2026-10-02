@@ -6,7 +6,7 @@ import { ChevronDown, CircleHelp, ClipboardCheck, CodeXml, FileText, Play, Plus,
 import { Button } from '@/components/ui/button';
 import { deleteItem, updateItem } from '@/lib/api/curriculum';
 import { cn } from '@/lib/utils';
-import type { CurriculumItem, ItemType } from '@/types/curriculum';
+import { type CurriculumItem, formatDuration, type ItemType } from '@/types/curriculum';
 import { useCourse } from '../course-provider';
 import { useCurriculum } from './curriculum-context';
 import { DragHandle } from './drag-handle';
@@ -27,7 +27,7 @@ const IDLE = 'border-transparent bg-muted text-muted-foreground';
 
 function chipOf(item: CurriculumItem): { text: string; className: string } {
   if (item.type !== 'lecture') return { text: 'Chưa xuất bản', className: IDLE };
-  if (item.lectureKind === 'video') return { text: `Video · ${Math.round(item.durationSec / 60)} phút`, className: DONE };
+  if (item.lectureKind === 'video') return { text: `Video · ${formatDuration(item.durationSec)}`, className: DONE };
   if (item.lectureKind === 'document') return { text: 'PDF', className: DONE };
   return { text: 'Chưa có nội dung', className: TODO };
 }

@@ -2,26 +2,47 @@
 
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { FileUp, Search, X } from 'lucide-react';
+import { FileUp, Loader2, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { listLibrary } from '@/lib/api/assets';
-import { uploadDocument, uploadErrorMessage } from '@/lib/upload';
+import { checkVideo, uploadDocument, uploadErrorMessage, uploadVideo } from '@/lib/upload';
 import { cn } from '@/lib/utils';
-import { formatBytes, type LibraryAsset, PDF_MAX_BYTES } from '@/types/curriculum';
+import {
+  type AssetKind,
+  formatBytes,
+  formatDuration,
+  type LibraryAsset,
+  PDF_MAX_BYTES,
+  VIDEO_MAX_BYTES,
+} from '@/types/curriculum';
 import { useCurriculum } from './curriculum-context';
 
 type Props = {
+  kind?: AssetKind; // mặc định PDF (nội dung PDF, tài nguyên đính kèm)
   onPick: (asset: LibraryAsset) => Promise<boolean>;
   onClose: () => void;
   // Đang tải: truyền hàm huỷ lên panel (dùng cho "Bỏ thay đổi" khi rời trang); xong / huỷ → null.
   onUploadingChange: (abort: (() => void) | null) => void;
 };
 
-// Ô chọn PDF (spec K7, §5.1): tab Tải lên / Thư viện. Thư viện mount khi mở lần đầu, sau đó giữ cả 2 (ẩn tab kia)
-// để đổi tab không huỷ upload.
-export function ContentPicker({ onPick, onClose, onUploadingChange }: Props) {
+const COPY = {
+  document: { accept: 'application/pdf', title: 'Chọn file PDF hoặc kéo thả vào đây', hint: 'Tối đa 1 GB', processing: 'Đang xử lý file…' },
+  video: { accept: 'video/mp4', title: 'Chọn file MP4 hoặc kéo thả vào đây', hint: 'MP4 (H.264), tối đa 1 GB', processing: 'Đang xử lý video…' },
+} as const;
+
+// Video: kèm thời lượng FE đo (gửi lên BE). PDF: durationSec bỏ qua.
+async function checkFile(kind: AssetKind, file: File): Promise<{ problem: string | null; durationSec: number }> {
+  if (kind === 'video') return checkVideo(file, VIDEO_MAX_BYTES, '1 GB');
+  if (file.type !== 'application/pdf') return { problem: 'Chỉ nhận file PDF', durationSec: 0 };
+  if (file.size > PDF_MAX_BYTES) return { problem: 'PDF tối đa 1 GB', durationSec: 0 };
+  return { problem: null, durationSec: 0 };
+}
+
+// Ô chọn PDF / video (spec curriculum-upload K7, video-upload §5.2): tab Tải lên / Thư viện. Thư viện mount khi
+// mở lần đầu, sau đó giữ cả 2 (ẩn tab kia) để đổi tab không huỷ upload.
+export function ContentPicker({ kind = 'document', onPick, onClose, onUploadingChange }: Props) {
   const [tab, setTab] = useState<'upload' | 'library'>('upload');
   const [libraryOpened, setLibraryOpened] = useState(false);
   return (
@@ -48,24 +69,26 @@ export function ContentPicker({ onPick, onClose, onUploadingChange }: Props) {
         </Button>
       </div>
       <div hidden={tab !== 'upload'}>
-        <UploadTab onPick={onPick} onUploadingChange={onUploadingChange} />
+        <UploadTab kind={kind} onPick={onPick} onUploadingChange={onUploadingChange} />
       </div>
       {libraryOpened && (
         <div hidden={tab !== 'library'}>
-          <LibraryTab onPick={onPick} />
+          <LibraryTab kind={kind} onPick={onPick} />
         </div>
       )}
     </div>
   );
 }
 
-function UploadTab({ onPick, onUploadingChange }: Omit<Props, 'onClose'>) {
+function UploadTab({ kind, onPick, onUploadingChange }: Omit<Props, 'onClose'> & { kind: AssetKind }) {
   const { locked } = useCurriculum();
-  const [progress, setProgress] = useState<number | null>(null);
+  const [phase, setPhase] = useState<'checking' | 'uploading' | null>(null);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [failedFile, setFailedFile] = useState<File | null>(null); // file PUT lỗi → nút "Thử lại" (spec §6)
   const [over, setOver] = useState(false);
   const ctrlRef = useRef<AbortController | null>(null);
+  const copy = COPY[kind];
   // Đóng ô chọn / thu gọn bài giảng / rời trang khi đang tải → huỷ PUT (spec §6).
   useEffect(() => () => ctrlRef.current?.abort(), []);
 
@@ -73,14 +96,18 @@ function UploadTab({ onPick, onUploadingChange }: Omit<Props, 'onClose'>) {
     if (!file || ctrlRef.current || locked) return;
     setError(null);
     setFailedFile(null);
-    if (file.type !== 'application/pdf') return setError('Chỉ nhận file PDF');
-    if (file.size > PDF_MAX_BYTES) return setError('PDF tối đa 1 GB');
     const ctrl = new AbortController();
     ctrlRef.current = ctrl;
     onUploadingChange(() => ctrl.abort());
-    setProgress(0);
+    setPhase('checking');
     try {
-      const asset = await uploadDocument(file, { signal: ctrl.signal, onProgress: setProgress });
+      const { problem, durationSec } = await checkFile(kind, file);
+      if (ctrl.signal.aborted) return;
+      if (problem) return setError(problem);
+      setProgress(0);
+      setPhase('uploading');
+      const options = { signal: ctrl.signal, onProgress: setProgress };
+      const asset = kind === 'video' ? await uploadVideo(file, durationSec, options) : await uploadDocument(file, options);
       if (!ctrl.signal.aborted) await onPick(asset);
     } catch (err) {
       const message = uploadErrorMessage(err);
@@ -89,12 +116,21 @@ function UploadTab({ onPick, onUploadingChange }: Omit<Props, 'onClose'>) {
       if (message && !(axios.isAxiosError(err) && err.response?.status === 400)) setFailedFile(file);
     } finally {
       ctrlRef.current = null;
-      setProgress(null);
+      setPhase(null);
       onUploadingChange(null);
     }
   }
 
-  if (progress !== null) {
+  // 100% = PUT đã gửi xong, chờ BE complete → ẩn Huỷ (rời panel / Bỏ thay đổi vẫn huỷ qua signal).
+  if (phase === 'checking' || (phase === 'uploading' && progress === 100)) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+        {phase === 'checking' ? 'Đang kiểm tra file…' : copy.processing}
+      </p>
+    );
+  }
+  if (phase === 'uploading') {
     return (
       <div className="flex items-center gap-3">
         <Progress value={progress} className="flex-1" aria-label="Tiến độ tải lên" />
@@ -124,11 +160,11 @@ function UploadTab({ onPick, onUploadingChange }: Omit<Props, 'onClose'>) {
         )}
       >
         <FileUp className="size-5 text-muted-foreground" />
-        <span className="font-semibold">Chọn file PDF hoặc kéo thả vào đây</span>
-        <span className="text-xs text-muted-foreground">Tối đa 1 GB</span>
+        <span className="font-semibold">{copy.title}</span>
+        <span className="text-xs text-muted-foreground">{copy.hint}</span>
         <input
           type="file"
-          accept="application/pdf"
+          accept={copy.accept}
           disabled={locked}
           className="sr-only"
           onChange={(e) => {
@@ -153,7 +189,7 @@ function UploadTab({ onPick, onUploadingChange }: Omit<Props, 'onClose'>) {
   );
 }
 
-function LibraryTab({ onPick }: Pick<Props, 'onPick'>) {
+function LibraryTab({ kind, onPick }: Pick<Props, 'onPick'> & { kind: AssetKind }) {
   const { locked } = useCurriculum();
   const [q, setQ] = useState('');
   const [items, setItems] = useState<LibraryAsset[] | null>(null);
@@ -164,7 +200,7 @@ function LibraryTab({ onPick }: Pick<Props, 'onPick'>) {
   useEffect(() => {
     const ctrl = new AbortController();
     const timer = setTimeout(() => {
-      listLibrary(q.trim(), ctrl.signal).then(
+      listLibrary(q.trim(), kind, ctrl.signal).then(
         (list) => {
           setItems(list);
           setFailed(false);
@@ -178,7 +214,7 @@ function LibraryTab({ onPick }: Pick<Props, 'onPick'>) {
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, [q]);
+  }, [q, kind]);
 
   async function choose(asset: LibraryAsset) {
     setPicking(asset.id);
@@ -208,6 +244,7 @@ function LibraryTab({ onPick }: Pick<Props, 'onPick'>) {
             >
               <span className="min-w-0 flex-1 truncate">{a.fileName}</span>
               <span className="shrink-0 text-xs text-muted-foreground">
+                {a.durationSec != null && `${formatDuration(a.durationSec)} · `}
                 {formatBytes(a.sizeBytes)} · {new Date(a.createdAt).toLocaleDateString('vi-VN')}
               </span>
             </button>
