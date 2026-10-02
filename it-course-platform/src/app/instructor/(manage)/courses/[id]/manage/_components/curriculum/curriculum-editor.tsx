@@ -16,6 +16,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -30,7 +31,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCurriculum, moveItem, moveSection } from '@/lib/api/curriculum';
-import { cn } from '@/lib/utils';
 import {
   type CurriculumResponse,
   type CurriculumSection,
@@ -75,7 +75,6 @@ export function CurriculumEditor() {
   const [sections, setSections] = useState<CurriculumSection[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [pending, setPending] = useState(0);
-  const [saveState, setSaveState] = useState<'idle' | 'saved' | 'error'>('idle'); // 'saving' suy từ pending
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<{ message: string; action: () => void } | null>(null);
   const beforeDrag = useRef<CurriculumSection[] | null>(null);
@@ -114,10 +113,8 @@ export function CurriculumEditor() {
       setPending((n) => n + 1);
       try {
         apply(await fn());
-        setSaveState('saved');
         return true;
       } catch (err) {
-        setSaveState('error');
         const res = axios.isAxiosError(err) ? err.response : undefined;
         if (res?.status === 409 && res.data?.code === 'COURSE_LOCKED') patchCourse({ status: 'in_review' });
         else if (res?.status === 404) {
@@ -299,12 +296,13 @@ export function CurriculumEditor() {
             title="Khung chương trình"
             description="Chia khoá thành các phần, mỗi phần gồm bài giảng, trắc nghiệm, bài thi thử hoặc bài tập coding. Mọi thay đổi được lưu ngay."
           />
-          <span
-            className={cn('shrink-0 pt-2 text-xs text-muted-foreground', pending === 0 && saveState === 'error' && 'text-destructive')}
-            aria-live="polite"
-          >
-            {pending > 0 ? 'Đang lưu…' : saveState === 'saved' ? 'Đã lưu' : saveState === 'error' ? 'Chưa lưu được' : null}
-          </span>
+          {/* Kéo thả / đổi tên / xoá không có nút để quay → báo tạm ở đây; lỗi đã toast. */}
+          {pending > 0 && (
+            <span className="flex shrink-0 items-center gap-1.5 pt-2 text-xs text-muted-foreground" aria-live="polite">
+              <Loader2 className="size-3.5 animate-spin" />
+              Đang lưu…
+            </span>
+          )}
         </div>
         <div
           id="curriculum"

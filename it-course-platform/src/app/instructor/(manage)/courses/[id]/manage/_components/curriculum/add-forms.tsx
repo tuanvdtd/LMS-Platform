@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { addItem, addSection } from '@/lib/api/curriculum';
@@ -71,9 +71,10 @@ export function AddItemForm({ sectionId }: { sectionId: string }) {
         />
         <div className="flex gap-2">
           <Button type="submit" size="sm" disabled={!title.trim() || busy}>
-            Thêm
+            {busy && <Loader2 data-icon="inline-start" className="animate-spin" />}
+            {busy ? 'Đang thêm…' : 'Thêm'}
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setOpen(false)}>
             Huỷ
           </Button>
         </div>
@@ -129,9 +130,10 @@ export function AddSectionForm() {
       />
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={!title.trim() || busy}>
-          Thêm phần
+          {busy && <Loader2 data-icon="inline-start" className="animate-spin" />}
+          {busy ? 'Đang thêm…' : 'Thêm phần'}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+        <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setOpen(false)}>
           Huỷ
         </Button>
       </div>

@@ -377,6 +377,8 @@ export function Btn({
   size = 'md',
   onClick,
   disabled,
+  isLoading,
+  locked,
   className = '',
   type = 'button',
 }: {
@@ -385,6 +387,8 @@ export function Btn({
   size?: 'sm' | 'md' | 'lg';
   onClick?: () => void;
   disabled?: boolean;
+  isLoading?: boolean;
+  locked?: boolean;
   className?: string;
   type?: 'button' | 'submit';
 }) {
@@ -402,6 +406,8 @@ export function Btn({
       type={type}
       onClick={onClick}
       disabled={disabled}
+      isLoading={isLoading}
+      locked={locked}
       variant={variants[variant]}
       size={sizes[size]}
       className={className}

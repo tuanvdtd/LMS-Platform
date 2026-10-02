@@ -6,13 +6,14 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, BarChart2, User,
   ChevronLeft, ChevronRight, DollarSign, Activity, FileCheck, Users,
-  ShieldCheck, ChevronDown, BookMarked, MessageCircle, MessagesSquare
+  ShieldCheck, ChevronDown, BookMarked, MessageCircle, MessagesSquare, FolderOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const INSTRUCTOR_NAV = [
   { icon: LayoutDashboard, label: 'Tổng quan', to: '/instructor' },
   { icon: BookOpen, label: 'Khoá học', to: '/instructor/courses' },
+  { icon: FolderOpen, label: 'Thư viện file', to: '/instructor/library' },
   { icon: MessageCircle, label: 'Hỏi đáp (Q&A)', to: '/instructor/qa' },
   { icon: MessagesSquare, label: 'Tin nhắn riêng', to: '/instructor/messages' },
   {
