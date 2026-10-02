@@ -18,7 +18,6 @@ const COURSE_SELECT = {
   description: true,
   language: true,
   level: true,
-  track: true,
   thumbnailUrl: true,
   promoVideoUrl: true,
   learningObjectives: true,

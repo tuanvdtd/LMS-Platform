@@ -1,198 +1,207 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { CheckCircle, BookOpen, ChevronRight } from 'lucide-react';
-import { Btn } from '@/components/shared/product-ui';
+import { useEffect, useRef } from 'react';
+import { BookOpen, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { SKILL_LEVEL_LABEL } from '@/types/instructor-course';
+import { LEARNER_LEVELS, OCCUPATION_LABEL, type Occupation } from '@/types/preferences';
+import { STEP_COUNT, useOnboarding } from './use-onboarding';
+import { TopicSearch } from './topic-search';
 
-const GOALS = [
-  { id: 'frontend', label: 'Frontend', icon: '⚡', desc: 'React, Vue, TypeScript...' },
-  { id: 'backend', label: 'Backend', icon: '⚙️', desc: 'Node.js, Java, Python...' },
-  { id: 'fullstack', label: 'Fullstack', icon: '🔗', desc: 'Cả hai hướng' },
-  { id: 'data', label: 'Data & AI', icon: '📊', desc: 'SQL, Python, ML...' },
-  { id: 'devops', label: 'DevOps', icon: '🚀', desc: 'Docker, K8s, CI/CD...' },
-  { id: 'mobile', label: 'Mobile', icon: '📱', desc: 'React Native, Flutter...' },
-];
+const OCCUPATIONS = Object.keys(OCCUPATION_LABEL) as Occupation[];
 
-const LEVELS = [
-  { id: 'beginner', label: 'Mới bắt đầu', desc: 'Chưa biết lập trình' },
-  { id: 'basic', label: 'Cơ bản', desc: 'Biết một số ngôn ngữ cơ bản' },
-  { id: 'intermediate', label: 'Trung cấp', desc: 'Đã làm việc 1–3 năm' },
-  { id: 'advanced', label: 'Nâng cao', desc: 'Kinh nghiệm 3+ năm' },
-];
+const STEPS = [
+  { title: 'Bạn đang học để làm nghề gì?', lead: 'Chúng tôi dùng câu trả lời để gợi ý khoá học hợp với bạn.' },
+  { title: 'Bạn quan tâm kỹ năng nào?', lead: 'Chọn bao nhiêu cũng được, có thể để trống.' },
+  { title: 'Bạn đang ở trình độ nào?', lead: 'Giúp chúng tôi gợi ý khoá học không quá dễ, không quá khó.' },
+] as const;
 
-const SKILLS = [
-  'HTML/CSS', 'JavaScript', 'TypeScript', 'React', 'Vue.js', 'Node.js',
-  'Python', 'Java', 'SQL', 'PostgreSQL', 'Docker', 'Git',
-  'MongoDB', 'Redis', 'GraphQL', 'REST API',
-];
+// Card radio: input thật (Tab/mũi tên/Space), cả card là vùng bấm.
+const radioCard =
+  'flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium transition-colors hover:bg-muted has-checked:border-primary has-checked:ring-2 has-checked:ring-primary/20 has-disabled:cursor-not-allowed has-disabled:opacity-60';
+const radioInput =
+  'size-5 shrink-0 cursor-pointer appearance-none rounded-full border-[1.5px] border-muted-foreground/50 bg-background outline-none transition-[border-color,border-width] not-checked:hover:border-foreground checked:border-[6px] checked:border-primary focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed';
 
 export function OnboardingView() {
-  const [step, setStep] = useState(0);
-  const [goal, setGoal] = useState<string>('');
-  const [level, setLevel] = useState<string>('');
-  const [knownSkills, setKnownSkills] = useState<Set<string>>(new Set(['HTML/CSS', 'JavaScript']));
-  const router = useRouter();
+  const ob = useOnboarding();
+  const { step, saving } = ob;
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const prevStep = useRef(step);
 
-  function toggleSkill(s: string) {
-    setKnownSkills((prev) => {
-      const next = new Set(prev);
-      if (next.has(s)) next.delete(s); else next.add(s);
-      return next;
-    });
-  }
+  // Đổi bước thì đưa tiêu điểm lên tiêu đề bước (trình đọc màn hình đọc câu hỏi mới).
+  // So với bước trước thay vì cờ lần đầu: StrictMode chạy effect 2 lần lúc mount.
+  useEffect(() => {
+    if (prevStep.current === step) return;
+    prevStep.current = step;
+    headingRef.current?.focus();
+  }, [step]);
 
-  const steps = [
-    {
-      title: 'Mục tiêu học tập',
-      subtitle: 'Bạn muốn trở thành gì?',
-      content: (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {GOALS.map((g) => (
-            <button
-              key={g.id}
-              onClick={() => setGoal(g.id)}
-              className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all hover:shadow-md"
-              style={{
-                borderColor: goal === g.id ? 'var(--primary)' : 'var(--border)',
-                background: goal === g.id ? 'var(--primary-light)' : 'var(--card)',
-              }}
-            >
-              <span className="text-3xl">{g.icon}</span>
-              <span className="font-bold text-sm" style={{ color: 'var(--foreground)' }}>{g.label}</span>
-              <span className="text-xs text-center" style={{ color: 'var(--muted-foreground)' }}>{g.desc}</span>
-              {goal === g.id && <CheckCircle size={16} className="text-blue-600" />}
-            </button>
-          ))}
-        </div>
-      ),
-    },
-    {
-      title: 'Trình độ hiện tại',
-      subtitle: 'Bạn đang ở cấp độ nào?',
-      content: (
-        <div className="space-y-3">
-          {LEVELS.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => setLevel(l.id)}
-              className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left hover:shadow-md"
-              style={{
-                borderColor: level === l.id ? 'var(--primary)' : 'var(--border)',
-                background: level === l.id ? 'var(--primary-light)' : 'var(--card)',
-              }}
-            >
-              <div className="flex-1">
-                <p className="font-bold text-sm" style={{ color: 'var(--foreground)' }}>{l.label}</p>
-                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{l.desc}</p>
-              </div>
-              {level === l.id && <CheckCircle size={18} className="text-blue-600 shrink-0" />}
-            </button>
-          ))}
-        </div>
-      ),
-    },
-    {
-      title: 'Kỹ năng bạn đã có',
-      subtitle: 'Chọn những gì bạn đã biết',
-      content: (
-        <div className="flex flex-wrap gap-2">
-          {SKILLS.map((s) => (
-            <button
-              key={s}
-              onClick={() => toggleSkill(s)}
-              className="px-3 py-1.5 rounded-full border-2 text-sm transition-all"
-              style={{
-                borderColor: knownSkills.has(s) ? 'var(--primary)' : 'var(--border)',
-                background: knownSkills.has(s) ? 'var(--primary)' : 'var(--card)',
-                color: knownSkills.has(s) ? '#fff' : 'var(--foreground)',
-              }}
-            >
-              {knownSkills.has(s) && '✓ '}{s}
-            </button>
-          ))}
-          <p className="w-full text-xs mt-2" style={{ color: 'var(--muted-foreground)' }}>
-            Đã chọn: {knownSkills.size} kỹ năng
-          </p>
-        </div>
-      ),
-    },
-  ];
+  const isLast = step === STEP_COUNT - 1;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: 'var(--background)' }}>
-      <div className="w-full max-w-lg">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-            <BookOpen size={16} className="text-white" />
-          </div>
-          <span className="text-xl font-extrabold" style={{ color: 'var(--foreground)' }}>
-            Skill<span className="text-blue-600">Path</span>
+    <div className="flex min-h-dvh flex-col bg-background">
+      <header className="sticky top-0 z-30 border-b border-border bg-background">
+        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
+          <span className="flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary">
+              <BookOpen size={16} className="text-primary-foreground" />
+            </span>
+            <span className="text-lg font-bold">
+              Skill<span className="text-primary">Path</span>
+            </span>
           </span>
+          <Button variant="ghost" disabled={saving} onClick={ob.saveAndExit}>
+            Lưu rồi thoát
+          </Button>
         </div>
-
-        {/* Step indicator */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {steps.map((_, i) => (
-            <div
-              key={i}
-              className="h-1.5 rounded-full transition-all duration-300"
-              style={{
-                width: i === step ? 32 : 16,
-                background: i <= step ? 'var(--primary)' : 'var(--border)',
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Card */}
-        <div className="border rounded-2xl p-8" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-          <p className="text-xs font-semibold text-blue-600 mb-1">Bước {step + 1} / {steps.length}</p>
-          <h1 className="text-2xl font-extrabold mb-1" style={{ color: 'var(--foreground)' }}>
-            {steps[step].title}
-          </h1>
-          <p className="text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
-            {steps[step].subtitle}
+        <div className="mx-auto max-w-3xl px-4 pb-3 sm:px-6">
+          <p className="mb-2 text-sm font-medium tabular-nums text-muted-foreground">
+            Bước {step + 1}/{STEP_COUNT}
           </p>
-
-          {steps[step].content}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between mt-6">
-          <button
-            onClick={() => router.push('/')}
-            className="text-sm hover:underline"
-            style={{ color: 'var(--muted-foreground)' }}
+          <div
+            role="progressbar"
+            aria-label="Tiến độ thiết lập"
+            aria-valuemin={1}
+            aria-valuemax={STEP_COUNT}
+            aria-valuenow={step + 1}
+            className="flex gap-1.5"
           >
-            Bỏ qua
-          </button>
-          <div className="flex gap-2">
-            {step > 0 && (
-              <Btn variant="secondary" onClick={() => setStep((s) => s - 1)}>
-                Quay lại
-              </Btn>
-            )}
-            {step < steps.length - 1 ? (
-              <Btn
-                variant="primary"
-                onClick={() => setStep((s) => s + 1)}
-                disabled={
-                  (step === 0 && !goal) ||
-                  (step === 1 && !level)
-                }
-              >
-                Tiếp theo <ChevronRight size={14} />
-              </Btn>
-            ) : (
-              <Btn variant="accent" onClick={() => router.push('/')}>
-                Xem lộ trình của tôi ✨
-              </Btn>
-            )}
+            {Array.from({ length: STEP_COUNT }, (_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  'h-1 flex-1 rounded-full transition-colors',
+                  i < step ? 'bg-primary' : i === step ? 'bg-primary/30' : 'bg-secondary',
+                )}
+              />
+            ))}
           </div>
         </div>
-      </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-8 pb-10 sm:px-6 sm:pt-12">
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-2xl font-bold text-balance outline-none sm:text-3xl"
+        >
+          {STEPS[step].title}
+        </h1>
+        <p className="mt-2 text-sm text-pretty text-muted-foreground sm:text-base">{STEPS[step].lead}</p>
+
+        <div className="mt-8">
+          {step === 0 && (
+            <fieldset disabled={saving}>
+              <legend className="sr-only">{STEPS[0].title}</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {OCCUPATIONS.map((o) => (
+                  <label key={o} className={radioCard}>
+                    <input
+                      type="radio"
+                      name="occupation"
+                      value={o}
+                      checked={ob.occupation === o}
+                      onChange={() => ob.setOccupation(o)}
+                      className={radioInput}
+                    />
+                    {OCCUPATION_LABEL[o]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
+          {step === 1 && (
+            <div className="space-y-8">
+              <TopicSearch isSelected={ob.isSelected} onToggle={ob.toggleTopic} />
+              <fieldset disabled={saving}>
+                <legend className="mb-3 text-sm font-semibold">Phổ biến với học viên như bạn</legend>
+                {ob.chips.length === 0 && !ob.popularLoading ? (
+                  <p className="text-sm text-muted-foreground">
+                    Chưa có gợi ý cho nghề này. Tìm kỹ năng ở ô phía trên.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {ob.chips.map((t) => {
+                      const on = ob.isSelected(t.id);
+                      return (
+                        <label
+                          key={t.id}
+                          className={cn(
+                            'inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors has-focus-visible:ring-3 has-focus-visible:ring-ring/50 has-disabled:cursor-not-allowed has-disabled:opacity-60',
+                            on
+                              ? 'border-primary bg-primary text-primary-foreground hover:bg-primary-hover'
+                              : 'border-border bg-background hover:border-foreground/40 hover:bg-muted',
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            onChange={() => ob.toggleTopic(t)}
+                            className="sr-only"
+                          />
+                          {on && <Check className="size-4" aria-hidden />}
+                          {t.name}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </fieldset>
+            </div>
+          )}
+
+          {step === 2 && (
+            <fieldset disabled={saving}>
+              <legend className="sr-only">{STEPS[2].title}</legend>
+              <div className="grid gap-3">
+                {LEARNER_LEVELS.map((l) => (
+                  <label key={l} className={radioCard}>
+                    <input
+                      type="radio"
+                      name="level"
+                      value={l}
+                      checked={ob.level === l}
+                      onChange={() => ob.setLevel(l)}
+                      className={radioInput}
+                    />
+                    {SKILL_LEVEL_LABEL[l]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+        </div>
+      </main>
+
+      <footer className="sticky bottom-0 z-30 border-t border-border bg-background">
+        <div className="mx-auto flex h-18 max-w-3xl items-center justify-between gap-3 px-4 sm:px-6">
+          {step > 0 ? (
+            <Button variant="outline" size="lg" disabled={saving} onClick={ob.back}>
+              Quay lại
+            </Button>
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-2">
+            {isLast && (
+              <Button variant="ghost" size="lg" disabled={saving} onClick={ob.skip}>
+                Bỏ qua
+              </Button>
+            )}
+            <Button
+              size="lg"
+              disabled={!ob.canNext}
+              isLoading={saving}
+              // Chặn bấm đúp: cú thứ hai không nhảy qua bước kế tiếp.
+              onClick={(e) => e.detail <= 1 && ob.next()}
+            >
+              {isLast ? 'Hoàn tất' : 'Tiếp theo'}
+            </Button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

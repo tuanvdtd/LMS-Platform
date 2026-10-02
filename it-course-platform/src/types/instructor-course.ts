@@ -16,17 +16,6 @@ export const SKILL_LEVEL_LABEL = {
 } as const;
 export type SkillLevel = keyof typeof SKILL_LEVEL_LABEL;
 
-export const TRACK_LABEL = {
-  backend: 'Backend',
-  frontend: 'Frontend',
-  fullstack: 'Fullstack',
-  mobile: 'Mobile',
-  data: 'Dữ liệu',
-  devops: 'DevOps',
-  other: 'Khác',
-} as const;
-export type Track = keyof typeof TRACK_LABEL;
-
 export const LANGUAGE_LABEL = { vi: 'Tiếng Việt', en: 'Tiếng Anh' } as const;
 export type CourseLanguage = keyof typeof LANGUAGE_LABEL;
 
@@ -53,7 +42,6 @@ export interface CourseDetail {
   description: string | null;
   language: CourseLanguage;
   level: SkillLevel | null;
-  track: Track | null;
   thumbnailUrl: string | null;
   promoVideoUrl: string | null;
   learningObjectives: string[];
@@ -81,7 +69,6 @@ export interface UpdateCoursePayload {
   description?: string;
   language?: CourseLanguage;
   level?: SkillLevel | null;
-  track?: Track | null;
   categoryId?: string | null;
   primaryTopicId?: string | null;
   learningObjectives?: string[];

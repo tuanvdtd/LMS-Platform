@@ -37,8 +37,8 @@ datasource db {
 //      secondaryStorage: redisStore,        // §4.4: đọc session từ Redis
 //      session: { storeSessionInDatabase: true }, // bảng session vẫn là nguồn chính
 //      user: { additionalFields: {
-//        targetTrack: { type: 'string', required: false },
-//        level:       { type: 'string', required: false },
+//        occupation: { type: 'string', required: false, input: false },
+//        level:      { type: 'string', required: false, input: false },
 //      }},
 //      plugins: [admin()],                  // role / banned / banReason / banExpires
 //    });
@@ -60,9 +60,9 @@ model User {
   banReason  String?
   banExpires DateTime?
 
-  // additionalFields — chọn lúc đăng ký, nuôi recommendation tầng 1 (§3.4)
-  targetTrack Track?
-  level       SkillLevel?
+  // additionalFields — chọn ở onboarding (PATCH /me/preferences), nuôi recommendation tầng 1 (§3.4)
+  occupation Occupation?
+  level      SkillLevel?
 
   sessions Session[]
   accounts Account[]
@@ -267,13 +267,11 @@ model Course {
   thumbnailUrl  String?
   promoVideoUrl String?
 
-  // HAI TRỤC PHÂN LOẠI, không trùng nhau:
-  //  categoryId — chủ đề khoá nói về cái gì. Dùng để duyệt/lọc/breadcrumb (kiểu Udemy).
-  //  track      — nghề nghiệp học viên nhắm tới. Dùng để khớp users.targetTrack
-  //               trong recommendation tầng 1 (§3.4). Udemy không có trục này.
+  // categoryId — chủ đề khoá nói về cái gì. Dùng để duyệt/lọc/breadcrumb (kiểu Udemy).
+  // Khoá KHÔNG gắn nghề: nghề → topic qua occupation_topics, topic → khoá qua course_topics
+  // (spec 2026-10-02-personalize-occupation P1).
   // Nháp được để trống (spec 2026-09-30-course-create-basics C2); checklist gửi duyệt bắt buộc đủ.
   categoryId           String?      @db.Uuid
-  track                Track?
   level                SkillLevel?
   language             String       @default("vi")
   priceAmount          Int          @default(0) // đơn vị nhỏ nhất của currency
@@ -325,7 +323,6 @@ model Course {
 
   @@index([instructorId])
   @@index([status, categoryId, level]) // duyệt danh mục
-  @@index([status, track, level]) // recommendation tầng 1
   @@map("courses")
 }
 
@@ -642,14 +639,15 @@ model Topic {
   prerequisites Topic[] @relation("TopicPrereq")
   requiredBy    Topic[] @relation("TopicPrereq")
 
-  courses    CourseTopic[]
-  quizzes    QuizTopic[]
-  exercises  ExerciseTopic[]
-  mastery    UserTopicMastery[]
-  targetedBy UserTargetTopic[]
-  categories CategoryTopic[]
+  courses     CourseTopic[]
+  quizzes     QuizTopic[]
+  exercises   ExerciseTopic[]
+  mastery     UserTopicMastery[]
+  targetedBy  UserTargetTopic[]
+  categories  CategoryTopic[]
+  occupations OccupationTopic[]
 
-  // Autocomplete ô "Tìm kiếm topic" ở bước 3 onboarding (name % $1). Cần extension pg_trgm.
+  // Autocomplete ô "Tìm kiếm topic" ở bước 2 onboarding (name % $1). Cần extension pg_trgm.
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_topics_name_trgm")
   @@map("topics")
 }
@@ -702,13 +700,13 @@ model UserTopicMastery {
   @@map("user_topic_mastery")
 }
 
-// Topic học viên TỰ KHAI muốn học ở bước 3 onboarding (kiểu /personalize/skills
+// Topic học viên TỰ KHAI muốn học ở bước 2 onboarding (kiểu /personalize/skills
 // của Udemy: đa chọn, có ô tìm kiếm và chip gợi ý theo nghề).
 //
 // Khác user_topic_mastery là topic ĐO ĐƯỢC từ bài test. Chênh lệch giữa hai bảng
 // là tín hiệu chính của recommendation tầng 2, và quan trọng hơn: nó cho tầng 2
 // chạy được NGAY NGÀY ĐẦU, khi user_topic_mastery còn rỗng hoàn toàn.
-// Chip "Phổ biến với học viên như bạn" = topic của các khoá có track = user.targetTrack.
+// Chip "Phổ biến với học viên như bạn" = occupation_topics của users.occupation.
 model UserTargetTopic {
   userId    String   @db.Uuid
   topicId   String   @db.Uuid
@@ -720,6 +718,20 @@ model UserTargetTopic {
   @@id([userId, topicId])
   @@index([topicId])
   @@map("user_target_topics")
+}
+
+// Nghề → topic phổ biến (curated, seed ở prisma/sql/06). Nuôi chip "Phổ biến với học viên
+// như bạn" ở bước 2 onboarding và recommendation tầng 1 (spec 2026-10-02-personalize-occupation §3).
+model OccupationTopic {
+  occupation Occupation
+  topicId    String     @db.Uuid
+  position   Int        @default(0)
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([occupation, topicId])
+  @@index([occupation, position])
+  @@map("occupation_topics")
 }
 
 // ============================================================================
@@ -1191,16 +1203,20 @@ model CourseAnswer {
 //  ENUMS
 // ============================================================================
 
-// Trục NGHỀ NGHIỆP, không phải trục chủ đề. Chủ đề nằm ở bảng `categories`.
-// Là enum (không phải bảng) vì danh sách này ổn định và chỉ có ~7 giá trị —
-// học viên chọn một lần lúc đăng ký, không ai cần admin thêm nghề mới runtime.
-enum Track {
-  backend
-  frontend
-  fullstack
-  mobile
-  data
-  devops
+// Trục NGHỀ NGHIỆP của học viên (bước 1 onboarding, kiểu /personalize/occupation của Udemy).
+// Enum vì danh sách ổn định, không cần admin thêm runtime. Khoá học không gắn nghề.
+enum Occupation {
+  frontend_developer
+  backend_developer
+  fullstack_developer
+  mobile_developer
+  devops_engineer
+  data_engineer
+  data_analyst
+  ml_engineer
+  qa_engineer
+  software_architect
+  game_developer
   other
 }
 
