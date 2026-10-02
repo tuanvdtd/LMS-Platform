@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Bell, Lock, User, Link2, Eye, EyeOff } from 'lucide-react';
 import { Btn } from '@/components/shared/product-ui';
 
@@ -97,17 +98,12 @@ function ProfileTab() {
             />
           </div>
         ))}
-        <div>
-          <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--foreground)' }}>Mục tiêu học tập</label>
-          <select
-            className="w-full border rounded-xl px-3 py-2.5 text-sm outline-none"
-            style={{ borderColor: 'var(--border)', background: 'var(--background)', color: 'var(--foreground)' }}
-          >
-            <option>Trở thành Fullstack Developer</option>
-            <option>Thành thạo Frontend (React)</option>
-            <option>Backend & DevOps</option>
-            <option>Data & AI Engineer</option>
-          </select>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sở thích học tập</p>
+            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Nghề, kỹ năng quan tâm và trình độ — dùng để gợi ý khoá học</p>
+          </div>
+          <Link href="/onboarding" className="text-sm font-semibold text-primary hover:underline">Chỉnh sửa</Link>
         </div>
       </div>
 

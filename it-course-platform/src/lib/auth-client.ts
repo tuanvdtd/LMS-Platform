@@ -13,8 +13,8 @@ export const authClient = createAuthClient({
     // Khớp user.additionalFields ở back-end/src/auth/auth.ts
     inferAdditionalFields({
       user: {
-        targetTrack: { type: 'string', required: false },
-        level: { type: 'string', required: false },
+        occupation: { type: 'string', required: false, input: false },
+        level: { type: 'string', required: false, input: false },
       },
     }),
   ],

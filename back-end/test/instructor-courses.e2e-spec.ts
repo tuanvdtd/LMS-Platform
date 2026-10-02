@@ -104,7 +104,6 @@ describe('Instructor courses (e2e)', () => {
         status: 'draft',
         instructorId: alice.id,
         categoryId: null,
-        track: null,
         level: null,
       });
       expect(course.slug).toMatch(/^lap-trinh-react-co-ban-[a-z0-9]{6}$/);
@@ -148,7 +147,7 @@ describe('Instructor courses (e2e)', () => {
       const { body } = await call('get', url(), alice.cookie).expect(200);
       expect(Object.keys(body).sort()).toEqual(
         [
-          'id', 'slug', 'status', 'title', 'subtitle', 'description', 'language', 'level', 'track',
+          'id', 'slug', 'status', 'title', 'subtitle', 'description', 'language', 'level',
           'thumbnailUrl', 'promoVideoUrl', 'learningObjectives', 'requirements', 'targetAudience',
           'category', 'primaryTopic', 'updatedAt', 'checklist',
         ].sort(),
@@ -156,7 +155,7 @@ describe('Instructor courses (e2e)', () => {
       expect(body).toMatchObject({ id: courseId, language: 'vi', category: null, primaryTopic: null, learningObjectives: [] });
       expect(body.checklist.map((i: { key: string }) => i.key)).toEqual(['goals', 'curriculum', 'basics']);
       expect(body.checklist[2].missing.map((m: { anchor: string }) => m.anchor)).toEqual([
-        'subtitle', 'description', 'level', 'track', 'category', 'topic', 'thumbnail',
+        'subtitle', 'description', 'level', 'category', 'topic', 'thumbnail',
       ]);
     });
 
@@ -168,9 +167,9 @@ describe('Instructor courses (e2e)', () => {
           targetAudience: ['Người mới học React'],
           subtitle: '  Từ số 0  ',
           level: 'beginner',
-          track: 'frontend',
         })
         .expect(200);
+      await call('patch', url(), alice.cookie).send({ track: 'frontend' }).expect(400);
       expect(body.learningObjectives).toEqual(['Hiểu JSX', 'Viết component', 'Dùng hooks', 'Gọi API']);
       expect(body.subtitle).toBe('Từ số 0');
       expect(body.checklist[0]).toEqual({ key: 'goals', done: true, missing: [] });

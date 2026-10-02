@@ -11,13 +11,14 @@ import { DebugController } from './debug.controller.js';
 import { optionalEnv } from './env.js';
 import { InfraModule } from './infra/infra.module.js';
 import { InstructorCoursesModule } from './instructor-courses/instructor-courses.module.js';
+import { PreferencesModule } from './preferences/preferences.module.js';
 import { TopicsModule } from './topics/topics.module.js';
 
 const isProd = optionalEnv('SENTRY_ENVIRONMENT') === 'production';
 
 @Module({
   // SentryModule đứng đầu theo docs.
-  imports: [SentryModule.forRoot(), InfraModule, AuthModule, CategoriesModule, TopicsModule, InstructorCoursesModule, AssetsModule, CurriculumModule],
+  imports: [SentryModule.forRoot(), InfraModule, AuthModule, CategoriesModule, TopicsModule, InstructorCoursesModule, AssetsModule, CurriculumModule, PreferencesModule],
   controllers: [AppController, ...(isProd ? [] : [DebugController])],
   // Chỉ gửi lỗi không phải HttpException; response giữ như BaseExceptionFilter.
   providers: [AppService, { provide: APP_FILTER, useClass: SentryGlobalFilter }],

@@ -9,7 +9,6 @@ const complete: ChecklistInput = {
   subtitle: 'Từ số 0',
   description: 'từ '.repeat(200),
   level: 'beginner',
-  track: 'frontend',
   thumbnailUrl: 'https://cdn.example.com/t.png',
   learningObjectives: ['a', 'b', 'c', 'd'],
   requirements: ['r'],
@@ -25,7 +24,6 @@ const empty: ChecklistInput = {
   subtitle: null,
   description: null,
   level: null,
-  track: null,
   thumbnailUrl: null,
   learningObjectives: [],
   requirements: [],
@@ -78,12 +76,11 @@ describe('buildChecklist', () => {
     ]);
   });
 
-  it('khoá trống → basics thiếu đủ 7 ý theo đúng thứ tự', () => {
+  it('khoá trống → basics thiếu đủ 6 ý theo đúng thứ tự', () => {
     expect(byKey(empty).basics.missing).toEqual([
       { message: 'Thiếu phụ đề', anchor: 'subtitle' },
       { message: 'Mô tả còn thiếu 200 từ', anchor: 'description' },
       { message: 'Chưa chọn cấp độ', anchor: 'level' },
-      { message: 'Chưa chọn track', anchor: 'track' },
       { message: 'Chưa chọn thể loại con', anchor: 'category' },
       { message: 'Chưa chọn chủ đề chính', anchor: 'topic' },
       { message: 'Chưa có ảnh bìa', anchor: 'thumbnail' },
