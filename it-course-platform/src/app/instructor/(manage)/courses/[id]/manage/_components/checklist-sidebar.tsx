@@ -11,9 +11,9 @@ import type { ChecklistKey } from "@/types/instructor-course";
 import { useCourse } from "./course-provider";
 import { GuardedLink } from "./guarded-link";
 
-type Entry = { label: string; key?: ChecklistKey; page?: "goals" | "basics" };
+type Entry = { label: string; key?: ChecklistKey; page?: "goals" | "curriculum" | "basics" };
 
-// Mục không có page = "Sắp có" (đợt 2–4).
+// Mục không có page = "Sắp có" (đợt 4).
 const GROUPS: { title: string; entries: Entry[] }[] = [
   {
     title: "Lên kế hoạch",
@@ -21,7 +21,7 @@ const GROUPS: { title: string; entries: Entry[] }[] = [
   },
   {
     title: "Tạo nội dung",
-    entries: [{ label: "Khung chương trình", key: "curriculum" }],
+    entries: [{ label: "Khung chương trình", key: "curriculum", page: "curriculum" }],
   },
   {
     title: "Xuất bản",

@@ -3,8 +3,10 @@ import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { AssetsModule } from './assets/assets.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
+import { CurriculumModule } from './curriculum/curriculum.module.js';
 import { DebugController } from './debug.controller.js';
 import { optionalEnv } from './env.js';
 import { InfraModule } from './infra/infra.module.js';
@@ -15,7 +17,7 @@ const isProd = optionalEnv('SENTRY_ENVIRONMENT') === 'production';
 
 @Module({
   // SentryModule đứng đầu theo docs.
-  imports: [SentryModule.forRoot(), InfraModule, AuthModule, CategoriesModule, TopicsModule, InstructorCoursesModule],
+  imports: [SentryModule.forRoot(), InfraModule, AuthModule, CategoriesModule, TopicsModule, InstructorCoursesModule, AssetsModule, CurriculumModule],
   controllers: [AppController, ...(isProd ? [] : [DebugController])],
   // Chỉ gửi lỗi không phải HttpException; response giữ như BaseExceptionFilter.
   providers: [AppService, { provide: APP_FILTER, useClass: SentryGlobalFilter }],
