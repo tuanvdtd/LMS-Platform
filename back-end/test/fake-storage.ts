@@ -1,4 +1,4 @@
-import type { Bucket, StorageService } from '../src/infra/storage.service.js';
+import type { Bucket, ByteRange, StorageService } from '../src/infra/storage.service.js';
 
 type StoragePort = Pick<
   StorageService,
@@ -21,17 +21,17 @@ export class FakeStorage implements StoragePort {
   presignPut(bucket: Bucket, key: string) {
     return Promise.resolve(`https://fake.r2/${bucket}/${key}`);
   }
-  presignGet(key: string) {
-    return Promise.resolve(`https://fake.r2/private/${key}?signed=1`);
+  presignGet(bucket: Bucket, key: string) {
+    return Promise.resolve(`https://fake.r2/${bucket}/${key}?signed=1`);
   }
   head(bucket: Bucket, key: string) {
     const body = this.objects.get(`${bucket}/${key}`);
     return Promise.resolve(body ? { size: body.length } : null);
   }
-  read(bucket: Bucket, key: string, bytes?: number) {
+  read(bucket: Bucket, key: string, range?: ByteRange) {
     const body = this.objects.get(`${bucket}/${key}`);
     if (!body) return Promise.reject(new Error(`Không có ${bucket}/${key}`));
-    return Promise.resolve(bytes ? body.subarray(0, bytes) : body);
+    return Promise.resolve(range ? body.subarray(range.offset, range.offset + range.length) : body);
   }
   delete(bucket: Bucket, key: string) {
     this.objects.delete(`${bucket}/${key}`);

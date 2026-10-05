@@ -191,9 +191,9 @@ describe('Assets + ảnh bìa + khung chương trình (e2e)', () => {
           sizeBytes: 5 * 1024 ** 2 + 1,
         },
         {
-          kind: 'video',
-          fileName: 'a.mp4',
-          mimeType: 'video/mp4',
+          kind: 'audio',
+          fileName: 'a.mp3',
+          mimeType: 'audio/mpeg',
           sizeBytes: 10,
         },
       ];
@@ -245,8 +245,10 @@ describe('Assets + ảnh bìa + khung chương trình (e2e)', () => {
         const { body } = await call('post', `/api/instructor/assets/${ok.assetId}/complete`, alice.cookie).expect(200);
         expect(body).toEqual({
           id: ok.assetId,
+          kind: 'document',
           fileName: 'bai.pdf',
           sizeBytes: pdf.length,
+          durationSec: null,
           createdAt: expect.any(String),
         });
         await call('post', `/api/instructor/assets/${ok.assetId}/complete`, alice.cookie).expect(404);
@@ -539,10 +541,12 @@ describe('Assets + ảnh bìa + khung chương trình (e2e)', () => {
             status: 'ready',
           },
         });
-        for (const assetId of [bobs.id, uploading.id, video.id, randomUUID()]) {
+        for (const assetId of [bobs.id, uploading.id, randomUUID()]) {
           const res = await as('put', `/items/${lecture.id}/content`, { assetId }).expect(400);
           expect(res.body.errors[0].path).toEqual(['assetId']);
         }
+        // Video gắn làm nội dung được (spec video-upload §4.5), nhưng không làm tài nguyên đính kèm.
+        await as('post', `/items/${lecture.id}/resources`, { assetId: video.id }).expect(400);
         const mine = await readyAsset(alice.id);
         await as('put', `/items/${quiz.id}/content`, { assetId: mine.id }).expect(400);
       },

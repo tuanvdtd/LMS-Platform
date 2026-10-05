@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
 import type { AuthSession } from '../auth/auth.js';
 import { CurrentUser, Roles } from '../auth/decorators.js';
 import { ZodValidationPipe } from '../common/zod.pipe.js';
-import { createCourseSchema, setThumbnailSchema, updateCourseSchema } from './instructor-courses.schemas.js';
-import type { CreateCourseInput, SetThumbnailInput, UpdateCourseInput } from './instructor-courses.schemas.js';
+import { createCourseSchema, mediaKeySchema, updateCourseSchema } from './instructor-courses.schemas.js';
+import type { CreateCourseInput, MediaKeyInput, UpdateCourseInput } from './instructor-courses.schemas.js';
 import { InstructorCoursesService } from './instructor-courses.service.js';
 
 type User = AuthSession['user'];
@@ -41,8 +41,22 @@ export class InstructorCoursesController {
   setThumbnail(
     @CurrentUser() user: User,
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(setThumbnailSchema)) body: SetThumbnailInput,
+    @Body(new ZodValidationPipe(mediaKeySchema)) body: MediaKeyInput,
   ) {
     return this.courses.setThumbnail(id, user.id, body.key);
+  }
+
+  @Put(':id/promo-video')
+  setPromoVideo(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(mediaKeySchema)) body: MediaKeyInput,
+  ) {
+    return this.courses.setPromoVideo(id, user.id, body.key);
+  }
+
+  @Delete(':id/promo-video')
+  removePromoVideo(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.courses.removePromoVideo(id, user.id);
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import type { AssetKind, Prisma } from '@prisma/client';
 import { isGuid, validationError } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import {
@@ -34,6 +34,7 @@ const ITEM_SELECT = {
   isDownloadable: true,
   durationSec: true,
   documentAsset: ASSET_REF,
+  videoAsset: { select: { ...ASSET_REF.select, durationSec: true } },
   resources: { orderBy: { position: 'asc' }, select: { id: true, title: true, asset: ASSET_REF } },
 } satisfies Prisma.CurriculumItemSelect;
 const LECTURE_ONLY = ['description', 'isPreview', 'isDownloadable'] as const;
@@ -153,11 +154,16 @@ export class CurriculumService {
   setContent(courseId: string, userId: string, itemId: string, assetId: string) {
     return this.mutate(courseId, userId, async (tx) => {
       await this.lecture(tx, courseId, itemId);
-      await this.usableDocument(tx, userId, assetId);
+      const asset = await this.usableAsset(tx, userId, assetId, ['document', 'video']);
+      // Video: thời lượng BE đã đo lúc complete, chép vào bài để checklist cộng (spec video-upload §4.5).
+      const content =
+        asset.kind === 'video'
+          ? { lectureKind: 'video' as const, videoAssetId: assetId, durationSec: asset.durationSec ?? 0, isDownloadable: false }
+          : { lectureKind: 'document' as const, documentAssetId: assetId };
       // Một câu update: luôn thoả chk_item_payload; bài giảng có nội dung tự xuất bản (K9).
       await tx.curriculumItem.update({
         where: { id: itemId },
-        data: { ...NO_CONTENT, lectureKind: 'document', documentAssetId: assetId, isPublished: true },
+        data: { ...NO_CONTENT, ...content, isPublished: true },
       });
     });
   }
@@ -172,7 +178,7 @@ export class CurriculumService {
   addResource(courseId: string, userId: string, itemId: string, body: AddResourceInput) {
     return this.mutate(courseId, userId, async (tx) => {
       await this.lecture(tx, courseId, itemId);
-      const asset = await this.usableDocument(tx, userId, body.assetId);
+      const asset = await this.usableAsset(tx, userId, body.assetId, ['document']);
       const agg = await tx.lectureResource.aggregate({
         where: { itemId },
         _count: { _all: true },
@@ -230,7 +236,7 @@ export class CurriculumService {
     let videoSeconds = 0;
     const out = sections.map((s) => ({
       ...s,
-      items: s.items.map(({ documentAsset, resources, ...item }) => {
+      items: s.items.map(({ documentAsset, videoAsset, resources, ...item }) => {
         if (item.type === 'lecture' && item.isPublished) {
           published++;
           if (item.lectureKind === 'video') videoSeconds += item.durationSec;
@@ -238,6 +244,7 @@ export class CurriculumService {
         return {
           ...item,
           document: documentAsset && toRef(documentAsset),
+          video: videoAsset && { ...toRef(videoAsset), durationSec: videoAsset.durationSec },
           resources: resources.map((r) => ({ id: r.id, title: r.title, asset: toRef(r.asset) })),
         };
       }),
@@ -274,10 +281,11 @@ export class CurriculumService {
     return item;
   }
 
-  private async usableDocument(tx: Tx, userId: string, assetId: string) {
+  // Asset của mình, đã ready, đúng loại. Tài nguyên đính kèm chỉ nhận document (spec video-upload §4.5).
+  private async usableAsset(tx: Tx, userId: string, assetId: string, kinds: AssetKind[]) {
     const asset = await tx.asset.findFirst({
-      where: { id: assetId, ownerId: userId, kind: 'document', status: 'ready' },
-      select: { fileName: true },
+      where: { id: assetId, ownerId: userId, kind: { in: kinds }, status: 'ready' },
+      select: { kind: true, fileName: true, durationSec: true },
     });
     if (!asset) throw validationError([{ path: ['assetId'], message: 'File không dùng được' }]);
     return asset;

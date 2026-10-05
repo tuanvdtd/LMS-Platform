@@ -27,3 +27,28 @@ export const webp = (w: number, h: number) => {
   const body = [...ascii('WEBP'), ...ascii('VP8X'), ...u32le(10), 0, 0, 0, 0, ...u24le(w - 1), ...u24le(h - 1)];
   return Buffer.from([...ascii('RIFF'), ...u32le(body.length), ...body]);
 };
+
+// MP4 tối thiểu cho mp4Duration (spec video-upload §4.2): ftyp + moov(mvhd) + mdat, không phát được.
+const u64 = (n: number) => [...u32(Math.floor(n / 2 ** 32)), ...u32(n >>> 0)];
+export const box = (type: string, payload: number[] | Buffer) => {
+  const body = [...payload];
+  return Buffer.from([...u32(8 + body.length), ...ascii(type), ...body]);
+};
+const ftyp = box('ftyp', [...ascii('isom'), ...u32(512), ...ascii('isomiso2avc1mp41')]);
+export const mvhd = (seconds: number, { timescale = 1000, version = 0 } = {}) => {
+  const duration = seconds * timescale;
+  const head =
+    version === 1
+      ? [1, 0, 0, 0, ...u64(0), ...u64(0), ...u32(timescale), ...u64(duration)]
+      : [0, 0, 0, 0, ...u32(0), ...u32(0), ...u32(timescale), ...u32(duration)];
+  return box('mvhd', [...head, ...Array.from({ length: 80 }, () => 0)]);
+};
+type Mp4Options = { timescale?: number; version?: number; moovLast?: boolean; largeMdat?: boolean };
+export const mp4 = (seconds: number, { moovLast = false, largeMdat = false, ...mv }: Mp4Options = {}) => {
+  const moov = box('moov', mvhd(seconds, mv));
+  const data = Array.from({ length: 64 }, () => 7);
+  const mdat = largeMdat
+    ? Buffer.from([...u32(1), ...ascii('mdat'), ...u64(16 + data.length), ...data])
+    : box('mdat', data);
+  return Buffer.concat(moovLast ? [ftyp, box('free', []), mdat, moov] : [ftyp, moov, mdat]);
+};

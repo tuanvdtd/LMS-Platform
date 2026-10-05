@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ImageIcon, Video } from 'lucide-react';
+import { ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ import {
 import { CategoryPicker } from './category-picker';
 import { useCourse, useDirtySync } from './course-provider';
 import { applySaveError, PageHeader, SaveBar, submitToPromise } from './form-save';
+import { PromoVideoUpload } from './promo-video-upload';
 import { ThumbnailUpload } from './thumbnail-upload';
 import { TopicPicker } from './topic-picker';
 
@@ -201,18 +202,7 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
               <ThumbnailUpload disabled={locked} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <MediaPlaceholder icon={<Video />} />
-                <div className="flex flex-col gap-1.5">
-                  <p className="text-sm font-semibold">
-                    Video quảng cáo <span className="font-normal text-muted-foreground">(không bắt buộc)</span>
-                  </p>
-                  <p className="text-[13px]/relaxed text-muted-foreground">
-                    1–2 phút giới thiệu khoá. Học viên xem video này dễ đăng ký hơn.
-                  </p>
-                  <span className="text-xs text-muted-foreground">Tải video lên · sắp có (đợt 3)</span>
-                </div>
-              </div>
+              <PromoVideoUpload disabled={locked} />
             </CardContent>
           </Card>
         </fieldset>
@@ -244,15 +234,6 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
 
       <SaveBar isDirty={isDirty} isSubmitting={isSubmitting} locked={locked} onDiscard={() => reset()} />
     </form>
-  );
-}
-
-function MediaPlaceholder({ icon, caption }: { icon: React.ReactNode; caption?: string }) {
-  return (
-    <div className="flex aspect-video flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed bg-muted text-[13px] text-muted-foreground">
-      {icon}
-      {caption}
-    </div>
   );
 }
 

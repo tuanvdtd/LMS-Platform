@@ -1,6 +1,6 @@
 import type { ChecklistItem } from './instructor-course';
 
-// Khớp API back-end/src/curriculum + assets (spec 2026-10-01-curriculum-upload §4). Giới hạn giống BE.
+// Khớp API back-end/src/curriculum + assets (spec curriculum-upload §4, video-upload §4). Giới hạn giống BE.
 export const ITEM_TYPE_LABEL = {
   lecture: 'Bài giảng',
   quiz: 'Trắc nghiệm',
@@ -16,6 +16,8 @@ export const MIN_VIDEO_MINUTES = 30;
 export const PDF_MAX_BYTES = 1024 ** 3;
 export const THUMBNAIL_MAX_BYTES = 5 * 1024 ** 2;
 export const THUMBNAIL_MIN = { width: 750, height: 422 } as const;
+export const VIDEO_MAX_BYTES = 1024 ** 3;
+export const PROMO_MAX_BYTES = 200 * 1024 ** 2;
 
 export interface AssetRef {
   id: string;
@@ -23,8 +25,16 @@ export interface AssetRef {
   sizeBytes: number;
 }
 
+export type AssetKind = 'document' | 'video';
+
 export interface LibraryAsset extends AssetRef {
+  kind: AssetKind;
+  durationSec: number | null;
   createdAt: string;
+}
+
+export interface VideoRef extends AssetRef {
+  durationSec: number | null;
 }
 
 export interface CurriculumItem {
@@ -39,6 +49,7 @@ export interface CurriculumItem {
   isDownloadable: boolean;
   durationSec: number;
   document: AssetRef | null;
+  video: VideoRef | null;
   resources: { id: string; title: string; asset: AssetRef }[];
 }
 
@@ -66,4 +77,12 @@ export function formatBytes(n: number): string {
   if (n < 1024 ** 2) return `${Math.max(1, Math.round(n / 1024))} KB`;
   if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB`;
   return `${(n / 1024 ** 3).toFixed(2)} GB`;
+}
+
+export function formatDuration(sec: number): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }

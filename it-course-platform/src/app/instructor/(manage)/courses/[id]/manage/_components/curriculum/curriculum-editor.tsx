@@ -314,7 +314,6 @@ export function CurriculumEditor() {
             value={stats.minutes}
             goal={MIN_VIDEO_MINUTES}
             unit="phút"
-            hint="Tải video có ở đợt 3"
           />
         </div>
         {list}
@@ -344,7 +343,7 @@ export function CurriculumEditor() {
   );
 }
 
-function Meter({ label, value, goal, unit, hint }: { label: string; value: number; goal: number; unit: string; hint?: string }) {
+function Meter({ label, value, goal, unit }: { label: string; value: number; goal: number; unit: string }) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex justify-between gap-2 text-sm">
@@ -360,7 +359,6 @@ function Meter({ label, value, goal, unit, hint }: { label: string; value: numbe
         aria-label={label}
         className="[&_[data-slot=progress-indicator]]:bg-green-500"
       />
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }

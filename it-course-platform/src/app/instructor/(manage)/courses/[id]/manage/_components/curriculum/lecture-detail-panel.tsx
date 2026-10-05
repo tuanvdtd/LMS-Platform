@@ -12,9 +12,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { getAssetUrl } from '@/lib/api/assets';
 import { addResource, removeContent, removeResource, setContent, updateItem } from '@/lib/api/curriculum';
 import {
+  type AssetKind,
+  type AssetRef,
   type CurriculumItem,
   type CurriculumResponse,
   formatBytes,
+  formatDuration,
   type LibraryAsset,
   MAX_RESOURCES,
 } from '@/types/curriculum';
@@ -22,6 +25,7 @@ import { useDirtySync } from '../course-provider';
 import { submitToPromise } from '../form-save';
 import { ContentPicker } from './content-picker';
 import { useCurriculum } from './curriculum-context';
+import { VideoPreviewDialog } from './video-preview-dialog';
 
 const schema = z.object({
   description: z.string().max(5000, 'Tối đa 5000 ký tự'),
@@ -54,7 +58,8 @@ async function viewPdf(assetId: string) {
 // Chi tiết bài giảng (spec §5.1): nội dung PDF + tài nguyên ghi ngay; mô tả / xem thử / cho tải có nút Lưu riêng (C3).
 export function LectureDetailPanel({ item }: { item: CurriculumItem }) {
   const { courseId, locked, run, confirm } = useCurriculum();
-  const [picker, setPicker] = useState<'content' | 'resource' | null>(null);
+  const [picker, setPicker] = useState<AssetKind | 'resource' | null>(null);
+  const [preview, setPreview] = useState<AssetRef | null>(null);
   const [abortUpload, setAbortUpload] = useState<(() => void) | null>(null);
   const uploading = abortUpload !== null;
   const {
@@ -92,6 +97,10 @@ export function LectureDetailPanel({ item }: { item: CurriculumItem }) {
     return ok;
   };
   const doc = item.document;
+  const video = item.video;
+  const contentPicker = picker === 'document' || picker === 'video' ? picker : null;
+  const removeText = (what: string) =>
+    `Gỡ ${what} khỏi bài giảng? Bài giảng sẽ thành chưa xuất bản; file vẫn còn trong thư viện.`;
   // Đang tải thì không cho mở/đổi ô chọn: đổi ô sẽ unmount picker → huỷ upload ngầm.
   const noPick = locked || uploading;
 
@@ -100,50 +109,47 @@ export function LectureDetailPanel({ item }: { item: CurriculumItem }) {
     <div className="flex min-w-0 flex-col gap-5 border-t px-4 py-4">
       <div className="flex flex-col gap-2">
         <p className="text-sm font-semibold">Nội dung</p>
-        {doc ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm">
-            <FileText className="size-4 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 flex-1 truncate">{doc.fileName}</span>
-            <span className="text-xs text-muted-foreground">{formatBytes(doc.sizeBytes)}</span>
-            <Button type="button" variant="ghost" size="sm" onClick={() => void viewPdf(doc.id)}>
-              <Eye data-icon="inline-start" />
-              Xem
+        {doc && (
+          <ContentRow
+            icon={<FileText className="size-4 shrink-0 text-muted-foreground" />}
+            name={doc.fileName}
+            meta={formatBytes(doc.sizeBytes)}
+            disabled={noPick}
+            onView={() => void viewPdf(doc.id)}
+            onReplace={() => setPicker('document')}
+            onRemove={() =>
+              confirm(removeText('PDF'), () => void run(() => removeContent(courseId, item.id)))
+            }
+          />
+        )}
+        {video && (
+          <ContentRow
+            icon={<Video className="size-4 shrink-0 text-muted-foreground" />}
+            name={video.fileName}
+            meta={`${video.durationSec != null ? `${formatDuration(video.durationSec)} · ` : ''}${formatBytes(video.sizeBytes)}`}
+            disabled={noPick}
+            onView={() => setPreview(video)}
+            onReplace={() => setPicker('video')}
+            onRemove={() =>
+              confirm(removeText('video'), () => void run(() => removeContent(courseId, item.id)))
+            }
+          />
+        )}
+        {!doc && !video && !contentPicker && (
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={noPick} onClick={() => setPicker('document')}>
+              <FileText data-icon="inline-start" />
+              Tài liệu PDF
             </Button>
-            <Button type="button" variant="ghost" size="sm" disabled={noPick} onClick={() => setPicker('content')}>
-              <RefreshCw data-icon="inline-start" />
-              Thay
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={noPick}
-              onClick={() =>
-                confirm('Gỡ PDF khỏi bài giảng? Bài giảng sẽ thành chưa xuất bản; file vẫn còn trong thư viện.', () =>
-                  void run(() => removeContent(courseId, item.id)),
-                )
-              }
-            >
-              <X data-icon="inline-start" />
-              Gỡ
+            <Button type="button" variant="outline" size="sm" disabled={noPick} onClick={() => setPicker('video')}>
+              <Video data-icon="inline-start" />
+              Video
             </Button>
           </div>
-        ) : (
-          picker !== 'content' && (
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" disabled={noPick} onClick={() => setPicker('content')}>
-                <FileText data-icon="inline-start" />
-                Tài liệu PDF
-              </Button>
-              <Button type="button" variant="outline" size="sm" disabled title="Sắp có (đợt 3)">
-                <Video data-icon="inline-start" />
-                Video · đợt 3
-              </Button>
-            </div>
-          )
         )}
-        {picker === 'content' && (
+        {contentPicker && (
           <ContentPicker
+            kind={contentPicker}
             onPick={pickWith((assetId) => setContent(courseId, item.id, assetId))}
             onClose={() => setPicker(null)}
             onUploadingChange={onUploadingChange}
@@ -168,10 +174,12 @@ export function LectureDetailPanel({ item }: { item: CurriculumItem }) {
             <input type="checkbox" className="size-4 accent-primary" {...register('isPreview')} />
             Cho xem thử (không cần mua khoá)
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="size-4 accent-primary" {...register('isDownloadable')} />
-            Cho tải xuống file PDF
-          </label>
+          {item.lectureKind === 'document' && (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" className="size-4 accent-primary" {...register('isDownloadable')} />
+              Cho tải xuống file PDF
+            </label>
+          )}
           <div>
             <Button type="submit" size="sm" disabled={!isDirty || isSubmitting}>
               {isSubmitting ? 'Đang lưu…' : 'Lưu'}
@@ -228,6 +236,46 @@ export function LectureDetailPanel({ item }: { item: CurriculumItem }) {
           )}
         </div>
       </fieldset>
+      <VideoPreviewDialog asset={preview} onClose={() => setPreview(null)} />
+    </div>
+  );
+}
+
+// Một dòng nội dung đã gắn (PDF / video): Xem nằm ngoài khoá sửa, Thay / Gỡ theo `disabled`.
+function ContentRow({
+  icon,
+  name,
+  meta,
+  disabled,
+  onView,
+  onReplace,
+  onRemove,
+}: {
+  icon: React.ReactNode;
+  name: string;
+  meta: string;
+  disabled: boolean;
+  onView: () => void;
+  onReplace: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm">
+      {icon}
+      <span className="min-w-0 flex-1 truncate">{name}</span>
+      <span className="text-xs text-muted-foreground tabular-nums">{meta}</span>
+      <Button type="button" variant="ghost" size="sm" onClick={onView}>
+        <Eye data-icon="inline-start" />
+        Xem
+      </Button>
+      <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={onReplace}>
+        <RefreshCw data-icon="inline-start" />
+        Thay
+      </Button>
+      <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={onRemove}>
+        <X data-icon="inline-start" />
+        Gỡ
+      </Button>
     </div>
   );
 }

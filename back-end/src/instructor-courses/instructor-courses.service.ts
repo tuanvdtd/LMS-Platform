@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { imageInfo, THUMBNAIL_MAX_BYTES, THUMBNAIL_MIN } from '../assets/file-check.js';
+import { imageInfo, mp4Duration, PROMO_MAX_BYTES, THUMBNAIL_MAX_BYTES, THUMBNAIL_MIN } from '../assets/file-check.js';
 import { type FieldError, isGuid, validationError } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { StorageService } from '../infra/storage.service.js';
@@ -181,14 +181,48 @@ export class InstructorCoursesService {
       where: { id },
       data: { thumbnailUrl: this.storage.publicUrl(key), updatedAt: new Date() },
     });
-    const oldKey = this.storage.keyOfPublicUrl(course.thumbnailUrl);
-    // Xoá ảnh cũ lỗi chỉ để lại rác trên R2, không làm hỏng request (StorageService đã gửi Sentry).
-    // Cùng key gắn cho khoá khác thì giữ object.
-    const shared = oldKey
-      ? await this.prisma.course.count({ where: { thumbnailUrl: course.thumbnailUrl, id: { not: id } } })
-      : 0;
-    if (oldKey && oldKey !== key && shared === 0) await this.storage.delete('public', oldKey).catch(() => undefined);
+    await this.dropOldPublic(id, { thumbnailUrl: course.thumbnailUrl }, key);
     return this.detail(id, instructorId);
+  }
+
+  // Video giới thiệu (spec video-upload §4.4): như ảnh bìa, file đã nằm trên R2 public, không vào assets.
+  async setPromoVideo(id: string, instructorId: string, key: string) {
+    const course = await this.assertEditable(id, instructorId);
+    if (!new RegExp(`^promos/${instructorId}/[0-9a-f-]{36}\\.mp4$`).test(key)) {
+      throw validationError([{ path: ['key'], message: 'Video không hợp lệ' }]);
+    }
+    const problem = await this.checkPromo(key);
+    if (problem) {
+      await this.storage.delete('public', key);
+      throw validationError([{ path: ['key'], message: problem }]);
+    }
+    await this.prisma.course.update({
+      where: { id },
+      data: { promoVideoUrl: this.storage.publicUrl(key), updatedAt: new Date() },
+    });
+    await this.dropOldPublic(id, { promoVideoUrl: course.promoVideoUrl }, key);
+    return this.detail(id, instructorId);
+  }
+
+  async removePromoVideo(id: string, instructorId: string) {
+    const course = await this.assertEditable(id, instructorId);
+    await this.prisma.course.update({ where: { id }, data: { promoVideoUrl: null, updatedAt: new Date() } });
+    await this.dropOldPublic(id, { promoVideoUrl: course.promoVideoUrl }, null);
+    return this.detail(id, instructorId);
+  }
+
+  // Xoá object cũ trên R2 public: chỉ khi là file của mình, khác key mới, và không khoá nào khác dùng cùng URL.
+  // Lỗi xoá chỉ để lại rác, không làm hỏng request (StorageService đã gửi Sentry).
+  private async dropOldPublic(
+    id: string,
+    old: { thumbnailUrl: string | null } | { promoVideoUrl: string | null },
+    newKey: string | null,
+  ) {
+    const url = Object.values(old)[0];
+    const oldKey = this.storage.keyOfPublicUrl(url);
+    if (!oldKey || oldKey === newKey) return;
+    const shared = await this.prisma.course.count({ where: { ...old, id: { not: id } } });
+    if (shared === 0) await this.storage.delete('public', oldKey).catch(() => undefined);
   }
 
   // Lecture đã xuất bản + tổng giây video của chúng, một query cho nhiều khoá.
@@ -230,5 +264,13 @@ export class InstructorCoursesService {
       return `Ảnh tối thiểu ${THUMBNAIL_MIN.width}×${THUMBNAIL_MIN.height} px`;
     }
     return null;
+  }
+
+  private async checkPromo(key: string): Promise<string | null> {
+    const head = await this.storage.head('public', key);
+    if (!head) return 'Chưa tải video lên';
+    if (head.size > PROMO_MAX_BYTES) return 'Video giới thiệu tối đa 200 MB';
+    const seconds = await mp4Duration((offset, length) => this.storage.read('public', key, { offset, length }), head.size);
+    return seconds === null ? 'File không phải video MP4 hợp lệ' : null;
   }
 }
