@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { Download } from 'lucide-react';
-import { StatCard } from '@/components/shared/product-ui';
+import { Button } from '@/components/ui/button';
 import { funnelData, courses } from '@/lib/mocks/data';
-import { RevenueChart } from './_components/revenue-chart';
+import { RevenueOverview } from './_components/revenue-overview';
+import { PayoutHistory } from './_components/payout-history';
 
 // Gate client ở instructor/layout.tsx không render children khi prerender → tắt instant validation.
 export const instant = false;
@@ -23,39 +24,14 @@ export default function AnalyticsRevenuePage() {
         <h1 className="text-2xl font-extrabold" style={{ color: 'var(--foreground)' }}>
           Doanh thu & Bán hàng
         </h1>
-        <div className="flex items-center gap-2">
-          <select
-            className="text-sm border rounded-lg px-3 py-1.5"
-            style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }}
-          >
-            {courses.map((c) => <option key={c.id}>{c.title.slice(0, 30)}…</option>)}
-          </select>
-          <select
-            className="text-sm border rounded-lg px-3 py-1.5"
-            style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }}
-          >
-            <option>Tháng 9/2025</option>
-            <option>Tháng 8/2025</option>
-          </select>
-          <button
-            className="flex items-center gap-1.5 text-sm border rounded-lg px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
-          >
-            <Download size={14} /> Xuất CSV
-          </button>
-        </div>
+        <Button variant="outline" size="sm">
+          <Download size={14} /> Xuất CSV
+        </Button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard label="Tổng doanh thu" value="107.000.000₫" change={9.2} />
-        <StatCard label="Doanh thu thực nhận" value="74.900.000₫" sub="Sau phí 30%" />
-        <StatCard label="Số đơn" value="284" change={12.5} />
-        <StatCard label="Giá trị đơn TB" value="376.760₫" change={-2.1} />
-        <StatCard label="Tỉ lệ hoàn tiền" value="1.4%" change={0.2} />
-      </div>
+      <RevenueOverview courses={courses.map(({ id, title }) => ({ id, title }))} />
 
-      {/* Revenue chart */}
-      <RevenueChart />
+      <PayoutHistory />
 
       {/* Funnel */}
       <div className="grid lg:grid-cols-2 gap-6">
