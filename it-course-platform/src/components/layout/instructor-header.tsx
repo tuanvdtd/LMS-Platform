@@ -4,7 +4,8 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Bell, BookMarked, BookOpen, LogOut, Menu, MessagesSquare, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
+import { Bell, BookMarked, LogOut, Menu, MessagesSquare, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
+import { LogoMark } from '@/components/shared/logo-mark';
 import { authClient } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -50,9 +51,7 @@ export default function InstructorHeader() {
         </div>
 
         <Link href="/instructor" className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-            <BookOpen size={16} className="text-primary-foreground" />
-          </div>
+          <LogoMark />
           <span className="hidden text-lg font-bold sm:block">
             Skill<span className="text-primary">Path</span>
           </span>

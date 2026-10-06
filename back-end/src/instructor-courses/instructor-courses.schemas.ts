@@ -26,7 +26,12 @@ export const updateCourseSchema = z
     level: z.enum(SkillLevel).nullable(),
     // guid: chỉ kiểm dạng 8-4-4-4-12; tồn tại/cấp 2 do service kiểm.
     categoryId: z.guid().nullable(),
-    primaryTopicId: z.guid().nullable(),
+    // Thay cả bộ (spec 2026-10-06 D4): tối đa 3, không trùng, có topic thì đúng 1 chủ đề chính.
+    topics: z
+      .array(z.object({ id: z.guid(), isPrimary: z.boolean() }).strict())
+      .max(3, 'Tối đa 3 chủ đề')
+      .refine((l) => new Set(l.map((t) => t.id)).size === l.length, 'Chủ đề bị trùng')
+      .refine((l) => l.length === 0 || l.filter((t) => t.isPrimary).length === 1, 'Cần đúng 1 chủ đề chính'),
     learningObjectives: stringList,
     requirements: stringList,
     targetAudience: stringList,

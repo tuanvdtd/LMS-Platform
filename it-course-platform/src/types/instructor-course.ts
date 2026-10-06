@@ -25,6 +25,8 @@ export interface Ref {
   name: string;
 }
 
+export type CourseTopic = Ref & { isPrimary: boolean };
+
 export type ChecklistKey = 'goals' | 'curriculum' | 'basics';
 
 export interface ChecklistItem {
@@ -48,7 +50,7 @@ export interface CourseDetail {
   requirements: string[];
   targetAudience: string[];
   category: (Ref & { parent: Ref | null }) | null;
-  primaryTopic: Ref | null;
+  topics: CourseTopic[]; // chủ đề chính đứng đầu
   updatedAt: string;
   checklist: ChecklistItem[];
 }
@@ -70,7 +72,7 @@ export interface UpdateCoursePayload {
   language?: CourseLanguage;
   level?: SkillLevel | null;
   categoryId?: string | null;
-  primaryTopicId?: string | null;
+  topics?: { id: string; isPrimary: boolean }[];
   learningObjectives?: string[];
   requirements?: string[];
   targetAudience?: string[];

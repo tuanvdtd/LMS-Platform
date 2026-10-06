@@ -18,8 +18,8 @@ import type { CategoryNode } from '@/types';
 import {
   type CourseDetail,
   type CourseLanguage,
+  type CourseTopic,
   LANGUAGE_LABEL,
-  type Ref,
   SKILL_LEVEL_LABEL,
   type SkillLevel,
 } from '@/types/instructor-course';
@@ -43,7 +43,7 @@ const schema = z.object({
   language: z.custom<CourseLanguage>(),
   level: z.custom<SkillLevel | null>(),
   categoryId: z.string().nullable(),
-  primaryTopic: z.custom<Ref | null>(),
+  topics: z.custom<CourseTopic[]>(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -54,7 +54,7 @@ const toValues = (c: CourseDetail): Values => ({
   language: c.language,
   level: c.level,
   categoryId: c.category?.id ?? null,
-  primaryTopic: c.primaryTopic,
+  topics: c.topics,
 });
 
 export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
@@ -68,27 +68,26 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
     setError,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: toValues(course) });
-  const [title, subtitle, description, level, primaryTopic] = useWatch({
+  const [title, subtitle, description, level, topics] = useWatch({
     control,
-    name: ['title', 'subtitle', 'description', 'level', 'primaryTopic'],
+    name: ['title', 'subtitle', 'description', 'level', 'topics'],
   });
+  const primaryTopic = topics.find((t) => t.isPrimary);
   const words = countWords(description);
 
   async function onSubmit(values: Values): Promise<boolean> {
-    const { primaryTopic, ...fields } = values;
+    const { topics, ...fields } = values;
     try {
-      const updated = await updateCourse(course.id, { ...fields, primaryTopicId: primaryTopic?.id ?? null });
+      const updated = await updateCourse(course.id, {
+        ...fields,
+        topics: topics.map(({ id, isPrimary }) => ({ id, isPrimary })),
+      });
       setCourse(updated);
       reset(values);
       toast.success('Đã lưu');
       return true;
     } catch (err) {
-      applySaveError(
-        err,
-        setError,
-        () => setCourse({ ...course, status: 'in_review' }),
-        (path) => (path[0] === 'primaryTopicId' ? 'primaryTopic' : path[0]),
-      );
+      applySaveError(err, setError, () => setCourse({ ...course, status: 'in_review' }));
       return false;
     }
   }
@@ -144,7 +143,8 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* overflow-visible: Card mặc định overflow-hidden cắt mất danh sách kết quả tìm chủ đề. */}
+          <Card className="overflow-visible">
             <CardHeader>
               <CardTitle className="text-base">Thông tin cơ bản</CardTitle>
             </CardHeader>
@@ -182,15 +182,15 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
 
               <FormField
                 anchor="topic"
-                label="Chủ đề chính"
+                label="Chủ đề"
                 htmlFor="topic-search"
-                error={errors.primaryTopic?.message}
-                hint="Kỹ năng cốt lõi khoá học dạy, ví dụ React hoặc Docker."
+                error={errors.topics?.message}
+                hint="Tối đa 3 chủ đề. Chủ đề chính là thứ khoá dạy nhiều nhất, các chủ đề còn lại giúp học viên tìm thấy khoá."
               >
                 <Controller
                   control={control}
-                  name="primaryTopic"
-                  render={({ field }) => <TopicPicker value={field.value} onChange={field.onChange} invalid={!!errors.primaryTopic} />}
+                  name="topics"
+                  render={({ field }) => <TopicPicker value={field.value} onChange={field.onChange} invalid={!!errors.topics} />}
                 />
               </FormField>
             </CardContent>

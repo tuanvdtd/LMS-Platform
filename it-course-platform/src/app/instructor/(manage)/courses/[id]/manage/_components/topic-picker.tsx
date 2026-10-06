@@ -1,91 +1,74 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { TopicSearch } from '@/app/onboarding/_components/topic-search';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { searchTopics } from '@/lib/api/instructor-courses';
-import type { Ref } from '@/types/instructor-course';
+import type { CourseTopic, Ref } from '@/types/instructor-course';
+import { addTopic, MAX_TOPICS, removeTopic, setPrimary } from './course-topics';
 
-// "Khoá học chủ yếu dạy gì?" — tìm topic theo tên, debounce 300ms, huỷ request cũ khi gõ tiếp.
+// "Khoá học dạy những gì?" — tối đa 3 topic, đúng 1 chủ đề chính (spec 2026-10-06 D2, D3).
+// Ô tìm là combobox dùng chung với onboarding; topic đã chọn nằm trong một danh sách,
+// mỗi dòng: radio chọn chủ đề chính + nút bỏ.
 export function TopicPicker({
   value,
   onChange,
   invalid,
 }: {
-  value: Ref | null;
-  onChange: (topic: Ref | null) => void;
+  value: CourseTopic[];
+  onChange: (topics: CourseTopic[]) => void;
   invalid?: boolean;
 }) {
-  const [q, setQ] = useState('');
-  const [results, setResults] = useState<Ref[]>([]);
-
-  useEffect(() => {
-    const term = q.trim();
-    if (!term) return;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => {
-      searchTopics(term, ctrl.signal).then(setResults, () => {});
-    }, 300);
-    return () => {
-      clearTimeout(timer);
-      ctrl.abort();
-    };
-  }, [q]);
-
-  if (value) {
-    return (
-      <div id="topic-search" className="flex">
-        <span className="inline-flex h-9 items-center gap-1 rounded-full bg-primary/10 pr-1 pl-3.5 text-sm font-semibold text-primary">
-          {value.name}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="rounded-full text-primary hover:bg-primary/15 hover:text-primary"
-            aria-label="Bỏ chọn chủ đề"
-            onClick={() => onChange(null)}
-          >
-            <X />
-          </Button>
-        </span>
-      </div>
-    );
-  }
+  const full = value.length >= MAX_TOPICS;
+  const isSelected = (id: string) => value.some((t) => t.id === id);
 
   return (
-    <div className="relative">
-      <Input
+    <div className="flex flex-col gap-3">
+      <TopicSearch
         id="topic-search"
-        value={q}
-        maxLength={50}
-        autoComplete="off"
-        placeholder="Tìm chủ đề, ví dụ: React, Docker…"
-        className="h-10"
-        aria-invalid={invalid}
-        onChange={(e) => {
-          setQ(e.target.value);
-          if (!e.target.value.trim()) setResults([]);
-        }}
+        label="Tìm chủ đề"
+        placeholder={full ? `Đã đủ ${MAX_TOPICS} chủ đề, bỏ bớt để thêm` : 'Tìm chủ đề, ví dụ: React'}
+        disabled={full}
+        invalid={invalid}
+        isSelected={isSelected}
+        onToggle={(t: Ref) => onChange(isSelected(t.id) ? removeTopic(value, t.id) : addTopic(value, t))}
       />
-      {q.trim() && results.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border bg-popover py-1 shadow-lg">
-          {results.map((t) => (
-            <li key={t.id}>
-              <button
-                type="button"
-                className="w-full px-3 py-2.5 text-left text-sm hover:bg-primary/10 focus-visible:bg-primary/10 focus-visible:outline-none"
-                onClick={() => {
-                  onChange(t);
-                  setQ('');
-                  setResults([]);
-                }}
-              >
-                {t.name}
-              </button>
-            </li>
-          ))}
-        </ul>
+
+      {value.length > 0 && (
+        <fieldset className="rounded-lg border">
+          <legend className="sr-only">Chủ đề chính</legend>
+          <ul className="divide-y">
+            {value.map((t) => (
+              <li key={t.id} className="flex items-center gap-3 py-1 pr-1.5 pl-3">
+                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-1.5 text-sm">
+                  <input
+                    type="radio"
+                    name="primary-topic"
+                    aria-label={`Đặt ${t.name} làm chủ đề chính`}
+                    className="size-4 shrink-0 cursor-pointer appearance-none rounded-full border-[1.5px] border-muted-foreground/50 bg-background transition-[border-color,border-width] not-checked:hover:border-foreground checked:border-[5px] checked:border-primary"
+                    checked={t.isPrimary}
+                    onChange={() => onChange(setPrimary(value, t.id))}
+                  />
+                  <span className="min-w-0 truncate font-medium">{t.name}</span>
+                  {t.isPrimary && (
+                    <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                      Chủ đề chính
+                    </span>
+                  )}
+                </label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                  aria-label={`Bỏ chủ đề ${t.name}`}
+                  onClick={() => onChange(removeTopic(value, t.id))}
+                >
+                  <X />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </fieldset>
       )}
     </div>
   );

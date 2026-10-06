@@ -83,8 +83,8 @@ describe('Instructor courses (e2e)', () => {
   describe('/api/instructor/courses', () => {
     let courseId: string;
     const url = () => `/api/instructor/courses/${courseId}`;
-    const primaryRows = () =>
-      prisma.courseTopic.findMany({ where: { courseId, isPrimary: true }, select: { topicId: true } });
+    const topicRows = () =>
+      prisma.courseTopic.findMany({ where: { courseId }, select: { topicId: true, isPrimary: true }, orderBy: { topicId: 'asc' } });
     type Err = { path: string[]; message: string };
 
     it('học viên → 403', () => call('get', '/api/instructor/courses', student.cookie).expect(403));
@@ -149,10 +149,10 @@ describe('Instructor courses (e2e)', () => {
         [
           'id', 'slug', 'status', 'title', 'subtitle', 'description', 'language', 'level',
           'thumbnailUrl', 'promoVideoUrl', 'learningObjectives', 'requirements', 'targetAudience',
-          'category', 'primaryTopic', 'updatedAt', 'checklist',
+          'category', 'topics', 'updatedAt', 'checklist',
         ].sort(),
       );
-      expect(body).toMatchObject({ id: courseId, language: 'vi', category: null, primaryTopic: null, learningObjectives: [] });
+      expect(body).toMatchObject({ id: courseId, language: 'vi', category: null, topics: [], learningObjectives: [] });
       expect(body.checklist.map((i: { key: string }) => i.key)).toEqual(['goals', 'curriculum', 'basics']);
       expect(body.checklist[2].missing.map((m: { anchor: string }) => m.anchor)).toEqual([
         'subtitle', 'description', 'level', 'category', 'topic', 'thumbnail',
@@ -206,25 +206,55 @@ describe('Instructor courses (e2e)', () => {
       expect(cleared.body.category).toBeNull();
     }, 60_000);
 
-    it('đổi topic chính → luôn đúng 1 dòng isPrimary; topic đã gắn dạng không chính được nâng lên', async () => {
+    it('lưu topics → thay cả bộ, đúng 1 primary, primary đứng đầu; không gửi topics thì giữ nguyên', async () => {
       const [t1, t2, t3] = await prisma.topic.findMany({ take: 3, orderBy: { slug: 'asc' } });
-      await prisma.courseTopic.create({ data: { courseId, topicId: t3.id } }); // gắn sẵn, không chính
+      const ref = (t: typeof t1, isPrimary: boolean) => ({ id: t.id, slug: t.slug, name: t.name, isPrimary });
+      const sorted = <T extends { topicId: string }>(rows: T[]) => [...rows].sort((a, b) => a.topicId.localeCompare(b.topicId));
 
-      await call('patch', url(), alice.cookie).send({ primaryTopicId: t1.id }).expect(200);
-      const res = await call('patch', url(), alice.cookie).send({ primaryTopicId: t2.id }).expect(200);
-      expect(res.body.primaryTopic).toEqual({ id: t2.id, slug: t2.slug, name: t2.name });
-      expect(await primaryRows()).toEqual([{ topicId: t2.id }]);
-      expect(await prisma.courseTopic.count({ where: { courseId, topicId: t3.id, isPrimary: false } })).toBe(1);
+      const res = await call('patch', url(), alice.cookie)
+        .send({ topics: [{ id: t1.id, isPrimary: false }, { id: t2.id, isPrimary: true }, { id: t3.id, isPrimary: false }] })
+        .expect(200);
+      expect(res.body.topics).toHaveLength(3);
+      expect(res.body.topics[0]).toEqual(ref(t2, true));
+      expect(res.body.topics).toEqual(expect.arrayContaining([ref(t1, false), ref(t3, false)]));
+      expect(res.body.checklist[2].missing.map((m: { anchor: string }) => m.anchor)).not.toContain('topic');
+      expect(await topicRows()).toEqual(
+        sorted([{ topicId: t1.id, isPrimary: false }, { topicId: t2.id, isPrimary: true }, { topicId: t3.id, isPrimary: false }]),
+      );
 
-      await call('patch', url(), alice.cookie).send({ primaryTopicId: t3.id }).expect(200);
-      expect(await primaryRows()).toEqual([{ topicId: t3.id }]);
+      // Bộ mới: bớt t2, đổi primary sang t3 → DB khớp đúng bộ mới.
+      await call('patch', url(), alice.cookie)
+        .send({ topics: [{ id: t1.id, isPrimary: false }, { id: t3.id, isPrimary: true }] })
+        .expect(200);
+      const expected = sorted([{ topicId: t1.id, isPrimary: false }, { topicId: t3.id, isPrimary: true }]);
+      expect(await topicRows()).toEqual(expected);
 
-      const bad = await call('patch', url(), alice.cookie).send({ primaryTopicId: randomUUID() }).expect(400);
-      expect(bad.body.errors).toEqual([{ path: ['primaryTopicId'], message: expect.any(String) }]);
+      // PATCH không có topics → giữ nguyên.
+      await call('patch', url(), alice.cookie).send({ subtitle: 'Từ số 0' }).expect(200);
+      expect(await topicRows()).toEqual(expected);
 
-      const cleared = await call('patch', url(), alice.cookie).send({ primaryTopicId: null }).expect(200);
-      expect(cleared.body.primaryTopic).toBeNull();
-      expect(await primaryRows()).toEqual([]);
+      // [] → bỏ hết, checklist báo thiếu.
+      const cleared = await call('patch', url(), alice.cookie).send({ topics: [] }).expect(200);
+      expect(cleared.body.topics).toEqual([]);
+      expect(await topicRows()).toEqual([]);
+      expect(cleared.body.checklist[2].missing).toContainEqual({ message: 'Chưa chọn chủ đề', anchor: 'topic' });
+    }, 60_000);
+
+    it('topics sai → 400 path topics; DB không đổi', async () => {
+      const [t1, t2, t3, t4] = await prisma.topic.findMany({ take: 4, orderBy: { slug: 'asc' } });
+      await call('patch', url(), alice.cookie).send({ topics: [{ id: t1.id, isPrimary: true }] }).expect(200);
+      const bad = [
+        [t1, t2, t3, t4].map((t, i) => ({ id: t.id, isPrimary: i === 0 })), // quá 3
+        [{ id: t1.id, isPrimary: true }, { id: t1.id, isPrimary: false }], // trùng
+        [{ id: t1.id, isPrimary: false }, { id: t2.id, isPrimary: false }], // 0 primary
+        [{ id: t1.id, isPrimary: true }, { id: t2.id, isPrimary: true }], // 2 primary
+        [{ id: randomUUID(), isPrimary: true }], // không tồn tại
+      ];
+      for (const topics of bad) {
+        const res = await call('patch', url(), alice.cookie).send({ topics }).expect(400);
+        expect((res.body.errors as Err[]).map((e) => e.path)).toEqual([['topics']]);
+      }
+      expect(await topicRows()).toEqual([{ topicId: t1.id, isPrimary: true }]);
     }, 60_000);
 
     it('giảng viên khác / id không tồn tại / id sai định dạng → 404', async () => {

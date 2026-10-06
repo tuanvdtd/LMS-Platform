@@ -4,7 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Bell, BookOpen, LogOut, MessageCircle, Moon, Search, ShoppingCart, Sun, User, X } from 'lucide-react';
+import { Bell, LogOut, MessageCircle, Moon, Search, ShoppingCart, Sun, User, X } from 'lucide-react';
+import { LogoMark } from '@/components/shared/logo-mark';
 import { authClient } from '@/lib/auth-client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -59,9 +60,7 @@ export default function Header({
           href="/"
           className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 lg:static lg:mr-1 lg:translate-x-0"
         >
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-            <BookOpen size={16} className="text-primary-foreground" />
-          </div>
+          <LogoMark />
           <span className="hidden text-lg font-bold text-foreground sm:block">
             Skill<span className="text-primary">Path</span>
           </span>

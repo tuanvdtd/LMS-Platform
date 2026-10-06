@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { BookOpen, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { LogoMark } from '@/components/shared/logo-mark';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { SKILL_LEVEL_LABEL } from '@/types/instructor-course';
@@ -44,9 +45,7 @@ export function OnboardingView() {
       <header className="sticky top-0 z-30 border-b border-border bg-background">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
           <span className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary">
-              <BookOpen size={16} className="text-primary-foreground" />
-            </span>
+            <LogoMark />
             <span className="text-lg font-bold">
               Skill<span className="text-primary">Path</span>
             </span>

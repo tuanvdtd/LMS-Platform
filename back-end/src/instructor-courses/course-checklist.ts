@@ -66,7 +66,7 @@ export function buildChecklist(c: ChecklistInput): ChecklistItem[] {
     basics.push({ message: `Mô tả còn thiếu ${MIN_DESCRIPTION_WORDS - words} từ`, anchor: 'description' });
   if (!c.level) basics.push({ message: 'Chưa chọn cấp độ', anchor: 'level' });
   if (c.categoryDepth !== 2) basics.push({ message: 'Chưa chọn thể loại con', anchor: 'category' });
-  if (!c.hasPrimaryTopic) basics.push({ message: 'Chưa chọn chủ đề chính', anchor: 'topic' });
+  if (!c.hasPrimaryTopic) basics.push({ message: 'Chưa chọn chủ đề', anchor: 'topic' });
   if (!c.thumbnailUrl) basics.push({ message: 'Chưa có ảnh bìa', anchor: 'thumbnail' });
 
   return [item('goals', goals), item('curriculum', curriculum), item('basics', basics)];

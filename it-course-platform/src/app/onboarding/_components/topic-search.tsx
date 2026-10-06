@@ -9,12 +9,23 @@ import type { Ref } from '@/types/instructor-course';
 
 // Combobox tìm topic (ARIA combobox + listbox): debounce 250ms, huỷ request cũ khi gõ tiếp.
 // Chọn một kết quả → onToggle(ref), xoá ô để tìm tiếp; topic đã chọn hiện dấu tick.
+// Dùng ở onboarding và trang tổng quan khoá học (giảng viên).
 export function TopicSearch({
   isSelected,
   onToggle,
+  id,
+  label = 'Tìm kỹ năng',
+  placeholder = 'Tìm kỹ năng, ví dụ: Docker, Python…',
+  disabled,
+  invalid,
 }: {
   isSelected: (id: string) => boolean;
   onToggle: (topic: Ref) => void;
+  id?: string;
+  label?: string;
+  placeholder?: string;
+  disabled?: boolean;
+  invalid?: boolean;
 }) {
   const listId = useId();
   const [q, setQ] = useState('');
@@ -72,7 +83,10 @@ export function TopicSearch({
       <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         role="combobox"
-        aria-label="Tìm kỹ năng"
+        id={id}
+        aria-label={label}
+        aria-invalid={invalid}
+        disabled={disabled}
         aria-expanded={expanded}
         aria-controls={listId}
         aria-autocomplete="list"
@@ -80,7 +94,7 @@ export function TopicSearch({
         value={q}
         maxLength={50}
         autoComplete="off"
-        placeholder="Tìm kỹ năng, ví dụ: Docker, Python…"
+        placeholder={placeholder}
         className="h-11 bg-background pl-9 md:h-10"
         onChange={(e) => {
           setQ(e.target.value);
@@ -100,7 +114,7 @@ export function TopicSearch({
         >
           {results === null && <li className="px-3 py-2.5 text-muted-foreground">Đang tìm…</li>}
           {results?.length === 0 && (
-            <li className="px-3 py-2.5 text-muted-foreground">Không tìm thấy kỹ năng “{term}”</li>
+            <li className="px-3 py-2.5 text-muted-foreground">Không tìm thấy “{term}”</li>
           )}
           {results?.map((t, i) => {
             const selected = isSelected(t.id);

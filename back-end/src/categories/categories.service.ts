@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../infra/prisma.service.js';
 
-// id để FE gửi PATCH categoryId/primaryTopicId (spec course-create-basics C10). Chỉ thêm trường.
+// id để FE gửi PATCH categoryId/topics (spec course-create-basics C10). Chỉ thêm trường.
 export type TopicLink = { id: string; slug: string; name: string };
 export type SubcategoryNode = { id: string; slug: string; name: string; topics: TopicLink[] };
 export type CategoryNode = { id: string; slug: string; name: string; children: SubcategoryNode[] };

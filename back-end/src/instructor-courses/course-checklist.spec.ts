@@ -82,7 +82,7 @@ describe('buildChecklist', () => {
       { message: 'Mô tả còn thiếu 200 từ', anchor: 'description' },
       { message: 'Chưa chọn cấp độ', anchor: 'level' },
       { message: 'Chưa chọn thể loại con', anchor: 'category' },
-      { message: 'Chưa chọn chủ đề chính', anchor: 'topic' },
+      { message: 'Chưa chọn chủ đề', anchor: 'topic' },
       { message: 'Chưa có ảnh bìa', anchor: 'thumbnail' },
     ]);
   });

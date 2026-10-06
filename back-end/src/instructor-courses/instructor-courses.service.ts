@@ -25,7 +25,10 @@ const COURSE_SELECT = {
   targetAudience: true,
   updatedAt: true,
   category: { select: { id: true, slug: true, name: true, parent: REF } },
-  topics: { where: { isPrimary: true }, select: { topic: REF } },
+  topics: {
+    select: { isPrimary: true, topic: REF },
+    orderBy: [{ isPrimary: 'desc' }, { topic: { name: 'asc' } }],
+  },
 } satisfies Prisma.CourseSelect;
 export type CourseRow = Prisma.CourseGetPayload<{ select: typeof COURSE_SELECT }>;
 export type LectureStats = { published: number; videoSeconds: number };
@@ -77,14 +80,14 @@ export class InstructorCoursesService {
     const { topics, ...rest } = course;
     return {
       ...rest,
-      primaryTopic: topics[0]?.topic ?? null,
+      topics: topics.map(({ isPrimary, topic }) => ({ ...topic, isPrimary })),
       checklist: this.checklistFor(course, stats.get(course.id)),
     };
   }
 
   async update(id: string, instructorId: string, body: UpdateCourseInput) {
     await this.assertEditable(id, instructorId);
-    const { primaryTopicId, ...fields } = body;
+    const { topics, ...fields } = body;
 
     const errors: FieldError[] = [];
     if (fields.categoryId) {
@@ -94,29 +97,22 @@ export class InstructorCoursesService {
       });
       if (!category?.parentId) errors.push({ path: ['categoryId'], message: 'Hãy chọn một thể loại con' });
     }
-    if (primaryTopicId) {
-      const topic = await this.prisma.topic.findUnique({ where: { id: primaryTopicId }, select: { id: true } });
-      if (!topic) errors.push({ path: ['primaryTopicId'], message: 'Chủ đề không tồn tại' });
+    if (topics?.length) {
+      const found = await this.prisma.topic.count({ where: { id: { in: topics.map((t) => t.id) } } });
+      if (found < topics.length) errors.push({ path: ['topics'], message: 'Chủ đề không tồn tại' });
     }
     if (errors.length) throw validationError(errors);
 
     await this.prisma.$transaction(
       async (tx) => {
-        // updatedAt gán tay: PATCH chỉ đổi topic chính cũng phải đẩy khoá lên đầu danh sách.
+        // updatedAt gán tay: PATCH chỉ đổi topic cũng phải đẩy khoá lên đầu danh sách.
         await tx.course.update({ where: { id }, data: { ...fields, updatedAt: new Date() } });
-      if (primaryTopicId === undefined) return;
-      // Tối đa 1 isPrimary/khoá (uq_course_primary_topic): xoá dòng chính cũ trước, rồi upsert
-      // vì topic mới có thể đã gắn dạng không chính (PK courseId + topicId).
-      await tx.courseTopic.deleteMany({
-        where: { courseId: id, isPrimary: true, ...(primaryTopicId ? { topicId: { not: primaryTopicId } } : {}) },
-      });
-      if (primaryTopicId) {
-        await tx.courseTopic.upsert({
-          where: { courseId_topicId: { courseId: id, topicId: primaryTopicId } },
-          create: { courseId: id, topicId: primaryTopicId, isPrimary: true },
-          update: { isPrimary: true },
+        if (topics === undefined) return;
+        // Thay cả bộ: xoá hết rồi tạo lại nên không lúc nào có 2 dòng isPrimary (uq_course_primary_topic).
+        await tx.courseTopic.deleteMany({ where: { courseId: id } });
+        await tx.courseTopic.createMany({
+          data: topics.map((t) => ({ courseId: id, topicId: t.id, isPrimary: t.isPrimary })),
         });
-      }
       },
       TX_OPTIONS,
     );
@@ -246,7 +242,7 @@ export class InstructorCoursesService {
   checklistFor(c: CourseRow, s: LectureStats | undefined) {
     return buildChecklist({
       ...c,
-      hasPrimaryTopic: c.topics.length > 0,
+      hasPrimaryTopic: c.topics.some((t) => t.isPrimary),
       categoryDepth: c.category ? (c.category.parent ? 2 : 1) : null,
       publishedLectureCount: s?.published ?? 0,
       videoSeconds: s?.videoSeconds ?? 0,
