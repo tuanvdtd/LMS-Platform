@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Camera, Link2, Globe } from 'lucide-react';
 import { instructors } from '@/lib/mocks/data';
 import { RatingStars, Btn } from '@/components/shared/product-ui';
+import { PayoutAccountCard } from './payout-account-card';
 
 export default function ProfileForm() {
   const ins = instructors[0];
@@ -91,31 +92,9 @@ export default function ProfileForm() {
             ))}
           </div>
 
-          {/* Payout */}
-          <div className="border rounded-2xl p-5 space-y-3" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-            <h2 className="font-bold" style={{ color: 'var(--foreground)' }}>Cài đặt thanh toán</h2>
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-              Thiết lập tài khoản ngân hàng để nhận doanh thu từ khoá học.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: 'Tên chủ tài khoản' },
-                { label: 'Số tài khoản' },
-                { label: 'Ngân hàng' },
-                { label: 'Chi nhánh' },
-              ].map(({ label }) => (
-                <div key={label}>
-                  <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--foreground)' }}>{label}</label>
-                  <input
-                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
-                    style={{ borderColor: 'var(--border)', background: 'var(--background)', color: 'var(--foreground)' }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
           <Btn variant="primary">Lưu thay đổi</Btn>
+
+          <PayoutAccountCard />
         </div>
       </div>
     </div>

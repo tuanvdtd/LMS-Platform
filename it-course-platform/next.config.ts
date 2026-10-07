@@ -5,7 +5,11 @@ const nextConfig: NextConfig = {
   // Cache chủ động bằng 'use cache' + cacheLife (spec E5). Xem docs 01-getting-started/08-caching.md
   cacheComponents: true,
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }],
+    remotePatterns: [
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "cdn.vietqr.io" },
+      { protocol: "https", hostname: "img.vietqr.io" },
+    ],
   },
   async redirects() {
     return [
