@@ -133,23 +133,10 @@ export function CurriculumEditor() {
   // Panel đang có thay đổi chưa lưu (dirty do useDirtySync của panel báo lên) → hỏi trước khi đóng/đổi panel.
   const toggleItem = useCallback(
     (id: string) => {
-      if (dirty && !window.confirm('Bỏ thay đổi chưa lưu ở bài giảng đang mở?')) return;
+      if (dirty && !window.confirm('Bỏ thay đổi chưa lưu ở mục đang mở?')) return;
       setOpenItemId((cur) => (cur === id ? null : id));
     },
     [dirty],
-  );
-
-  const ctx = useMemo<CurriculumContextValue>(
-    () => ({
-      courseId,
-      locked,
-      busy: pending > 0,
-      run,
-      openItemId,
-      toggleItem,
-      confirm: (message, action) => setPendingConfirm({ message, action }),
-    }),
-    [courseId, locked, pending, run, openItemId, toggleItem],
   );
 
   // "Bài giảng 3" — đếm theo loại trên cả khoá, theo thứ tự hiển thị.
@@ -164,6 +151,28 @@ export function CurriculumEditor() {
     }
     return map;
   }, [sections]);
+
+  const lectures = useMemo(
+    () =>
+      (sections ?? []).flatMap((s) =>
+        s.items.filter((it) => it.type === 'lecture').map((it) => ({ id: it.id, title: `${labels.get(it.id)}: ${it.title}` })),
+      ),
+    [sections, labels],
+  );
+
+  const ctx = useMemo<CurriculumContextValue>(
+    () => ({
+      courseId,
+      locked,
+      busy: pending > 0,
+      run,
+      openItemId,
+      toggleItem,
+      confirm: (message, action) => setPendingConfirm({ message, action }),
+      lectures,
+    }),
+    [courseId, locked, pending, run, openItemId, toggleItem, lectures],
+  );
 
   const stats = useMemo(() => {
     let lectures = 0;

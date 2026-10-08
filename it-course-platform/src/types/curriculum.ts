@@ -86,3 +86,65 @@ export function formatDuration(sec: number): string {
   const s = sec % 60;
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
+
+// Quiz (spec 2026-10-08-quiz-authoring §4). Giới hạn giống BE quiz.schemas.ts.
+export const QUIZ_LIMITS = {
+  description: 1000,
+  stem: 5000,
+  option: 500,
+  explanation: 600,
+  minOptions: 2,
+  maxOptions: 15,
+  maxTopics: 3,
+} as const;
+
+export type QuestionType = 'single_choice' | 'multiple_choice';
+export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
+  single_choice: 'Một đáp án',
+  multiple_choice: 'Nhiều đáp án',
+};
+
+export interface QuizOption {
+  id: string;
+  position: number;
+  content: string;
+  isCorrect: boolean;
+  explanation: string | null;
+}
+
+export interface QuizQuestion {
+  id: string;
+  position: number;
+  type: QuestionType;
+  stem: string;
+  relatedItemId: string | null;
+  answerCount: number;
+  options: QuizOption[];
+}
+
+export interface QuizDetail {
+  description: string | null;
+  passScorePct: number;
+  shuffle: boolean;
+  topicIds: string[];
+  questions: QuizQuestion[];
+}
+
+export interface QuizMutation {
+  quiz: QuizDetail;
+  curriculum: CurriculumResponse;
+}
+
+export interface UpdateQuizPayload {
+  description?: string | null;
+  passScorePct?: number;
+  shuffle?: boolean;
+  topicIds?: string[];
+}
+
+export interface QuestionPayload {
+  type: QuestionType;
+  stem: string;
+  relatedItemId: string | null;
+  options: { content: string; isCorrect: boolean; explanation: string | null }[];
+}

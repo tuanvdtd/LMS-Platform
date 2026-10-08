@@ -26,7 +26,7 @@ Có object viết tay mà Prisma không biết (danh sách đầy đủ ở đ�
   `DROP INDEX uq_sections_position`, `uq_items_position`, `uq_questions_position`.
 - **Prisma không nhìn thấy (partial index, CHECK `chk_*`, MV `mv_*`) nên sẽ không sinh lệnh cho chúng —
   đừng viết SQL động vào chúng:** `idx_courses_embedding`, `uq_course_primary_topic`, `idx_qa_unanswered`,
-  các partial index ở init (`idx_quizzes_final`, `uq_one_final_quiz_per_course`, `idx_certificates_active`,
+  các partial index ở init (`idx_certificates_active`,
   `idx_submissions_inflight`, `idx_reports_open`, `idx_payment_events_unprocessed`), các CHECK `chk_*` và
   materialized view `mv_*`.
 

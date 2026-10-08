@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 // spec curriculum-upload §4.2. FE dùng cùng giới hạn.
 const title = z.string().trim().min(1, 'Nhập tiêu đề').max(80, 'Tối đa 80 ký tự');
-const emptyToNull = (s: string) => (s === '' ? null : s);
+export const emptyToNull = (s: string) => (s === '' ? null : s);
 const index = z.int().min(0);
 
 export const createSectionSchema = z

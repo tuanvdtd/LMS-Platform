@@ -3,5 +3,10 @@ import { InstructorCoursesModule } from '../instructor-courses/instructor-course
 import { CurriculumController } from './curriculum.controller.js';
 import { CurriculumService } from './curriculum.service.js';
 
-@Module({ imports: [InstructorCoursesModule], controllers: [CurriculumController], providers: [CurriculumService] })
+@Module({
+  imports: [InstructorCoursesModule],
+  controllers: [CurriculumController],
+  providers: [CurriculumService],
+  exports: [CurriculumService],
+})
 export class CurriculumModule {}
