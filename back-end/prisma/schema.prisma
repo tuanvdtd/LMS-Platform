@@ -80,6 +80,9 @@ model User {
   cartItems             CartItem[]
   orders                Order[]
   earnings              OrderItem[]             @relation("itemInstructor")
+  payouts               Payout[]                @relation("payoutInstructor")
+  payoutsPaid           Payout[]                @relation("payoutPayer")
+  settingsUpdated       PlatformSetting[]       @relation("settingUpdater")
   topicMastery          UserTopicMastery[]
   targetTopics          UserTargetTopic[]
   quizAttempts          QuizAttempt[]
@@ -184,6 +187,10 @@ model InstructorProfile {
   bio        String?
   website    String?
   socials    Json     @default("{}")
+  // Thông tin nhận tiền (spec 2026-10-05-revenue-share-payout R8/R10). Cả 3 cùng null hoặc cùng có (CHECK sql/07).
+  bankBin         String? // mã BIN VietQR, 6 số
+  bankAccountNo   String?
+  bankAccountName String? // IN HOA không dấu
   verifiedAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -547,17 +554,20 @@ model OrderItem {
   platformFeeAmount    Int
   instructorEarnAmount Int
   refundedAt           DateTime?
+  payoutId             String?   @db.Uuid // null = chưa chốt kỳ (spec revenue-share-payout R6)
 
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   course     Course   @relation(fields: [courseId], references: [id])
   coupon     Coupon?  @relation(fields: [couponId], references: [id], onDelete: SetNull)
   instructor User     @relation("itemInstructor", fields: [instructorId], references: [id])
+  payout     Payout?  @relation(fields: [payoutId], references: [id], onDelete: Restrict)
   refunds    Refund[]
 
   @@unique([orderId, courseId])
   @@index([instructorId])
   @@index([courseId])
   @@index([couponId])
+  @@index([instructorId, payoutId])
   @@map("order_items")
 }
 
@@ -618,6 +628,43 @@ model Coupon {
   @@index([courseId, createdAt])
   @@index([createdById])
   @@map("coupons")
+}
+
+// Cài đặt toàn sàn dạng key–value (spec 2026-10-05-revenue-share-payout §3.1). Hiện chỉ có revenue_share_pct.
+model PlatformSetting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  updatedBy User? @relation("settingUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("platform_settings")
+}
+
+// Một lần trả tiền cho giảng viên theo tháng. Item thuộc payout qua order_items.payoutId.
+// Ngân hàng là snapshot lúc chốt kỳ (R9). CHECK ở prisma/sql/07.
+model Payout {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  instructorId    String       @db.Uuid
+  period          String // YYYY-MM
+  amount          Int
+  status          PayoutStatus @default(pending)
+  bankBin         String
+  bankAccountNo   String
+  bankAccountName String
+  bankTxnRef      String?
+  paidAt          DateTime?
+  paidById        String?      @db.Uuid
+  createdAt       DateTime     @default(now())
+
+  instructor User        @relation("payoutInstructor", fields: [instructorId], references: [id], onDelete: Restrict)
+  paidBy     User?       @relation("payoutPayer", fields: [paidById], references: [id], onDelete: SetNull)
+  items      OrderItem[]
+
+  @@unique([instructorId, period])
+  @@index([status, period])
+  @@map("payouts")
 }
 
 // ============================================================================
@@ -1352,4 +1399,9 @@ enum AssetStatus {
 enum CouponType {
   fixed_price
   free
+}
+
+enum PayoutStatus {
+  pending
+  paid
 }
