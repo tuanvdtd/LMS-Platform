@@ -12,6 +12,7 @@ export type CurriculumContextValue = {
   openItemId: string | null; // chỉ mở 1 LectureDetailPanel một lúc (spec §5.2)
   toggleItem: (id: string) => void;
   confirm: (message: string, action: () => void) => void;
+  lectures: { id: string; title: string }[]; // cho ô "Bài giảng liên quan" của câu hỏi quiz
 };
 
 export const CurriculumContext = createContext<CurriculumContextValue | null>(null);

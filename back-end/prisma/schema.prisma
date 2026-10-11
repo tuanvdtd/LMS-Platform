@@ -791,7 +791,7 @@ model Question {
   quizId        String       @db.Uuid
   position      Int
   type          QuestionType
-  stemHtml      String
+  stem          String // Markdown (spec 2026-10-08-quiz-authoring)
   relatedItemId String?      @db.Uuid // bài giảng liên quan, cùng khoá (service)
   points        Int          @default(1)
   archivedAt    DateTime? // thay vì xoá — attempt cũ vẫn tham chiếu
@@ -838,17 +838,13 @@ model QuizTopic {
 }
 
 // Dùng chung cho item quiz và practice_test (loại lấy từ curriculum_items.type).
-// practice_test bắt buộc timeLimitSec > 0 (service).
 model Quiz {
   id           String   @id @default(uuid(7)) @db.Uuid
   itemId       String   @unique @db.Uuid
   courseId     String   @db.Uuid
   description  String?
-  timeLimitSec Int?
   passScorePct Int      @default(70)
-  maxAttempts  Int? // null = không giới hạn
   shuffle      Boolean  @default(true)
-  isFinal      Boolean  @default(false) // đạt bài này → cấp chứng chỉ (§3.3)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -877,7 +873,6 @@ model QuizAttempt {
   quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   answers     QuizAnswer[]
-  certificate Certificate?
 
   @@unique([quizId, userId, attemptNo])
   @@index([userId, submittedAt])
@@ -1035,7 +1030,6 @@ model Certificate {
   userId             String    @db.Uuid
   courseId           String    @db.Uuid
   serialNo           String    @unique // QR trỏ /verify/{serialNo}
-  finalQuizAttemptId String?   @unique @db.Uuid
   pdfUrl             String?
   issuedAt           DateTime  @default(now())
   revokedAt          DateTime? // thu hồi khi khoá bị gỡ vì vi phạm
@@ -1043,7 +1037,6 @@ model Certificate {
 
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  finalQuizAttempt QuizAttempt? @relation(fields: [finalQuizAttemptId], references: [id], onDelete: SetNull)
 
   @@unique([userId, courseId])
   @@map("certificates")

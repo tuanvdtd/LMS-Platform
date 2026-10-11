@@ -103,9 +103,15 @@ export class CurriculumService {
     return this.mutate(courseId, userId, async (tx) => {
       await this.section(tx, courseId, sectionId);
       const { _max } = await tx.curriculumItem.aggregate({ where: { sectionId }, _max: { position: true } });
-      await tx.curriculumItem.create({
+      const item = await tx.curriculumItem.create({
         data: { sectionId, courseId, ...body, position: (_max.position ?? -1) + 1 },
+        select: { id: true },
       });
+      // Quiz 1-1 với item; topic mặc định = topic của khoá (spec quiz-authoring Q1).
+      if (body.type === 'quiz') {
+        const topics = await tx.courseTopic.findMany({ where: { courseId }, select: { topicId: true } });
+        await tx.quiz.create({ data: { itemId: item.id, courseId, topics: { create: topics } } });
+      }
     });
   }
 
@@ -210,7 +216,8 @@ export class CurriculumService {
 
   // Mọi mutation: chủ khoá + không in_review, rồi transaction khoá dòng courses (một khoá cho cả khoá học,
   // không deadlock) để max+1 / đánh số lại không đụng nhau giữa 2 tab.
-  private async mutate(courseId: string, userId: string, fn: (tx: Tx) => Promise<void>) {
+  // Dùng chung với QuizService: kiểm quyền + khoá dòng course + trả cây mới.
+  async mutate(courseId: string, userId: string, fn: (tx: Tx) => Promise<void>) {
     const course = await this.courses.assertEditable(courseId, userId);
     await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT 1 FROM courses WHERE id = ${courseId}::uuid FOR UPDATE`;

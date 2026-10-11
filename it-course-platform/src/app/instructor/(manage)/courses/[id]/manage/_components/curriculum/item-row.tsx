@@ -12,6 +12,7 @@ import { useCurriculum } from './curriculum-context';
 import { DragHandle } from './drag-handle';
 import { InlineTitle } from './inline-title';
 import { LectureDetailPanel } from './lecture-detail-panel';
+import { QuizDetailPanel } from './quiz-detail-panel';
 
 // Icon + màu nền theo loại mục (bài giảng PDF dùng icon tài liệu).
 export const TYPE_ICON: Record<ItemType, { icon: typeof Play; className: string }> = {
@@ -26,6 +27,7 @@ const TODO = 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 
 const IDLE = 'border-transparent bg-muted text-muted-foreground';
 
 function chipOf(item: CurriculumItem): { text: string; className: string } {
+  if (item.type === 'quiz') return item.isPublished ? { text: 'Đã có câu hỏi', className: DONE } : { text: 'Chưa có câu hỏi', className: TODO };
   if (item.type !== 'lecture') return { text: 'Chưa xuất bản', className: IDLE };
   if (item.lectureKind === 'video') return { text: `Video · ${formatDuration(item.durationSec)}`, className: DONE };
   if (item.lectureKind === 'document') return { text: 'PDF', className: DONE };
@@ -95,8 +97,13 @@ export function ItemRow({ item, label }: { item: CurriculumItem; label: string }
               </>
             )}
           </Button>
+        ) : item.type === 'quiz' ? (
+          <Button variant="outline" size="sm" aria-expanded={open} onClick={() => toggleItem(item.id)}>
+            Soạn câu hỏi
+            <ChevronDown data-icon="inline-end" className={cn('transition-transform', open && 'rotate-180')} />
+          </Button>
         ) : (
-          <Button variant="outline" size="sm" disabled title="Sắp có (đợt 4)">
+          <Button variant="outline" size="sm" disabled title="Sắp có">
             {item.type === 'coding_exercise' ? 'Soạn bài tập' : 'Soạn câu hỏi'}
           </Button>
         )}
@@ -112,7 +119,7 @@ export function ItemRow({ item, label }: { item: CurriculumItem; label: string }
           <Trash2 />
         </Button>
       </div>
-      {open && <LectureDetailPanel item={item} />}
+      {open && (item.type === 'quiz' ? <QuizDetailPanel item={item} /> : <LectureDetailPanel item={item} />)}
     </li>
   );
 }

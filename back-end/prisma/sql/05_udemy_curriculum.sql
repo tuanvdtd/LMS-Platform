@@ -13,7 +13,7 @@
 --  (b) Prisma không nhìn thấy (partial index, CHECK chk_*, MV mv_*) nên sẽ không sinh lệnh cho chúng
 --      — đừng viết SQL động vào chúng:
 --    idx_courses_embedding, uq_course_primary_topic, idx_qa_unanswered,
---    idx_quizzes_final, uq_one_final_quiz_per_course, idx_certificates_active,
+--    idx_certificates_active,
 --    idx_submissions_inflight, idx_reports_open, idx_payment_events_unprocessed (partial index ở init),
 --    các CHECK chk_* (Prisma không quản lý CHECK), mv_* (materialized view).
 --  (idx_courses_search, idx_courses_title_trgm, searchTsv đã drop ở drop_pg_fulltext;

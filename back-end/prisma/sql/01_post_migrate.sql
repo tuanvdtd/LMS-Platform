@@ -131,13 +131,6 @@ CREATE INDEX idx_reports_open ON content_reports ("createdAt")
 CREATE INDEX idx_certificates_active ON certificates ("serialNo")
   WHERE "revokedAt" IS NULL;
 
-CREATE INDEX idx_quizzes_final ON quizzes ("courseId")
-  WHERE "isFinal" = true;
-
--- Chỉ có 1 quiz cuối khoá cho mỗi khoá học.
-CREATE UNIQUE INDEX uq_one_final_quiz_per_course ON quizzes ("courseId")
-  WHERE "isFinal" = true;
-
 -- ---------------------------------------------------------------------------
 --  6. Materialized view — cron REFRESH hằng đêm (§4.5, §4.6)
 --  Dữ liệu nguồn đã nằm sẵn trong bảng nghiệp vụ nên không cần bảng stat riêng.
