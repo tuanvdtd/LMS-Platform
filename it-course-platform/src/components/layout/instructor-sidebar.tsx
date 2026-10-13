@@ -28,7 +28,7 @@ export const INSTRUCTOR_NAV = [
     ],
   },
   { icon: User, label: 'Hồ sơ giảng viên', to: '/instructor/profile' },
-  { icon: ShieldCheck, label: 'Xác minh', to: '/instructor/verification' },
+  { icon: ShieldCheck, label: 'Giảng viên cao cấp', to: '/instructor/verification' },
 ];
 
 export default function InstructorSidebar() {

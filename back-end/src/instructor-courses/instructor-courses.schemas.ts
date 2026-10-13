@@ -1,5 +1,6 @@
 import { SkillLevel } from '@prisma/client';
 import { z } from 'zod';
+import { isPriceTier } from '../revenue/price-guard.js';
 import { countWords } from './course-checklist.js';
 
 // Luật PATCH theo spec course-create-basics §4.3. FE dùng cùng giới hạn.
@@ -43,3 +44,9 @@ export type UpdateCourseInput = z.output<typeof updateCourseSchema>;
 // Key do POST /instructor/assets/uploads sinh: ảnh bìa, video giới thiệu.
 export const mediaKeySchema = z.object({ key: z.string().max(200) }).strict();
 export type MediaKeyInput = z.output<typeof mediaKeySchema>;
+
+// PUT /instructor/courses/:id/price (spec pricing-submit-review §3.1).
+export const priceSchema = z
+  .object({ priceAmount: z.number().int().refine(isPriceTier, 'Chọn một mức giá trong danh sách') })
+  .strict();
+export type PriceInput = z.output<typeof priceSchema>;

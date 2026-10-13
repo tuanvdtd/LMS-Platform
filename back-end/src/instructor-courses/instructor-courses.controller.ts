@@ -2,8 +2,8 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/
 import type { AuthSession } from '../auth/auth.js';
 import { CurrentUser, Roles } from '../auth/decorators.js';
 import { ZodValidationPipe } from '../common/zod.pipe.js';
-import { createCourseSchema, mediaKeySchema, updateCourseSchema } from './instructor-courses.schemas.js';
-import type { CreateCourseInput, MediaKeyInput, UpdateCourseInput } from './instructor-courses.schemas.js';
+import { createCourseSchema, mediaKeySchema, priceSchema, updateCourseSchema } from './instructor-courses.schemas.js';
+import type { CreateCourseInput, MediaKeyInput, PriceInput, UpdateCourseInput } from './instructor-courses.schemas.js';
 import { InstructorCoursesService } from './instructor-courses.service.js';
 
 type User = AuthSession['user'];
@@ -35,6 +35,15 @@ export class InstructorCoursesController {
     @Body(new ZodValidationPipe(updateCourseSchema)) body: UpdateCourseInput,
   ) {
     return this.courses.update(id, user.id, body);
+  }
+
+  @Put(':id/price')
+  setPrice(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(priceSchema)) body: PriceInput,
+  ) {
+    return this.courses.setPrice(id, user.id, body.priceAmount);
   }
 
   @Put(':id/thumbnail')

@@ -1,12 +1,23 @@
 import axios from 'axios';
 import { api } from '@/lib/api/client';
-import type { BankAccount, EarningsSummary, MyPayout, Paged, PayoutAccountState, VietQrBank } from '@/types/revenue';
+import type {
+  BankAccount,
+  EarningsSummary,
+  MyPayout,
+  Paged,
+  PayoutAccountState,
+  PremiumPayload,
+  VietQrBank,
+} from '@/types/revenue';
 
 // API doanh thu giảng viên (spec 2026-10-05-revenue-share-payout §4.1). Chỉ gọi từ client component.
 export const getPayoutAccount = () => api.get<PayoutAccountState>('/instructor/payout-account').then((r) => r.data);
 
 export const savePayoutAccount = (body: BankAccount) =>
   api.put<PayoutAccountState>('/instructor/payout-account', body).then((r) => r.data);
+
+export const becomePremium = (body: PremiumPayload) =>
+  api.post<PayoutAccountState>('/instructor/premium', body).then((r) => r.data);
 
 export const getEarningsSummary = () => api.get<EarningsSummary>('/instructor/earnings/summary').then((r) => r.data);
 

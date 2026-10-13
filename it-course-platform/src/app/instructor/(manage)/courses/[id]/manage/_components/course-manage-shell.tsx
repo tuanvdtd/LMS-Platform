@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronLeft, Eye, Lock } from 'lucide-react';
+import { Check, ChevronLeft, CircleAlert, Eye, Lock } from 'lucide-react';
 import { CourseStatusBadge } from '@/components/shared/course-status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,14 @@ export function CourseManageShell({ children }: { children: React.ReactNode }) {
                 <Lock />
                 <AlertDescription className="text-inherit">
                   Khoá đang chờ duyệt nên tạm khoá chỉnh sửa. Bạn sẽ nhận thông báo khi có kết quả.
+                </AlertDescription>
+              </Alert>
+            )}
+            {course.status === 'draft' && course.lastReview?.status === 'rejected' && (
+              <Alert variant="destructive">
+                <CircleAlert />
+                <AlertDescription className="text-inherit">
+                  Khoá học chưa được duyệt: {course.lastReview.reason}. Sửa xong bạn có thể gửi duyệt lại.
                 </AlertDescription>
               </Alert>
             )}

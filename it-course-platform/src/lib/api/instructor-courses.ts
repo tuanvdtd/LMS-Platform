@@ -13,6 +13,14 @@ export const getCourse = (id: string) => api.get<CourseDetail>(`/instructor/cour
 export const updateCourse = (id: string, body: UpdateCoursePayload) =>
   api.patch<CourseDetail>(`/instructor/courses/${id}`, body).then((r) => r.data);
 
+export const setCoursePrice = (id: string, priceAmount: number) =>
+  api.put<CourseDetail>(`/instructor/courses/${id}/price`, { priceAmount }).then((r) => r.data);
+
+export const submitCourse = (id: string, note: string) =>
+  api
+    .post<CourseDetail>(`/instructor/courses/${id}/submit`, { copyrightConfirmed: true, note: note.trim() || undefined })
+    .then((r) => r.data);
+
 export const becomeInstructor = () => api.post('/me/become-instructor').then(() => undefined);
 
 export const searchTopics = (q: string, signal?: AbortSignal) =>

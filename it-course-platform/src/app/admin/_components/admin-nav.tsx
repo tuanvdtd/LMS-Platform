@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 const LINKS = [
+  { href: '/admin/course-approvals', label: 'Duyệt khoá học' },
   { href: '/admin/payouts', label: 'Thanh toán giảng viên' },
   { href: '/admin/settings', label: 'Cài đặt' },
 ];

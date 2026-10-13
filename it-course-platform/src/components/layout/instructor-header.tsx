@@ -101,7 +101,7 @@ export default function InstructorHeader() {
                   </DropdownMenuItem>
                   <DropdownMenuItem render={<Link href="/instructor/verification" />}>
                     <ShieldCheck />
-                    Xác minh
+                    Giảng viên cao cấp
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

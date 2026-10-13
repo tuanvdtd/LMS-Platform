@@ -21,7 +21,7 @@ const QUESTION_SELECT = {
   _count: { select: { answers: true } },
 } satisfies Prisma.QuestionSelect;
 
-const QUIZ_SELECT = {
+export const QUIZ_SELECT = {
   description: true,
   passScorePct: true,
   shuffle: true,
@@ -29,7 +29,7 @@ const QUIZ_SELECT = {
   questions: { where: { archivedAt: null }, orderBy: { position: 'asc' }, select: QUESTION_SELECT },
 } satisfies Prisma.QuizSelect;
 
-function toDetail({ topics, questions, ...quiz }: Prisma.QuizGetPayload<{ select: typeof QUIZ_SELECT }>) {
+export function toDetail({ topics, questions, ...quiz }: Prisma.QuizGetPayload<{ select: typeof QUIZ_SELECT }>) {
   return {
     ...quiz,
     topicIds: topics.map((t) => t.topicId),

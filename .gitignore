@@ -1,7 +1,7 @@
 .DS_Store
 # repo riêng, chỉ để tham khảo
 example/
-/docs/superpowers/
+/docs
 /CLAUDE.md
 /de-xuat-do-an.md
 /prompt-thiet-ke-frontend.md

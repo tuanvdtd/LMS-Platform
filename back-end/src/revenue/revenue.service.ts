@@ -5,7 +5,7 @@ import { PrismaService } from '../infra/prisma.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
 import { vietQrUrl } from './bank.js';
 import { isPeriodEnded, periodEnd } from './period.js';
-import type { AdminPayoutsQuery, MarkPaidInput, PayoutAccountInput } from './revenue.schemas.js';
+import type { AdminPayoutsQuery, MarkPaidInput, PayoutAccountInput, PremiumInput } from './revenue.schemas.js';
 
 export const PAYOUT_MIN_VND = 200_000; // R7: dưới ngưỡng cộng dồn kỳ sau
 const SHARE_KEY = 'revenue_share_pct';
@@ -61,6 +61,21 @@ export class RevenueService {
     const res = await this.prisma.instructorProfile.updateMany({ where: { userId }, data: input });
     if (res.count === 0) {
       throw new ForbiddenException({ statusCode: 403, code: 'INSTRUCTOR_NOT_VERIFIED', message: 'Bạn chưa được xác minh giảng viên' });
+    }
+    return this.getPayoutAccount(userId);
+  }
+
+  // Đăng ký giảng viên cao cấp (spec pricing-submit-review D2): tự động, không cần admin duyệt hồ sơ.
+  async becomePremium(userId: string, input: PremiumInput) {
+    try {
+      await this.prisma.instructorProfile.create({
+        data: { userId, headline: input.headline, bio: input.bio, socials: input.socials, ...input.bank },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException({ statusCode: 409, code: 'ALREADY_PREMIUM', message: 'Bạn đã là giảng viên cao cấp' });
+      }
+      throw e;
     }
     return this.getPayoutAccount(userId);
   }

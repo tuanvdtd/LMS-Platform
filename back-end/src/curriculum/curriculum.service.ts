@@ -226,8 +226,8 @@ export class CurriculumService {
     return this.tree(course);
   }
 
-  // Cây + checklist. Checklist không query thêm: dòng khoá đã có, số bài giảng/giây video đếm từ cây.
-  private async tree(course: CourseRow) {
+  // Cây + checklist. Admin duyệt khoá dùng lại (spec pricing-submit-review §5.1). Checklist không query thêm: dòng khoá đã có, số bài giảng/giây video đếm từ cây.
+  async tree(course: CourseRow) {
     const sections = await this.prisma.section.findMany({
       where: { courseId: course.id },
       orderBy: { position: 'asc' },
