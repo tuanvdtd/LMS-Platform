@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import { BookOpen, Globe, Users } from 'lucide-react';
 import { CatalogCourseCard } from '@/components/shared/catalog-course-card';
+import { InstructorProfileSkeleton } from '@/components/skeletons/instructor-profile-skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { buttonVariants } from '@/components/ui/button';
 import { getInstructor } from '@/lib/api/catalog';
@@ -12,7 +14,16 @@ export async function generateMetadata({ params }: PageProps<'/instructors/[id]'
 }
 
 // Hồ sơ giảng viên public (spec public-catalog §4.4).
-export default async function InstructorPage({ params }: PageProps<'/instructors/[id]'>) {
+// params là runtime data: await bên trong Suspense để điều hướng client không bị chặn.
+export default function InstructorPage(props: PageProps<'/instructors/[id]'>) {
+  return (
+    <Suspense fallback={<InstructorProfileSkeleton />}>
+      <Body {...props} />
+    </Suspense>
+  );
+}
+
+async function Body({ params }: PageProps<'/instructors/[id]'>) {
   const ins = await getInstructor((await params).id);
   if (!ins) notFound();
   const students = ins.courses.reduce((s, c) => s + c.enrollmentCount, 0);

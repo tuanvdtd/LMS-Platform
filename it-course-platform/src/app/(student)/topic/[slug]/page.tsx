@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { CatalogListing } from '@/app/(student)/_components/catalog-listing';
-import { CourseGridSkeleton } from '@/components/skeletons/course-grid-skeleton';
+import { CatalogListingSkeleton } from '@/components/skeletons/catalog-listing-skeleton';
 import { listCourses } from '@/lib/api/catalog';
 import { topicHref } from '@/lib/category-links';
 import { parseCatalogParams } from '@/types/catalog';
@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: PageProps<'/topic/[slug]'>): 
 // Suspense trong (key theo params) hiện skeleton mỗi lần đổi bộ lọc.
 export default function Page(props: PageProps<'/topic/[slug]'>) {
   return (
-    <Suspense fallback={<CourseGridSkeleton />}>
+    <Suspense fallback={<CatalogListingSkeleton />}>
       <Body {...props} />
     </Suspense>
   );
@@ -30,7 +30,7 @@ async function Body({ params, searchParams }: PageProps<'/topic/[slug]'>) {
   const head = await listCourses({ ...p, topic: slug, limit: 20 });
   if (head && !head.topic) notFound();
   return (
-    <Suspense key={JSON.stringify(p)} fallback={<CourseGridSkeleton />}>
+    <Suspense key={JSON.stringify(p)} fallback={<CatalogListingSkeleton />}>
       <CatalogListing base={topicHref(slug)} params={p} topic={slug} title={head?.topic?.name ?? slug} />
     </Suspense>
   );

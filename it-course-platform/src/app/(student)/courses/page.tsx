@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { CatalogListing } from '@/app/(student)/_components/catalog-listing';
-import { CourseGridSkeleton } from '@/components/skeletons/course-grid-skeleton';
+import { CatalogListingSkeleton } from '@/components/skeletons/catalog-listing-skeleton';
 import { parseCatalogParams } from '@/types/catalog';
 
 export const metadata: Metadata = { title: 'Tất cả khoá học | SkillPath' };
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'Tất cả khoá học | SkillPath' 
 // Suspense trong (key theo params) hiện skeleton mỗi lần đổi bộ lọc.
 export default function Page(props: PageProps<'/courses'>) {
   return (
-    <Suspense fallback={<CourseGridSkeleton />}>
+    <Suspense fallback={<CatalogListingSkeleton />}>
       <Body {...props} />
     </Suspense>
   );
@@ -19,7 +19,7 @@ export default function Page(props: PageProps<'/courses'>) {
 async function Body({ searchParams }: PageProps<'/courses'>) {
   const params = parseCatalogParams(await searchParams);
   return (
-    <Suspense key={JSON.stringify(params)} fallback={<CourseGridSkeleton />}>
+    <Suspense key={JSON.stringify(params)} fallback={<CatalogListingSkeleton />}>
       <CatalogListing
         base="/courses"
         params={params}

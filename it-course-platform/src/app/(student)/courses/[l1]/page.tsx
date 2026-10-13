@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { CatalogListing } from '@/app/(student)/_components/catalog-listing';
-import { CourseGridSkeleton } from '@/components/skeletons/course-grid-skeleton';
+import { CatalogListingSkeleton } from '@/components/skeletons/catalog-listing-skeleton';
 import { getCategoryTree } from '@/lib/api/categories';
 import { categoryHref } from '@/lib/category-links';
 import { parseCatalogParams } from '@/types/catalog';
@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: PageProps<'/courses/[l1]'>): 
 // Suspense trong (key theo params) hiện skeleton mỗi lần đổi bộ lọc.
 export default function Page(props: PageProps<'/courses/[l1]'>) {
   return (
-    <Suspense fallback={<CourseGridSkeleton />}>
+    <Suspense fallback={<CatalogListingSkeleton />}>
       <Body {...props} />
     </Suspense>
   );
@@ -28,7 +28,7 @@ async function Body({ params, searchParams }: PageProps<'/courses/[l1]'>) {
   if (!parent) notFound();
   const p = parseCatalogParams(sp);
   return (
-    <Suspense key={JSON.stringify(p)} fallback={<CourseGridSkeleton />}>
+    <Suspense key={JSON.stringify(p)} fallback={<CatalogListingSkeleton />}>
       <CatalogListing
         base={categoryHref(l1)}
         params={p}
