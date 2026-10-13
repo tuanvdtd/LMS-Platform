@@ -1,9 +1,7 @@
-import type { Metadata } from 'next';
-import SearchView from '@/app/(student)/_components/search-view';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = { title: 'Tìm kiếm | SkillPath' };
-
+// Tìm kiếm gộp vào /courses?q= (spec public-catalog §4.2). Giữ route cho link cũ.
 export default async function Page({ searchParams }: PageProps<'/search'>) {
   const { q } = await searchParams;
-  return <SearchView query={typeof q === 'string' ? q : ''} />;
+  redirect(`/courses${typeof q === 'string' && q ? `?q=${encodeURIComponent(q)}` : ''}`);
 }
