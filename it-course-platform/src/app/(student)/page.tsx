@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { ChevronRight, Zap, Target, ArrowRight } from 'lucide-react';
 import { courses, recommendations, demoStudent } from '@/lib/mocks/data';
 import { CourseCard, RecommendationCard, SkillMasteryBar } from '@/components/shared/product-ui';
+import { CourseGridSkeleton } from '@/components/skeletons/course-grid-skeleton';
 import FeaturedCourses from './_components/featured-courses';
 
 export const metadata: Metadata = { title: 'Trang chủ | SkillPath' };
@@ -100,7 +102,9 @@ export default function HomePage() {
         );
       })}
 
-      <FeaturedCourses />
+      <Suspense fallback={<CourseGridSkeleton />}>
+        <FeaturedCourses />
+      </Suspense>
     </div>
   );
 }
@@ -182,17 +186,11 @@ function GuestHome() {
         </div>
       </section>
 
-      {/* Featured courses */}
-      <section className="max-w-screen-xl mx-auto px-4 pb-16">
-        <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--foreground)' }}>
-          Khoá học phổ biến
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {courses.slice(0, 4).map((c) => (
-            <CourseCard key={c.id} course={c} />
-          ))}
-        </div>
-      </section>
+      <div className="max-w-screen-xl mx-auto px-4 pb-16">
+        <Suspense fallback={<CourseGridSkeleton />}>
+          <FeaturedCourses />
+        </Suspense>
+      </div>
     </div>
   );
 }
