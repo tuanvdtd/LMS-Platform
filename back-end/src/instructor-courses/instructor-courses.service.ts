@@ -1,18 +1,21 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { imageInfo, mp4Duration, PROMO_MAX_BYTES, THUMBNAIL_MAX_BYTES, THUMBNAIL_MIN } from '../assets/file-check.js';
 import { type FieldError, isGuid, validationError } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { StorageService } from '../infra/storage.service.js';
+import { priceChangeProblem } from '../revenue/price-guard.js';
 import { buildChecklist } from './course-checklist.js';
 import type { UpdateCourseInput } from './instructor-courses.schemas.js';
 import { courseSlug } from './slugify.js';
 
 const REF = { select: { id: true, slug: true, name: true } } as const;
-const COURSE_SELECT = {
+export const COURSE_SELECT = {
   id: true,
   slug: true,
   status: true,
+  priceAmount: true,
+  publishedAt: true,
   title: true,
   subtitle: true,
   description: true,
@@ -29,9 +32,26 @@ const COURSE_SELECT = {
     select: { isPrimary: true, topic: REF },
     orderBy: [{ isPrimary: 'desc' }, { topic: { name: 'asc' } }],
   },
+  // Lần gửi duyệt gần nhất: FE hiện lý do bị từ chối (spec pricing-submit-review §4.2).
+  approvals: {
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+    select: { status: true, reason: true, createdAt: true, reviewedAt: true },
+  },
 } satisfies Prisma.CourseSelect;
 export type CourseRow = Prisma.CourseGetPayload<{ select: typeof COURSE_SELECT }>;
 export type LectureStats = { published: number; videoSeconds: number };
+
+// 409 COURSE_LOCKED: khoá đang chờ duyệt / không ở trạng thái cho phép thao tác.
+export const courseLocked = (message = 'Khoá học đang chờ duyệt, không sửa được') =>
+  new ConflictException({ statusCode: 409, code: 'COURSE_LOCKED', message });
+
+const PRICE_MESSAGES: Record<string, string> = {
+  PRICE_LOCKED: 'Giá đã khoá sau lần xuất bản đầu, đổi giá bằng coupon',
+  COURSE_LOCKED: 'Chỉ đổi giá khi khoá ở bản nháp',
+  INSTRUCTOR_NOT_VERIFIED: 'Cần đăng ký giảng viên cao cấp để bán khoá trả phí',
+  PAYOUT_ACCOUNT_REQUIRED: 'Cần khai tài khoản ngân hàng trước khi bán khoá trả phí',
+};
 
 // DB dev là pooler Supabase ở xa (~1-2s/query): mặc định 5s của interactive transaction không đủ.
 export const TX_OPTIONS = { maxWait: 10_000, timeout: 15_000 };
@@ -75,12 +95,17 @@ export class InstructorCoursesService {
   }
 
   async detail(id: string, instructorId: string) {
-    const course = await this.assertOwned(id, instructorId);
+    return this.present(await this.assertOwned(id, instructorId));
+  }
+
+  // Dạng trả về của một khoá (giảng viên + admin duyệt dùng chung).
+  async present(course: CourseRow) {
     const stats = await this.lectureStats([course.id]);
-    const { topics, ...rest } = course;
+    const { topics, approvals, ...rest } = course;
     return {
       ...rest,
       topics: topics.map(({ isPrimary, topic }) => ({ ...topic, isPrimary })),
+      lastReview: approvals[0] ?? null,
       checklist: this.checklistFor(course, stats.get(course.id)),
     };
   }
@@ -157,14 +182,37 @@ export class InstructorCoursesService {
   // Như assertOwned + khoá đang chờ duyệt thì không sửa được (409 COURSE_LOCKED).
   async assertEditable(id: string, instructorId: string): Promise<CourseRow> {
     const course = await this.assertOwned(id, instructorId);
-    if (course.status === 'in_review') {
-      throw new ConflictException({
-        statusCode: 409,
-        code: 'COURSE_LOCKED',
-        message: 'Khoá học đang chờ duyệt, không sửa được',
-      });
-    }
+    if (course.status === 'in_review') throw courseLocked();
     return course;
+  }
+
+  // Đặt giá (spec pricing-submit-review §3.1): luật nằm ở priceChangeProblem().
+  async setPrice(id: string, instructorId: string, priceAmount: number) {
+    const course = await this.assertOwned(id, instructorId);
+    const profile = await this.prisma.instructorProfile.findUnique({
+      where: { userId: instructorId },
+      select: { bankBin: true },
+    });
+    const problem = priceChangeProblem({
+      status: course.status,
+      publishedAt: course.publishedAt,
+      newPriceAmount: priceAmount,
+      isVerified: !!profile,
+      hasPayoutAccount: !!profile?.bankBin,
+    });
+    if (problem) {
+      throw new HttpException(
+        { statusCode: problem.status, code: problem.code, message: PRICE_MESSAGES[problem.code] },
+        problem.status,
+      );
+    }
+    // Điều kiện trong where chống race với submit: khoá đã in_review thì không ghi.
+    const res = await this.prisma.course.updateMany({
+      where: { id, status: 'draft', publishedAt: null },
+      data: { priceAmount, updatedAt: new Date() },
+    });
+    if (res.count === 0) throw courseLocked('Chỉ đổi giá khi khoá ở bản nháp');
+    return this.detail(id, instructorId);
   }
 
   // Ảnh bìa (spec curriculum-upload §4.3): key do POST /instructor/assets/uploads sinh, ảnh đã nằm trên R2 public.

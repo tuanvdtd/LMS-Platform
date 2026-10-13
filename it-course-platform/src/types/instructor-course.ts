@@ -1,3 +1,5 @@
+import { formatVnd } from './revenue';
+
 // Khớp API back-end/src/instructor-courses (spec 2026-09-30-course-create-basics §4.2).
 // Khoá của map nhãn = giá trị enum trong DB.
 export const COURSE_STATUS_LABEL = {
@@ -7,6 +9,20 @@ export const COURSE_STATUS_LABEL = {
   unpublished: 'Đã gỡ',
 } as const;
 export type CourseStatus = keyof typeof COURSE_STATUS_LABEL;
+
+// Bậc giá khớp BE revenue/price-guard.ts (spec pricing-submit-review D1).
+export const PRICE_TIERS = [0, 99_000, 199_000, 299_000, 499_000, 799_000, 999_000, 1_499_000, 1_999_000] as const;
+export const formatPrice = (n: number) => (n === 0 ? 'Miễn phí' : formatVnd(n));
+
+export const APPROVAL_STATUS_LABEL = { pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Bị từ chối' } as const;
+export type ApprovalStatus = keyof typeof APPROVAL_STATUS_LABEL;
+
+export interface LastReview {
+  status: ApprovalStatus;
+  reason: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
 
 export const SKILL_LEVEL_LABEL = {
   all_levels: 'Mọi cấp độ',
@@ -39,6 +55,9 @@ export interface CourseDetail {
   id: string;
   slug: string;
   status: CourseStatus;
+  priceAmount: number;
+  publishedAt: string | null; // khác null → giá đã khoá
+  lastReview: LastReview | null;
   title: string;
   subtitle: string | null;
   description: string | null;

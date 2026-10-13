@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { requireEnv } from '../env.js';
 
+// Tên khoá / lý do là nội dung người dùng nhập → escape trước khi chèn vào HTML email.
+const escapeHtml = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
 // Ranh giới gửi mail. Khi có RabbitMQ chỉ đổi ruột send() sang publish job.
 // Gọi thẳng REST API của Brevo bằng fetch có sẵn — không cần SDK.
 @Injectable()
@@ -26,6 +30,19 @@ export class MailService {
       'Đặt lại mật khẩu SkillPath',
       `<p>Bấm vào link để đặt lại mật khẩu:</p><p><a href="${url}">${url}</a></p>`,
     );
+  }
+
+  // Kết quả duyệt khoá (spec pricing-submit-review §5.2).
+  sendCourseReviewed(to: string, title: string, approved: boolean, reason: string | null) {
+    const t = escapeHtml(title);
+    return approved
+      ? this.send(to, `Khoá học "${title}" đã được duyệt`, `<p>Khoá học <b>${t}</b> đã được duyệt và xuất bản trên SkillPath.</p>`)
+      : this.send(
+          to,
+          `Khoá học "${title}" chưa được duyệt`,
+          `<p>Khoá học <b>${t}</b> chưa được duyệt.</p><p>Lý do: ${escapeHtml(reason ?? '')}</p>` +
+            '<p>Bạn có thể chỉnh sửa và gửi duyệt lại.</p>',
+        );
   }
 
   // Không bao giờ throw: auth gọi không await, lỗi lọt ra thành unhandled

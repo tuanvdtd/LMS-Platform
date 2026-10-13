@@ -38,3 +38,22 @@ export const adminPayoutsQuery = z
   })
   .strict();
 export type AdminPayoutsQuery = z.output<typeof adminPayoutsQuery>;
+
+const optionalUrl = z.url('Link không hợp lệ').max(200, 'Tối đa 200 ký tự').optional();
+
+// POST /instructor/premium (spec pricing-submit-review §3.1): tạo instructor_profiles kèm tài khoản nhận tiền.
+export const premiumSchema = z
+  .object({
+    headline: z.string().trim().min(1, 'Nhập chuyên môn').max(60, 'Tối đa 60 ký tự'),
+    bio: z
+      .string()
+      .trim()
+      .max(2000, 'Tối đa 2000 ký tự')
+      .optional()
+      .transform((s) => s || null),
+    socials: z.object({ linkedin: optionalUrl, github: optionalUrl }).strict().default({}),
+    bank: payoutAccountSchema,
+    agreeTerms: z.literal(true, 'Cần đồng ý điều khoản chia doanh thu'),
+  })
+  .strict();
+export type PremiumInput = z.output<typeof premiumSchema>;

@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
 import type { AuthSession } from '../auth/auth.js';
 import { CurrentUser, Roles } from '../auth/decorators.js';
 import { ZodValidationPipe } from '../common/zod.pipe.js';
-import { pageQuery, payoutAccountSchema } from './revenue.schemas.js';
-import type { PageQuery, PayoutAccountInput } from './revenue.schemas.js';
+import { pageQuery, payoutAccountSchema, premiumSchema } from './revenue.schemas.js';
+import type { PageQuery, PayoutAccountInput, PremiumInput } from './revenue.schemas.js';
 import { RevenueService } from './revenue.service.js';
 
 type User = AuthSession['user'];
@@ -21,6 +21,11 @@ export class InstructorRevenueController {
   @Put('payout-account')
   setAccount(@CurrentUser() user: User, @Body(new ZodValidationPipe(payoutAccountSchema)) body: PayoutAccountInput) {
     return this.revenue.setPayoutAccount(user.id, body);
+  }
+
+  @Post('premium')
+  becomePremium(@CurrentUser() user: User, @Body(new ZodValidationPipe(premiumSchema)) body: PremiumInput) {
+    return this.revenue.becomePremium(user.id, body);
   }
 
   @Get('earnings/summary')

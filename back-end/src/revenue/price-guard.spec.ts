@@ -1,4 +1,4 @@
-import { priceChangeProblem } from './price-guard.js';
+import { isPriceTier, priceChangeProblem } from './price-guard.js';
 
 const base = {
   status: 'draft' as const,
@@ -37,5 +37,15 @@ describe('priceChangeProblem', () => {
 
   it('đặt miễn phí không cần xác minh/ngân hàng', () => {
     expect(priceChangeProblem({ ...base, newPriceAmount: 0, isVerified: false, hasPayoutAccount: false })).toBeNull();
+  });
+});
+
+describe('isPriceTier', () => {
+  it('chỉ nhận đúng bậc giá', () => {
+    expect(isPriceTier(0)).toBe(true);
+    expect(isPriceTier(199_000)).toBe(true);
+    expect(isPriceTier(1_999_000)).toBe(true);
+    expect(isPriceTier(123_000)).toBe(false);
+    expect(isPriceTier(-1)).toBe(false);
   });
 });

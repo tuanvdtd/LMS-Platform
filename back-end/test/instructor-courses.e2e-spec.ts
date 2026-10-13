@@ -149,7 +149,7 @@ describe('Instructor courses (e2e)', () => {
         [
           'id', 'slug', 'status', 'title', 'subtitle', 'description', 'language', 'level',
           'thumbnailUrl', 'promoVideoUrl', 'learningObjectives', 'requirements', 'targetAudience',
-          'category', 'topics', 'updatedAt', 'checklist',
+          'category', 'topics', 'updatedAt', 'checklist', 'priceAmount', 'publishedAt', 'lastReview',
         ].sort(),
       );
       expect(body).toMatchObject({ id: courseId, language: 'vi', category: null, topics: [], learningObjectives: [] });

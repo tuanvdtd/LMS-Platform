@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 import type { ChecklistKey } from "@/types/instructor-course";
 import { useCourse } from "./course-provider";
 import { GuardedLink } from "./guarded-link";
+import { SubmitDialog } from "./submit-dialog";
 
-type Entry = { label: string; key?: ChecklistKey; page?: "goals" | "curriculum" | "basics" };
+type Entry = { label: string; key?: ChecklistKey; page?: "goals" | "curriculum" | "basics" | "pricing" };
 
-// Mục không có page = "Sắp có" (đợt 4).
+// Mục không có page = "Sắp có".
 const GROUPS: { title: string; entries: Entry[] }[] = [
   {
     title: "Lên kế hoạch",
@@ -27,7 +28,7 @@ const GROUPS: { title: string; entries: Entry[] }[] = [
     title: "Xuất bản",
     entries: [
       { label: "Trang tổng quan", key: "basics", page: "basics" },
-      { label: "Định giá" },
+      { label: "Định giá", page: "pricing" },
       { label: "Khuyến mại" },
     ],
   },
@@ -50,6 +51,8 @@ export function ChecklistSidebar() {
   const done = course.checklist.filter((c) => c.done).length;
   const total = course.checklist.length;
   const left = total - done;
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const canSubmit = left === 0 && (course.status === "draft" || course.status === "unpublished");
 
   return (
     <aside className="flex flex-col gap-5 border-b bg-background px-4 py-5 md:sticky md:top-15 md:h-[calc(100vh-3.75rem)] md:overflow-y-auto md:border-r md:border-b-0">
@@ -105,7 +108,7 @@ export function ChecklistSidebar() {
                           "bg-primary/10 font-semibold text-primary hover:bg-primary/10",
                       )}
                     >
-                      <StepIcon done={!!item?.done} />
+                      <StepIcon done={entry.page === "pricing" || !!item?.done} />
                       <span className="flex-1">{entry.label}</span>
                       {missing.length > 0 && !active && (
                         <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11.5px] font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
@@ -136,15 +139,19 @@ export function ChecklistSidebar() {
       </nav>
 
       <div className="mt-auto flex flex-col gap-2 border-t px-2.5 pt-4">
-        <Button variant="accent" className="w-full" disabled>
+        <Button variant="accent" className="w-full" disabled={!canSubmit} onClick={() => setSubmitOpen(true)}>
           Gửi đi để xem xét
         </Button>
         <p className="text-[12.5px]/normal text-muted-foreground">
-          {left > 0
-            ? `Hoàn thành ${left} bước còn lại để gửi duyệt.`
-            : "Mọi bước đã xong."}{" "}
-          Gửi duyệt sắp có ở đợt 4.
+          {course.status === "in_review"
+            ? "Khoá học đang chờ duyệt."
+            : course.status === "published"
+              ? "Khoá học đang được bán."
+              : left > 0
+                ? `Hoàn thành ${left} bước còn lại để gửi duyệt.`
+                : "Mọi bước đã xong, sẵn sàng gửi duyệt."}
         </p>
+        <SubmitDialog open={submitOpen} onOpenChange={setSubmitOpen} />
       </div>
     </aside>
   );

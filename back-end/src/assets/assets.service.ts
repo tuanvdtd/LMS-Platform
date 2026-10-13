@@ -17,7 +17,7 @@ const LIBRARY_SELECT = {
 } satisfies Prisma.AssetSelect;
 const CONTENT_KINDS: AssetKind[] = ['document', 'video'];
 // Asset document ở R2 private, video ở S3 (spec curriculum-upload K1). Bucket suy từ kind, không có cột riêng.
-const bucketOf = (kind: AssetKind) => (kind === 'video' ? 'video' : 'private');
+export const bucketOf = (kind: AssetKind) => (kind === 'video' ? 'video' : 'private');
 type LibraryRow = Prisma.AssetGetPayload<{ select: typeof LIBRARY_SELECT }>;
 const toLibraryAsset = (a: LibraryRow) => ({
   ...a,
