@@ -1,5 +1,6 @@
 // back-end/src/catalog/catalog.service.ts
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { activeCoupons } from '../coupons/active-coupons.js';
 import { bucketOf } from '../assets/assets.service.js';
 import { isGuid } from '../common/zod.pipe.js';
 import { StorageService } from '../infra/storage.service.js';
@@ -244,5 +245,14 @@ export class CatalogService {
       socials: p?.socials ?? {},
       courses: await this.toCards(rows),
     };
+  }
+
+  // Trang chi tiết đọc ?couponCode= từ client (spec stripe-checkout §6) — không nhét vào detail vì detail được cache theo slug.
+  async coupon(slug: string, code: string) {
+    const course = await this.prisma.course.findFirst({ where: { slug, status: 'published' }, select: { id: true } });
+    if (!course) throw courseNotFound();
+    const [c] = await activeCoupons(this.prisma, code, [course.id]);
+    if (!c) throw new NotFoundException({ statusCode: 404, code: 'COUPON_NOT_FOUND', message: 'Mã không hợp lệ hoặc đã hết hạn' });
+    return { type: c.type, priceAmount: c.priceAmount };
   }
 }

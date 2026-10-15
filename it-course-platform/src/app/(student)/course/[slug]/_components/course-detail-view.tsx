@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { BookOpen, Check, ChevronRight, Clock, Globe, Signal, Users } from 'lucide-react';
@@ -8,7 +9,7 @@ import { categoryHref, topicHref } from '@/lib/category-links';
 import { cn } from '@/lib/utils';
 import { formatHoursMinutes, type CourseDetail, type CurriculumSection } from '@/types/catalog';
 import { formatPrice, LANGUAGE_LABEL, SKILL_LEVEL_LABEL } from '@/types/instructor-course';
-import { AddToCartButton } from './add-to-cart-button';
+import { BuyBox } from './buy-box';
 import { CurriculumAccordion } from './curriculum-accordion';
 
 const focusRing = 'outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -108,8 +109,10 @@ export default function CourseDetailView({ course, sections }: { course: CourseD
               </div>
             )}
             <div className="flex flex-col gap-4 p-5">
-              <p className="text-2xl font-extrabold text-foreground">{formatPrice(course.priceAmount)}</p>
-              <AddToCartButton />
+              {/* useSearchParams dưới cacheComponents phải nằm trong Suspense */}
+              <Suspense fallback={<p className="text-2xl font-extrabold text-foreground">{formatPrice(course.priceAmount)}</p>}>
+                <BuyBox course={{ id: course.id, slug: course.slug, priceAmount: course.priceAmount }} />
+              </Suspense>
               <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <BookOpen className="size-4" aria-hidden /> {course.lectureCount} bài học

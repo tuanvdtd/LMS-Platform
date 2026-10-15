@@ -1,61 +1,59 @@
 'use client';
 
-import { useState } from 'react';
-import { courses, demoStudent } from '@/lib/mocks/data';
-import { CourseCard } from '@/components/shared/product-ui';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
-
-const TABS = ['Tất cả', 'Đang học', 'Đã hoàn thành', 'Yêu thích'];
+import { toast } from 'sonner';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { getMyEnrollments } from '@/lib/api/checkout';
+import type { MyEnrollment } from '@/types/checkout';
 
 export default function MyLearningView() {
-  const [tab, setTab] = useState(0);
+  const [items, setItems] = useState<MyEnrollment[] | null>(null);
 
-  const enrolled = courses.filter((c) => demoStudent.enrolledCourses.includes(c.id));
-  const completed = courses.filter((c) => demoStudent.completedCourses.includes(c.id));
-  const inProgress = enrolled.filter((c) => !demoStudent.completedCourses.includes(c.id));
+  const [error, setError] = useState(false);
+  const [nonce, setNonce] = useState(0);
 
-  const displayed = tab === 0 ? enrolled : tab === 1 ? inProgress : tab === 2 ? completed : [];
+  useEffect(() => {
+    getMyEnrollments().then(
+      (i) => { setItems(i); setError(false); },
+      () => { setError(true); toast.error('Không tải được danh sách khoá học'); },
+    );
+  }, [nonce]);
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-extrabold mb-6" style={{ color: 'var(--foreground)' }}>
-        Học tập của tôi
-      </h1>
+    <div className="mx-auto max-w-screen-xl px-4 py-8">
+      <h1 className="mb-6 text-2xl font-extrabold text-foreground">Học tập của tôi</h1>
 
-      {/* Tabs */}
-      <div className="flex border-b mb-6" style={{ borderColor: 'var(--border)' }}>
-        {TABS.map((t, i) => (
-          <button
-            key={t}
-            onClick={() => setTab(i)}
-            className="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors"
-            style={{
-              borderColor: tab === i ? 'var(--primary)' : 'transparent',
-              color: tab === i ? 'var(--primary)' : 'var(--muted-foreground)',
-            }}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {displayed.length === 0 ? (
-        <div className="text-center py-20">
-          <BookOpen size={40} className="mx-auto mb-4" style={{ color: 'var(--muted-foreground)' }} />
-          <p className="text-lg mb-2" style={{ color: 'var(--muted-foreground)' }}>
-            {tab === 3 ? 'Chưa có khoá học yêu thích' : 'Chưa có khoá học nào'}
-          </p>
+      {!items ? (
+        <p className="text-muted-foreground">
+          {error ? <>Không tải được danh sách khoá học. <Button variant="outline" size="sm" onClick={() => setNonce((n) => n + 1)}>Thử lại</Button></> : 'Đang tải…'}
+        </p>
+      ) : items.length === 0 ? (
+        <div className="py-20 text-center">
+          <BookOpen className="mx-auto mb-4 size-10 text-muted-foreground" aria-hidden />
+          <p className="mb-4 text-lg text-muted-foreground">Bạn chưa ghi danh khoá nào</p>
+          <Link href="/courses" className={buttonVariants()}>Khám phá khoá học</Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {displayed.map((c) => (
-            <CourseCard
-              key={c.id}
-              course={c}
-              progress={demoStudent.completedCourses.includes(c.id) ? 100 : 34}
-            />
+        <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {items.map(({ course }) => (
+            <li key={course.id}>
+              <Link href={`/course/${course.slug}`} className="block overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-md">
+                {course.thumbnailUrl ? (
+                  <Image src={course.thumbnailUrl} alt="" width={320} height={180} unoptimized className="aspect-video w-full object-cover" />
+                ) : (
+                  <div className="aspect-video w-full bg-muted" />
+                )}
+                <div className="p-3">
+                  <p className="line-clamp-2 text-sm font-semibold text-foreground">{course.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{course.instructor.name}</p>
+                </div>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
