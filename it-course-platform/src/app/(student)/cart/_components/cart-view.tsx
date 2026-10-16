@@ -1,151 +1,143 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Trash2, Tag } from 'lucide-react';
-import { courses } from '@/lib/mocks/data';
-import { PriceTag, CourseCard, Btn } from '@/components/shared/product-ui';
-import { buttonVariants } from '@/components/ui/button';
+import { useSearchParams } from 'next/navigation';
+import { Tag, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { apiMessage, getCart, removeFromCart, startCheckout } from '@/lib/api/checkout';
+import type { Cart } from '@/types/checkout';
+import { formatVnd } from '@/types/revenue';
 
+// Giỏ thật (spec stripe-checkout §10). Mã coupon giữ ở state/URL, không lưu DB (P5).
 export default function CartView() {
-  const [cartItems, setCartItems] = useState([courses[0], courses[4]]);
-  const [coupon, setCoupon] = useState('');
-  const [couponApplied, setCouponApplied] = useState(false);
+  const initialCode = useSearchParams().get('couponCode')?.toUpperCase() ?? '';
+  const [cart, setCart] = useState<Cart | null>(null);
+  const [code, setCode] = useState(initialCode);
+  const [applied, setApplied] = useState(initialCode);
+  const [busy, setBusy] = useState(false);
+  const [errorNonce, setErrorNonce] = useState(0);
 
-  const total = cartItems.reduce((s, c) => s + c.price, 0);
-  const discount = couponApplied ? Math.round(total * 0.1) : 0;
-  const final = total - discount;
+  const [loadError, setLoadError] = useState(false);
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const load = () => setReloadNonce((n) => n + 1);
+  useEffect(() => {
+    let cancelled = false; // bỏ qua phản hồi cũ khi đổi mã / tải lại liên tiếp
+    getCart(applied || undefined).then(
+      (c) => { if (!cancelled) { setCart(c); setLoadError(false); } },
+      () => { if (!cancelled) { setLoadError(true); toast.error('Không tải được giỏ hàng'); } },
+    );
+    return () => { cancelled = true; };
+  }, [applied, reloadNonce]);
 
-  function remove(id: string) {
-    setCartItems((items) => items.filter((c) => c.id !== id));
+  const ids = cart?.items.map((i) => i.course.id).join(',') ?? '';
+  // Key mới khi giỏ / mã đổi hoặc gặp lỗi nghiệp vụ (spec §7).
+  const idemKey = useMemo(() => crypto.randomUUID(), [ids, applied, errorNonce]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function remove(courseId: string) {
+    setBusy(true);
+    await removeFromCart(courseId).catch(() => toast.error('Không xoá được'));
+    setBusy(false);
+    load();
+  }
+
+  async function pay() {
+    setBusy(true);
+    try {
+      // Chỉ gửi mã khi đang được áp; mã báo lỗi mà vẫn gửi thì BE trả COUPON_UNAVAILABLE.
+      const { url } = await startCheckout(idemKey, { couponCode: applied && !cart?.couponError ? applied : undefined });
+      window.location.assign(url);
+    } catch (e) {
+      const s = (e as { response?: { status?: number } }).response?.status;
+      if (s && s >= 400 && s < 500) { setErrorNonce((n) => n + 1); load(); }
+      toast.error(apiMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!cart) {
+    return (
+      <div className="mx-auto max-w-screen-lg px-4 py-8 text-muted-foreground">
+        {loadError ? (
+          <>Không tải được giỏ hàng. <Button variant="outline" size="sm" onClick={load}>Thử lại</Button></>
+        ) : 'Đang tải…'}
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-screen-lg mx-auto px-4 py-8">
-      <h1 className="text-2xl font-extrabold mb-6" style={{ color: 'var(--foreground)' }}>
-        Giỏ hàng ({cartItems.length} khoá)
-      </h1>
-
-      {cartItems.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-lg mb-4" style={{ color: 'var(--muted-foreground)' }}>Giỏ hàng trống</p>
+    <div className="mx-auto max-w-screen-lg px-4 py-8">
+      <h1 className="mb-6 text-2xl font-extrabold text-foreground">Giỏ hàng ({cart.items.length} khoá)</h1>
+      {cart.items.length === 0 ? (
+        <div className="py-20 text-center">
+          <p className="mb-4 text-lg text-muted-foreground">Giỏ hàng trống</p>
           <Link href="/courses" className={buttonVariants()}>Khám phá khoá học</Link>
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Cart items */}
-          <div className="flex-1 space-y-4">
-            {cartItems.map((course) => (
-              <div
-                key={course.id}
-                className="flex gap-4 border-b pb-4"
-                style={{ borderColor: 'var(--border)' }}
-              >
-                <Image
-                  src={course.thumbnail}
-                  alt={course.title}
-                  width={96}
-                  height={64}
-                  className="w-24 h-16 object-cover rounded-lg shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <Link
-                    href={`/course/${course.slug}`}
-                    className="font-semibold text-sm hover:text-blue-600 transition-colors line-clamp-2"
-                    style={{ color: 'var(--foreground)' }}
-                  >
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <ul className="flex-1 space-y-4">
+            {cart.items.map(({ course, listPrice, finalPrice }) => (
+              <li key={course.id} className="flex gap-4 border-b pb-4">
+                {course.thumbnailUrl && (
+                  <Image src={course.thumbnailUrl} alt="" width={96} height={64} unoptimized className="h-16 w-24 shrink-0 rounded-lg object-cover" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <Link href={`/course/${course.slug}`} className="line-clamp-2 text-sm font-semibold text-foreground hover:text-primary">
                     {course.title}
                   </Link>
-                  <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-                    {course.instructor.name}
+                  <p className="mt-1 text-xs text-muted-foreground">{course.instructorName}</p>
+                  <p className="mt-2 text-sm">
+                    <span className="font-bold text-foreground">{formatVnd(finalPrice)}</span>
+                    {finalPrice < listPrice && <span className="ml-2 text-muted-foreground line-through">{formatVnd(listPrice)}</span>}
                   </p>
-                  <div className="mt-2">
-                    <PriceTag price={course.price} originalPrice={course.originalPrice} size="sm" />
-                  </div>
                 </div>
-                <button
-                  onClick={() => remove(course.id)}
-                  className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors shrink-0"
-                  aria-label={`Xoá ${course.title} khỏi giỏ`}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
+                <Button variant="ghost" size="icon" disabled={busy} onClick={() => remove(course.id)} aria-label={`Xoá ${course.title} khỏi giỏ`}>
+                  <Trash2 className="text-destructive" aria-hidden />
+                </Button>
+              </li>
             ))}
-          </div>
+          </ul>
 
-          {/* Summary */}
-          <div className="lg:w-72 shrink-0">
-            <div className="border rounded-2xl p-5 sticky top-20" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-              <h2 className="font-bold mb-4" style={{ color: 'var(--foreground)' }}>Tổng đơn hàng</h2>
-
-              <div className="space-y-2 text-sm mb-4">
-                <div className="flex justify-between">
-                  <span style={{ color: 'var(--muted-foreground)' }}>Tạm tính</span>
-                  <span style={{ color: 'var(--foreground)' }}>{total.toLocaleString('vi-VN')}₫</span>
-                </div>
-                {couponApplied && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Giảm giá (10%)</span>
-                    <span>-{discount.toLocaleString('vi-VN')}₫</span>
+          <aside className="shrink-0 lg:w-80">
+            <div className="sticky top-20 rounded-2xl border bg-card p-5">
+              <h2 className="mb-4 font-bold text-foreground">Tóm tắt đơn đặt hàng</h2>
+              <dl className="mb-4 space-y-2 text-sm">
+                <div className="flex justify-between"><dt className="text-muted-foreground">Giá gốc</dt><dd>{formatVnd(cart.summary.subtotal)}</dd></div>
+                {cart.summary.discount > 0 && (
+                  <div className="flex justify-between text-primary">
+                    <dt>Chiết khấu (Giảm giá {Math.round((cart.summary.discount / cart.summary.subtotal) * 100)}%)</dt>
+                    <dd>-{formatVnd(cart.summary.discount)}</dd>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-base border-t pt-2" style={{ borderColor: 'var(--border)' }}>
-                  <span style={{ color: 'var(--foreground)' }}>Tổng cộng</span>
-                  <span style={{ color: 'var(--accent)' }}>{final.toLocaleString('vi-VN')}₫</span>
+                <div className="flex justify-between border-t pt-2 text-base font-bold">
+                  <dt>Tổng tiền ({cart.items.length} khoá học)</dt><dd>{formatVnd(cart.summary.total)}</dd>
                 </div>
-              </div>
-
-              {/* Coupon */}
-              <div className="flex gap-2 mb-4">
-                <div className="flex-1 flex items-center gap-1.5 border rounded-lg px-2 py-1.5" style={{ borderColor: 'var(--border)', background: 'var(--background)' }}>
-                  <Tag size={13} style={{ color: 'var(--muted-foreground)' }} />
-                  <input
-                    value={coupon}
-                    onChange={(e) => setCoupon(e.target.value)}
-                    placeholder="Mã giảm giá"
-                    className="flex-1 text-sm outline-none bg-transparent"
-                    style={{ color: 'var(--foreground)' }}
-                  />
+              </dl>
+              <form className="mb-2 flex gap-2" onSubmit={(e) => { e.preventDefault(); setApplied(code.trim().toUpperCase()); }}>
+                <div className="relative flex-1">
+                  <Tag className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                  <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Mã giảm giá" className="pl-7" aria-label="Mã giảm giá" />
                 </div>
-                <Btn
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    if (coupon.toUpperCase() === 'SKILLPATH10') setCouponApplied(true);
-                  }}
-                >
-                  Áp dụng
-                </Btn>
-              </div>
-              {couponApplied && (
-                <p className="text-xs text-green-600 mb-3">✓ Mã giảm giá đã được áp dụng</p>
+                <Button type="submit" variant="secondary" size="sm">Áp dụng</Button>
+              </form>
+              {applied && cart.couponError && <p className="mb-3 text-xs text-destructive">{cart.couponError}</p>}
+              {applied && (
+                <p className="mb-3 text-xs text-primary">
+                  {!cart.couponError && <>Đã áp mã {applied}{' '}</>}
+                  <button type="button" className="underline" onClick={() => { setCode(''); setApplied(''); }}>Gỡ</button>
+                </p>
               )}
-
-              <Link
-                href="/checkout/success"
-                className="block w-full text-center py-3 rounded-xl font-bold bg-orange-500 text-white hover:bg-orange-600 transition-colors"
-              >
-                Thanh toán ({final.toLocaleString('vi-VN')}₫)
-              </Link>
-              <p className="text-xs text-center mt-3" style={{ color: 'var(--muted-foreground)' }}>
-                30 ngày hoàn tiền nếu không hài lòng
-              </p>
+              <Button size="lg" className="w-full" disabled={busy} onClick={pay}>
+                {busy ? 'Đang chuyển tới Stripe…' : `Thanh toán ${formatVnd(cart.summary.total)}`}
+              </Button>
             </div>
-          </div>
+          </aside>
         </div>
       )}
-
-      {/* Suggestions */}
-      <div className="mt-12">
-        <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--foreground)' }}>
-          Thường được mua cùng
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {courses.slice(1, 3).map((c) => <CourseCard key={c.id} course={c} />)}
-        </div>
-      </div>
     </div>
   );
 }

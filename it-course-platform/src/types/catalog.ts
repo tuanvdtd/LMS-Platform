@@ -77,6 +77,23 @@ export function formatHoursMinutes(sec: number): string {
   return m ? `${h} giờ ${m} phút` : `${h} giờ`;
 }
 
+type CurriculumItem = CurriculumSection['items'][number];
+
+export const countItems = (items: CurriculumItem[], type: CurriculumItem['type']) => items.filter((i) => i.type === type).length;
+
+// "5 bài giảng · 1 quiz · 1 bài code · 52 phút" — đếm cả quiz/bài code vì đó là điểm khác biệt của khoá.
+export function curriculumSummary(items: CurriculumItem[]): string {
+  const parts = [`${countItems(items, 'lecture')} bài giảng`];
+  const quiz = countItems(items, 'quiz');
+  const code = countItems(items, 'coding_exercise');
+  if (quiz) parts.push(`${quiz} quiz`);
+  if (code) parts.push(`${code} bài code`);
+  if (countItems(items, 'practice_test')) parts.push('kiểm tra cuối khoá');
+  const sec = items.reduce((n, i) => n + (i.type === 'lecture' ? i.durationSec : 0), 0);
+  if (sec > 0) parts.push(formatHoursMinutes(sec));
+  return parts.join(' · ');
+}
+
 export function parseCatalogParams(sp: Record<string, string | string[] | undefined>): CatalogParams {
   const one = (k: string) => (typeof sp[k] === 'string' ? (sp[k] as string).trim() : undefined);
   const out: CatalogParams = { page: 1 };

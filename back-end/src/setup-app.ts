@@ -15,7 +15,10 @@ export function setupApp(app: INestApplication): void {
     '/api/auth/*splat',
     toNodeHandler(app.get<Auth>(AUTH)),
   );
-  // 3. Body parser SAU auth handler — Better Auth tự đọc body.
+  // 3. Webhook Stripe cần raw body để kiểm chữ ký (spec stripe-checkout P7). Phải đứng TRƯỚC express.json:
+  // express.raw đánh dấu body đã đọc nên express.json bỏ qua. app.use không có prefix 'api' → ghi đủ path.
+  app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
+  // 4. Body parser SAU auth handler — Better Auth tự đọc body.
   app.use(express.json());
   app.setGlobalPrefix('api');
 }

@@ -34,7 +34,6 @@ export default function Header({
   categories: CategoryNode[];
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
-  const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
@@ -42,8 +41,9 @@ export default function Header({
   async function signOut() {
     const { error } = await authClient.signOut().catch(() => ({ error: true }));
     if (error) return;
-    router.replace('/');
-    router.refresh();
+    // Tải lại toàn trang: cacheComponents giữ các route đã rời bằng <Activity> kèm state của user cũ,
+    // router.refresh() không xoá chúng (docs preserving-ui-state § State and authentication).
+    window.location.replace('/');
   }
 
   const iconLink = 'relative rounded-lg p-2 transition-colors hover:bg-muted';

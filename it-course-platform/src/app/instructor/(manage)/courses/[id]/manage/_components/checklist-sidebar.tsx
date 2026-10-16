@@ -12,7 +12,7 @@ import { useCourse } from "./course-provider";
 import { GuardedLink } from "./guarded-link";
 import { SubmitDialog } from "./submit-dialog";
 
-type Entry = { label: string; key?: ChecklistKey; page?: "goals" | "curriculum" | "basics" | "pricing" };
+type Entry = { label: string; key?: ChecklistKey; page?: "goals" | "curriculum" | "basics" | "pricing" | "promotions" };
 
 // Mục không có page = "Sắp có".
 const GROUPS: { title: string; entries: Entry[] }[] = [
@@ -29,7 +29,7 @@ const GROUPS: { title: string; entries: Entry[] }[] = [
     entries: [
       { label: "Trang tổng quan", key: "basics", page: "basics" },
       { label: "Định giá", page: "pricing" },
-      { label: "Khuyến mại" },
+      { label: "Khuyến mại", page: "promotions" },
     ],
   },
 ];
@@ -108,7 +108,7 @@ export function ChecklistSidebar() {
                           "bg-primary/10 font-semibold text-primary hover:bg-primary/10",
                       )}
                     >
-                      <StepIcon done={entry.page === "pricing" || !!item?.done} />
+                      <StepIcon done={entry.page === "pricing" || entry.page === "promotions" || !!item?.done} />
                       <span className="flex-1">{entry.label}</span>
                       {missing.length > 0 && !active && (
                         <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11.5px] font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-300">

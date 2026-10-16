@@ -51,6 +51,12 @@ export class CatalogController {
     return this.catalog.curriculum(slug);
   }
 
+  @Get(':slug/coupons/:code')
+  @Header('Cache-Control', 'no-store')
+  coupon(@Param('slug') slug: string, @Param('code') code: string) {
+    return this.catalog.coupon(slug, code);
+  }
+
   @Get(':slug/preview/:itemId')
   @Header('Cache-Control', 'no-store')
   preview(@Param('slug') slug: string, @Param('itemId') itemId: string) {

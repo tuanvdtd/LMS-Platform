@@ -528,6 +528,7 @@ model Order {
   provider                PaymentProvider @default(stripe)
   providerSessionId       String?         @unique // idempotency checkout
   providerPaymentIntentId String?         @unique
+  idempotencyKey          String?         @db.Uuid // FE sinh, chống bấm checkout 2 lần (spec stripe-checkout P11)
   paidAt                  DateTime?
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
@@ -537,6 +538,7 @@ model Order {
   refunds     Refund[]
   enrollments Enrollment[]
 
+  @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
   @@index([status, paidAt]) // doanh thu theo ngày
   @@map("orders")
@@ -609,7 +611,7 @@ model Coupon {
   id             String     @id @default(uuid(7)) @db.Uuid
   courseId       String     @db.Uuid
   createdById    String     @db.Uuid
-  code           String // ^[A-Z0-9_-]{6,20}$
+  code           String // ^[A-Z0-9._-]{6,20}$
   type           CouponType
   priceAmount    Int? // fixed_price: > 0; free: null
   startsAt       DateTime

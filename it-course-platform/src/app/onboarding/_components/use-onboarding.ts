@@ -2,7 +2,7 @@
 
 import { isAxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { getPopularTopics, getPreferences, updatePreferences } from '@/lib/api/preferences';
 import type { Ref } from '@/types/instructor-course';
@@ -24,6 +24,17 @@ export function useOnboarding() {
   // Chưa đụng vào kỹ năng thì không gửi topicIds — tránh xoá danh sách cũ khi GET chưa về/lỗi.
   const [topicsTouched, setTopicsTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // cacheComponents giữ trang bằng <Activity> → vào lại (Settings → "Chỉnh sửa") vẫn ở bước cũ.
+  // Rời trang thì về trạng thái đầu; effect điền sẵn bên dưới chạy lại khi trang hiện ra.
+  useLayoutEffect(() => () => {
+    setStep(0);
+    setOccupation(null);
+    setTopics([]);
+    setLevel(null);
+    setPopular(null);
+    setTopicsTouched(false);
+  }, []);
 
   // Điền sẵn lựa chọn cũ; lỗi thì bắt đầu với form trống.
   useEffect(() => {
