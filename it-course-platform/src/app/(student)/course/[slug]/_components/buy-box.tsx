@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ShoppingCart } from 'lucide-react';
+import { CircleCheck, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
@@ -65,25 +65,24 @@ export function BuyBox({ course }: Props) {
 
   const priceBlock = (
     <div className="flex items-baseline gap-2">
-      <p className="text-2xl font-extrabold text-foreground">{formatPrice(price)}</p>
+      <p className="text-3xl font-extrabold text-foreground">{formatPrice(price)}</p>
       {discounted && <p className="text-sm text-muted-foreground line-through">{formatVnd(course.priceAmount)}</p>}
       {discounted && course.priceAmount > 0 && (
         <p className="text-sm font-semibold text-primary">-{Math.round((1 - price / course.priceAmount) * 100)}%</p>
       )}
     </div>
   );
+  const disabled = busy || isPending || (!!session && !status);
 
-  if (status?.enrolled) {
-    return <>{priceBlock}<Link href="/my-learning" className={buttonVariants({ size: 'lg', className: 'w-full' })}>Vào học</Link></>;
-  }
-  if (status?.isOwner) {
-    return <>{priceBlock}<Button size="lg" disabled className="w-full">Khoá học của bạn</Button></>;
-  }
-  if (price === 0) {
-    return (
-      <>
-        {priceBlock}
-        <Button size="lg" className="w-full" disabled={busy || isPending || (!!session && !status)}
+  // CTA chính dùng chung cho khối mua và thanh dính đáy (mobile); `bar` = bản gọn trong thanh.
+  function primaryCta(bar: boolean) {
+    const size = bar ? 'default' : 'lg';
+    const width = bar ? 'h-10' : 'w-full';
+    if (status?.enrolled) return <Link href="/my-learning" className={buttonVariants({ size, className: width })}>Vào học</Link>;
+    if (status?.isOwner) return <Button size={size} disabled className={width}>Khoá học của bạn</Button>;
+    if (price === 0) {
+      return (
+        <Button size={size} className={width} disabled={disabled}
           onClick={() => run(async () => {
             await enroll(course.id, coupon?.type === 'free' ? code : undefined);
             toast.success('Đã ghi danh');
@@ -91,33 +90,54 @@ export function BuyBox({ course }: Props) {
           })}>
           Ghi danh ngay
         </Button>
-      </>
-    );
-  }
-  return (
-    <>
-      {priceBlock}
-      {status?.inCart ? (
-        <Link href={code ? `/cart?couponCode=${encodeURIComponent(code)}` : '/cart'} className={buttonVariants({ variant: 'accent', size: 'lg', className: 'w-full' })}>
+      );
+    }
+    if (status?.inCart) {
+      return (
+        <Link href={code ? `/cart?couponCode=${encodeURIComponent(code)}` : '/cart'} className={buttonVariants({ variant: 'accent', size, className: width })}>
           <ShoppingCart data-icon="inline-start" aria-hidden /> Đến giỏ hàng
         </Link>
-      ) : (
-        <Button variant="accent" size="lg" className="w-full" disabled={busy || isPending || (!!session && !status)}
+      );
+    }
+    return (
+      <Button variant="accent" size={size} className={width} disabled={disabled}
+        onClick={() => run(async () => {
+          await addToCart(course.id);
+          setStatus((s) => ({ enrolled: false, isOwner: false, ...s, inCart: true }));
+          toast.success('Đã thêm vào giỏ');
+        })}>
+        <ShoppingCart data-icon="inline-start" aria-hidden /> Thêm vào giỏ
+      </Button>
+    );
+  }
+
+  const enrolledNote = (
+    <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--skill-strong)]">
+      <CircleCheck className="size-4" aria-hidden /> Bạn đã ghi danh
+    </p>
+  );
+  const showBuyNow = price > 0 && !status?.enrolled && !status?.isOwner;
+
+  return (
+    <>
+      {status?.enrolled ? enrolledNote : priceBlock}
+      {primaryCta(false)}
+      {showBuyNow && (
+        <Button variant="secondary" size="lg" className="w-full" disabled={disabled}
           onClick={() => run(async () => {
-            await addToCart(course.id);
-            setStatus((s) => ({ enrolled: false, isOwner: false, ...s, inCart: true }));
-            toast.success('Đã thêm vào giỏ');
+            const { url } = await startCheckout(idemKey, { courseId: course.id, couponCode: coupon ? code : undefined });
+            window.location.assign(url);
           })}>
-          <ShoppingCart data-icon="inline-start" aria-hidden /> Thêm vào giỏ
+          Mua ngay
         </Button>
       )}
-      <Button variant="outline" size="lg" className="w-full" disabled={busy || isPending || (!!session && !status)}
-        onClick={() => run(async () => {
-          const { url } = await startCheckout(idemKey, { courseId: course.id, couponCode: coupon ? code : undefined });
-          window.location.assign(url);
-        })}>
-        Mua ngay
-      </Button>
+      {/* Thanh dính đáy chỉ ở mobile; trang chừa pb-28 cho nó. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t bg-card px-4 py-3 lg:hidden">
+        <div className="min-w-0 whitespace-nowrap">
+          {status?.enrolled ? enrolledNote : <p className="text-xl font-extrabold text-foreground">{formatPrice(price)}</p>}
+        </div>
+        {primaryCta(true)}
+      </div>
     </>
   );
 }
