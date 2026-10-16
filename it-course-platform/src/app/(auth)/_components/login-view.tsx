@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -30,9 +30,8 @@ type Props = { redirect?: string; reset?: boolean; oauthError?: string };
 export function LoginView({ redirect, reset, oauthError }: Props) {
   const router = useRouter();
   const [showPw, setShowPw] = useState(false);
-  const [banner, setBanner] = useState<string | null>(
-    oauthError === 'account_not_linked' ? ACCOUNT_NOT_LINKED : oauthError ? OAUTH_FAILED : null,
-  );
+  const initialBanner = oauthError === 'account_not_linked' ? ACCOUNT_NOT_LINKED : oauthError ? OAUTH_FAILED : null;
+  const [banner, setBanner] = useState<string | null>(initialBanner);
   const [showReset, setShowReset] = useState(!!reset);
   const [unverified, setUnverified] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -41,12 +40,23 @@ export function LoginView({ redirect, reset, oauthError }: Props) {
     handleSubmit,
     resetField,
     setFocus,
+    reset: resetForm,
     formState: { errors, isSubmitting },
   } = useForm<LoginInput, unknown, LoginValues>({
     resolver: zodResolver(loginSchema),
     mode: 'onTouched',
     defaultValues: { email: '', password: '' },
   });
+  // cacheComponents giữ trang bằng <Activity> khi rời đi → quay lại vẫn thấy banner lỗi cũ / nút kẹt "Đang đăng nhập".
+  // Cleanup chạy lúc trang bị ẩn (docs preserving-ui-state). Về đúng giá trị ban đầu, không về null:
+  // StrictMode (dev) chạy cleanup ngay sau mount → về null sẽ xoá banner ?reset=1 / ?error=.
+  useLayoutEffect(() => () => {
+    setBanner(initialBanner);
+    setShowReset(!!reset);
+    setUnverified(null);
+    setDone(false);
+    resetForm();
+  }, [initialBanner, reset, resetForm]);
 
   async function onSubmit(values: LoginValues) {
     setBanner(null);

@@ -24,6 +24,7 @@ import { countItems, formatHoursMinutes, type CourseDetail, type CurriculumSecti
 import { formatPrice, LANGUAGE_LABEL, SKILL_LEVEL_LABEL } from '@/types/instructor-course';
 import { BuyBox } from './buy-box';
 import { CurriculumAccordion } from './curriculum-accordion';
+import { PausingVideo } from '@/components/shared/pausing-video';
 
 const focusRing = 'outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
 const dateFmt = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
@@ -136,9 +137,10 @@ export default function CourseDetailView({ course, sections }: { course: CourseD
       <div className="px-4 pt-6 lg:pointer-events-none lg:absolute lg:inset-0 lg:p-0">
         <div className="mx-auto flex h-full max-w-screen-xl justify-end lg:px-4 lg:pt-10">
           <aside aria-label="Mua khoá học" className="w-full lg:pointer-events-auto lg:w-[340px]">
-            <div className="overflow-hidden rounded-2xl border bg-card shadow-lg lg:sticky lg:top-6">
+            {/* top-20: chừa header site (sticky, cao 57px) + 23px */}
+            <div className="overflow-hidden rounded-2xl border bg-card shadow-lg lg:sticky lg:top-20">
               {course.promoVideoUrl ? (
-                <video
+                <PausingVideo
                   src={course.promoVideoUrl}
                   controls
                   preload="metadata"

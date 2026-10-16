@@ -19,6 +19,7 @@ import { removePromoVideo, setPromoVideo } from '@/lib/api/assets';
 import { checkVideo, uploadErrorMessage, uploadPromo } from '@/lib/upload';
 import { PROMO_MAX_BYTES } from '@/types/curriculum';
 import { useCourse } from './course-provider';
+import { PausingVideo } from '@/components/shared/pausing-video';
 
 // Video giới thiệu (spec video-upload §5.3): cùng khuôn ảnh bìa, ghi ngay khi xong, không làm form basics dirty.
 export function PromoVideoUpload({ disabled }: { disabled: boolean }) {
@@ -120,7 +121,7 @@ export function PromoVideoUpload({ disabled }: { disabled: boolean }) {
   return (
     <div id="promo-video" className="grid scroll-mt-20 gap-4 rounded-lg transition-shadow sm:grid-cols-2">
       {course.promoVideoUrl ? (
-        <video
+        <PausingVideo
           key={course.promoVideoUrl}
           src={course.promoVideoUrl}
           controls

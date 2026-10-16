@@ -19,5 +19,14 @@ export default function LoginPage({ searchParams }: PageProps<'/login'>) {
 // Next 16: searchParams là Promise
 async function Login({ searchParams }: Pick<PageProps<'/login'>, 'searchParams'>) {
   const { redirect, reset, error } = await searchParams;
-  return <LoginView redirect={first(redirect)} reset={first(reset) === '1'} oauthError={first(error)} />;
+  // Trang được <Activity> tái sử dụng khi chỉ đổi searchParams → useState không lấy lại reset/error.
+  // Đổi key để tạo form mới, vd /login → quên mật khẩu → /login?reset=1 phải hiện banner.
+  return (
+    <LoginView
+      key={`${first(reset)}|${first(error)}`}
+      redirect={first(redirect)}
+      reset={first(reset) === '1'}
+      oauthError={first(error)}
+    />
+  );
 }

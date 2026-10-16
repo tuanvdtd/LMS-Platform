@@ -68,9 +68,22 @@ Provider thiếu key thì back-end bỏ hẳn provider đó (FE hiện "tạm th
 
 Prod: bắt buộc `COOKIE_DOMAIN` (vd `.skillpath.tuandt.me`) — FE (`proxy.ts`) phải đọc được cookie session do back-end set.
 
+## RabbitMQ (CloudAMQP)
+
+Mail đi qua queue `mail.send` → `MailConsumer` (cùng process) → Brevo. Lỗi tạm (429/5xx/mạng) chờ 60s ở
+`mail.retry` rồi thử lại, tối đa 4 lần; hỏng hẳn vào `mail.dead` (giữ 3 ngày) + Sentry. Không publish được thì
+gửi thẳng Brevo. Thiết kế: `../docs/superpowers/specs/2026-10-16-rabbitmq-mail-queue-design.md`.
+
+- `RABBITMQ_URL` bắt buộc ở mọi môi trường boot `AppModule` (kể cả e2e/CI). Dev dùng instance CloudAMQP riêng.
+- Xem mail hỏng: CloudAMQP → RabbitMQ Manager → Queues → `mail.dead` → Get messages.
+- Arguments của queue (TTL, DLX) bất biến: sửa `MAIL_QUEUES` trong `src/infra/rabbit.module.ts` thì phải
+  **xoá queue đó trên RabbitMQ Manager** rồi khởi động lại, nếu không consumer lỗi `PRECONDITION_FAILED`.
+- `RABBITMQ_CONSUMERS=off` tắt consumer (vitest e2e đặt sẵn); publish vẫn chạy → e2e nào không mock
+  `MailService` sẽ để job nằm trong `mail.send` của instance dev (dev server đang chạy sẽ gửi chúng).
+
 ## Test
 
 ```bash
 pnpm test        # unit
-pnpm test:e2e    # cần .env trỏ tới DB + Redis dev; mail được mock
+pnpm test:e2e    # cần .env trỏ tới DB + Redis + RabbitMQ dev; mail được mock
 ```

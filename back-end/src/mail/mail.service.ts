@@ -1,11 +1,19 @@
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
+import type { Options } from 'amqplib';
 import { requireEnv } from '../env.js';
+import type { DeliverStatus, MailJob } from './mail-outcome.js';
+
+// Thiếu timeout thì publish lúc mất kết nối bị buffer trong RAM chứ không reject → fallback không bao giờ chạy.
+// Options.Publish (amqplib) không khai báo timeout; amqp-connection-manager đọc nó lúc chạy.
+const PUBLISH: Options.Publish & { timeout: number } = { persistent: true, timeout: 5_000 };
 
 // Tên khoá / lý do là nội dung người dùng nhập → escape trước khi chèn vào HTML email.
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-// Ranh giới gửi mail. Khi có RabbitMQ chỉ đổi ruột send() sang publish job.
+// Ranh giới gửi mail: send() publish job sang mail.send, MailConsumer gửi (spec rabbitmq-mail-queue).
 // Gọi thẳng REST API của Brevo bằng fetch có sẵn — không cần SDK.
 @Injectable()
 export class MailService {
@@ -15,6 +23,8 @@ export class MailService {
     name: requireEnv('MAIL_FROM_NAME'),
     email: requireEnv('MAIL_FROM_EMAIL'),
   };
+
+  constructor(private readonly amqp: AmqpConnection) {}
 
   sendVerification(to: string, url: string) {
     return this.send(
@@ -45,9 +55,28 @@ export class MailService {
         );
   }
 
-  // Không bao giờ throw: auth gọi không await, lỗi lọt ra thành unhandled
-  // rejection làm sập Node. fetch không throw với HTTP 4xx/5xx → tự kiểm tra res.ok.
+  // Không bao giờ throw: auth gọi không await, lỗi lọt ra thành unhandled rejection làm sập Node.
+  // Không publish được → gửi thẳng như trước khi có RabbitMQ
   private async send(to: string, subject: string, htmlContent: string): Promise<void> {
+    const job: MailJob = { to, subject, html: htmlContent, attempt: 1 };
+    try {
+      if (!this.amqp.connected) throw new Error('RabbitMQ chưa kết nối');
+      await this.amqp.publish('', 'mail.send', job, PUBLISH);
+      return;
+    } catch (err) {
+      this.logger.warn(`Không publish được mail "${subject}", gửi thẳng Brevo: ${String(err)}`);
+      // Chỉ tag — không gắn html/to (token reset mật khẩu).
+      Sentry.captureException(err, { tags: { 'mail.fallback': true, subject } });
+    }
+    const status = await this.deliver(job);
+    if (status === 'network' || status < 200 || status >= 300) {
+      this.logger.error(`Gửi mail tới ${to} thất bại: ${status}`);
+    }
+  }
+
+  // Gọi Brevo đúng 1 lần. Không throw: lỗi mạng / timeout → 'network'.
+  // fetch không throw với HTTP 4xx/5xx → trả status để nơi gọi quyết định.
+  async deliver(job: Pick<MailJob, 'to' | 'subject' | 'html'>): Promise<DeliverStatus> {
     try {
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
@@ -58,17 +87,19 @@ export class MailService {
         },
         body: JSON.stringify({
           sender: this.sender,
-          to: [{ email: to }],
-          subject,
-          htmlContent,
+          to: [{ email: job.to }],
+          subject: job.subject,
+          htmlContent: job.html,
         }),
         signal: AbortSignal.timeout(10_000),
       });
       if (!res.ok) {
-        this.logger.error(`Gửi mail tới ${to} thất bại: ${res.status} ${await res.text()}`);
+        this.logger.warn(`Brevo ${res.status} khi gửi tới ${job.to}: ${await res.text().catch(() => '')}`);
       }
+      return res.status;
     } catch (err) {
-      this.logger.error(`Gửi mail tới ${to} thất bại`, err as Error);
+      this.logger.warn(`Brevo lỗi mạng khi gửi tới ${job.to}: ${String(err)}`);
+      return 'network';
     }
   }
 }

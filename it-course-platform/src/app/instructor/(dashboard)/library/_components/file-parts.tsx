@@ -86,6 +86,8 @@ export function UsagePopover({ file, className }: { file: LibraryFile; className
             <Link
               key={u.itemId}
               href={`/instructor/courses/${u.courseId}/manage/curriculum`}
+              // Trang thư viện được <Activity> giữ lại → không đóng thì quay về vẫn thấy popover mở.
+              onNavigate={() => setOpen(false)}
               className="block rounded-md px-2 py-1.5 hover:bg-secondary"
             >
               <span className="block truncate text-sm font-medium">{u.lectureTitle}</span>

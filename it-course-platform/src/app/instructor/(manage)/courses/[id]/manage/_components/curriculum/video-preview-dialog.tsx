@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAssetUrl } from '@/lib/api/assets';
 import type { AssetRef } from '@/types/curriculum';
+import { PausingVideo } from '@/components/shared/pausing-video';
 
 type LoadUrl = (assetId: string) => Promise<{ url: string }>;
 
@@ -54,5 +55,5 @@ function Player({ assetId, fileName, loadUrl }: { assetId: string; fileName: str
     );
   }
   if (!url) return <Skeleton className="aspect-video w-full rounded-lg" />;
-  return <video src={url} aria-label={fileName} controls autoPlay className="aspect-video w-full rounded-lg bg-black" />;
+  return <PausingVideo src={url} aria-label={fileName} controls autoPlay className="aspect-video w-full rounded-lg bg-black" />;
 }

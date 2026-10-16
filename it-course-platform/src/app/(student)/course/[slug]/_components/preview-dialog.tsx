@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPreviewUrl } from '@/lib/api/catalog-client';
+import { PausingVideo } from '@/components/shared/pausing-video';
 
 export function PreviewDialog({
   slug,
@@ -48,7 +49,7 @@ export function PreviewDialog({
             <AlertDescription>Không tải được video xem thử</AlertDescription>
           </Alert>
         ) : url ? (
-          <video src={url} controls autoPlay className="aspect-video w-full rounded-md bg-black" />
+          <PausingVideo src={url} controls autoPlay className="aspect-video w-full rounded-md bg-black" />
         ) : (
           <Skeleton className="aspect-video w-full" role="status" aria-label="Đang tải video" />
         )}

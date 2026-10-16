@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +28,12 @@ export function RegisterForm() {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
+  // cacheComponents giữ trang bằng <Activity> khi rời đi → quay lại vẫn thấy "Kiểm tra email".
+  // Cleanup chạy lúc trang bị ẩn (docs preserving-ui-state).
+  useLayoutEffect(() => () => {
+    setSentTo(null);
+    setBanner(null);
+  }, []);
   const {
     register,
     handleSubmit,

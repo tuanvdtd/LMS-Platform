@@ -12,6 +12,7 @@ import type { AdminApprovalDetail } from '@/types/course-approval';
 import { LANGUAGE_LABEL, SKILL_LEVEL_LABEL } from '@/types/instructor-course';
 import { CurriculumReview } from './curriculum-review';
 import { ReviewActions } from './review-actions';
+import { PausingVideo } from '@/components/shared/pausing-video';
 
 function BulletList({ title, items }: { title: string; items: string[] }) {
   if (items.length === 0) return null;
@@ -85,7 +86,7 @@ export function ApprovalDetail() {
           {course.promoVideoUrl && (
             <div className="space-y-2">
               <h2 className="text-sm font-semibold">Video giới thiệu</h2>
-              <video controls src={course.promoVideoUrl} className="aspect-video w-full max-w-xl rounded-xl bg-black" />
+              <PausingVideo controls src={course.promoVideoUrl} className="aspect-video w-full max-w-xl rounded-xl bg-black" />
             </div>
           )}
 

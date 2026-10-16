@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Bell, BookMarked, LogOut, Menu, MessagesSquare, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
@@ -26,7 +26,6 @@ import { INSTRUCTOR_NAV } from '@/components/layout/instructor-sidebar';
 // Header khu giảng viên (kiểu Udemy instructor): không tìm khoá / danh mục / giỏ hàng; có nhãn "Giảng viên"
 // và lối chuyển về Học viên. < lg: sidebar ẩn, ☰ mở drawer chứa đúng các mục sidebar giảng viên.
 export default function InstructorHeader() {
-  const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const { data: session } = authClient.useSession();
   const user = session?.user;
@@ -34,8 +33,8 @@ export default function InstructorHeader() {
   async function signOut() {
     const { error } = await authClient.signOut().catch(() => ({ error: true }));
     if (error) return;
-    router.replace('/');
-    router.refresh();
+    // Tải lại toàn trang để xoá state của user cũ trong các route bị <Activity> giữ (như header.tsx).
+    window.location.replace('/');
   }
 
   const toggleTheme = () => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
