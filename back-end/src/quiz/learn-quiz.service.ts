@@ -134,19 +134,26 @@ export class LearnQuizService {
         },
       });
 
-      // C1: EMA cho mọi topic của quiz (≤ 3).
-      // Một câu SQL atomic: 2 submit song song (khác attempt → khác lock) không ghi đè EMA của nhau.
-      // Công thức = ema() ở grading.ts (unit test ở grading.spec.ts). topicIds sort → khoá dòng cùng thứ tự, tránh deadlock.
-      const topicIds = quiz.topics.map((t) => t.topic.id).sort();
+      // C1: mastery topic = trung bình điểm cao nhất của từng quiz gắn topic đó (trọng số = số câu), tính lại từ
+      // quiz_attempts nên đổi công thức sau này không mất dữ liệu. Advisory lock theo user: 2 submit song song
+      // (khác attempt → khác lock) chạy nối tiếp, câu sau đọc được attempt câu trước vừa commit.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
+      const topicIds = quiz.topics.map((t) => t.topic.id);
       await tx.$executeRaw`
         INSERT INTO user_topic_mastery ("userId", "topicId", score, "attemptsCount", "lastEvaluatedAt")
-        SELECT ${userId}::uuid, t, ${graded.scorePct / 100}::numeric, 1, now()
-        FROM unnest(${topicIds}::uuid[]) AS t
+        SELECT ${userId}::uuid, qt."topicId", SUM(b.best * b.n) / SUM(b.n) / 100, SUM(b.cnt), now()
+        FROM quiz_topics qt
+        JOIN (
+          SELECT a."quizId", MAX(a."scorePct") AS best, COUNT(*) AS cnt,
+            GREATEST((SELECT COUNT(*) FROM questions q WHERE q."quizId" = a."quizId" AND q."archivedAt" IS NULL), 1) AS n
+          FROM quiz_attempts a
+          WHERE a."userId" = ${userId}::uuid AND a.status = 'submitted'
+          GROUP BY a."quizId"
+        ) b ON b."quizId" = qt."quizId"
+        WHERE qt."topicId" = ANY(${topicIds}::uuid[])
+        GROUP BY qt."topicId"
         ON CONFLICT ("userId", "topicId") DO UPDATE SET
-          score = CASE WHEN user_topic_mastery."attemptsCount" = 0 THEN EXCLUDED.score
-                       ELSE 0.7 * user_topic_mastery.score + 0.3 * EXCLUDED.score END,
-          "attemptsCount" = user_topic_mastery."attemptsCount" + 1,
-          "lastEvaluatedAt" = EXCLUDED."lastEvaluatedAt"`;
+          score = EXCLUDED.score, "attemptsCount" = EXCLUDED."attemptsCount", "lastEvaluatedAt" = EXCLUDED."lastEvaluatedAt"`;
 
       // B10: đạt → hoàn thành item (giữ mốc đạt đầu tiên) + tính lại progressPct.
       if (!passed) return;
@@ -180,7 +187,7 @@ export class LearnQuizService {
   }
 
   private async buildResult(quiz: LearnQuiz, userId: string, attemptId: string) {
-    const [attempt, mastery] = await Promise.all([
+    const [attempt, mastery, passedCount] = await Promise.all([
       this.prisma.quizAttempt.findFirst({
         where: { id: attemptId, userId, quizId: quiz.id, status: 'submitted' },
         select: {
@@ -204,8 +211,11 @@ export class LearnQuizService {
         where: { userId, topicId: { in: quiz.topics.map((t) => t.topic.id) } },
         select: { topicId: true, score: true },
       }),
+      this.prisma.quizAttempt.count({ where: { userId, quizId: quiz.id, passed: true } }),
     ]);
     if (!attempt) throw attemptNotFound();
+    // Chưa đạt lần nào → chỉ báo câu đúng/sai, giấu đáp án đúng + giải thích (không chép đáp án để đạt).
+    const answersRevealed = passedCount > 0;
     // Câu đang hoạt động theo position, câu đã archive xếp sau theo createdAt → cùng đầu vào với start().
     const rows = attempt.answers
       .map(({ question: q, ...a }) => ({ ...q, ...a }))
@@ -225,6 +235,7 @@ export class LearnQuizService {
       correctCount: rows.filter((r) => r.isCorrect).length,
       total: rows.length,
       timeSpentSec: attempt.timeSpentSec ?? 0,
+      answersRevealed,
       topics: quiz.topics.map(({ topic }) => ({
         ...topic,
         masteryPct: Math.round(Number(mastery.find((m) => m.topicId === topic.id)?.score ?? 0) * 100),
@@ -236,7 +247,9 @@ export class LearnQuizService {
         isCorrect: q.isCorrect,
         selectedOptionIds: q.selectedOptionIds,
         relatedItem: q.relatedItem,
-        options: q.options,
+        options: answersRevealed
+          ? q.options
+          : q.options.map(({ id, content }) => ({ id, content, isCorrect: null, explanation: null })),
       })),
     };
   }

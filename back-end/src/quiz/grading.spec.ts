@@ -1,4 +1,4 @@
-import { ema, grade, seededShuffle } from './grading.js';
+import { grade, seededShuffle } from './grading.js';
 
 const single = { id: 'q1', type: 'single_choice' as const, points: 1, options: [{ id: 'a', isCorrect: true }, { id: 'b', isCorrect: false }] };
 const multi = { id: 'q2', type: 'multiple_choice' as const, points: 1, options: [{ id: 'c', isCorrect: true }, { id: 'd', isCorrect: true }, { id: 'e', isCorrect: false }] };
@@ -37,13 +37,5 @@ describe('seededShuffle', () => {
   });
   it('khác seed → thường khác thứ tự', () => {
     expect(seededShuffle(xs, 'seed-1')).not.toEqual(seededShuffle(xs, 'seed-2'));
-  });
-});
-
-describe('ema', () => {
-  it('lần đầu = s, sau đó 0.7·cũ + 0.3·s', () => {
-    expect(ema(null, 0.8)).toBe(0.8);
-    expect(ema({ score: 0.5, attemptsCount: 0 }, 0.8)).toBe(0.8);
-    expect(ema({ score: 0.5, attemptsCount: 2 }, 1)).toBeCloseTo(0.65);
   });
 });

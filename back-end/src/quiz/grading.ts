@@ -1,4 +1,4 @@
-// Chấm quiz (spec 2026-10-17-quiz-taking B5–B7, C1). Thuần, không đụng DB.
+// Chấm quiz (spec 2026-10-17-quiz-taking B5–B7). Thuần, không đụng DB.
 export type GradeQuestion = { id: string; type: 'single_choice' | 'multiple_choice'; points: number; options: { id: string; isCorrect: boolean }[] };
 export type GradeAnswer = { questionId: string; optionIds: string[] };
 export type GradedAnswer = { questionId: string; selectedOptionIds: string[]; isCorrect: boolean; pointsAwarded: number };
@@ -41,6 +41,3 @@ export function seededShuffle<T>(items: readonly T[], seed: string): T[] {
   }
   return out;
 }
-
-export const ema = (prev: { score: number; attemptsCount: number } | null, s: number) =>
-  !prev || prev.attemptsCount === 0 ? s : 0.7 * prev.score + 0.3 * s;

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BookOpen, ChevronLeft, CircleCheck, CircleX, RotateCcw } from 'lucide-react';
+import { BookOpen, ChevronLeft, CircleCheck, CircleX, Lock, RotateCcw } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -101,6 +101,12 @@ export function QuizResult({
 
       <section aria-labelledby="review-heading" className="mt-8 flex flex-col gap-4">
         <h2 id="review-heading" className="text-lg font-semibold text-foreground">Xem lại từng câu</h2>
+        {!result.answersRevealed && (
+          <p className="flex items-start gap-2 rounded-lg border bg-(--primary-light) p-3 text-sm text-foreground">
+            <Lock className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            Đáp án đúng và giải thích sẽ hiện khi bạn đạt bài này. Xem lại bài giảng liên quan rồi làm lại nhé.
+          </p>
+        )}
         <ol className="flex flex-col gap-4">
           {result.questions.map((q, i) => <ReviewQuestion key={q.id} q={q} index={i} />)}
         </ol>
@@ -125,7 +131,9 @@ function ReviewQuestion({ q, index }: { q: ResultQuestion; index: number }) {
       <ul className="flex flex-col gap-2">
         {q.options.map((o) => {
           const picked = q.selectedOptionIds.includes(o.id);
-          const tone = o.isCorrect ? 'strong' : picked ? 'weak' : null;
+          // Đáp án bị giấu: câu đúng → mọi lựa chọn đều đúng; câu sai → chỉ biết "bạn chọn", không lộ cái nào sai.
+          const correct = o.isCorrect ?? (q.isCorrect && picked);
+          const tone = correct ? 'strong' : picked ? (o.isCorrect === null ? 'picked' : 'weak') : null;
           return (
             <li
               key={o.id}
@@ -133,20 +141,21 @@ function ReviewQuestion({ q, index }: { q: ResultQuestion; index: number }) {
                 'flex flex-col gap-2 rounded-lg border-2 p-3',
                 tone === 'strong' && 'border-(--skill-strong) bg-(--skill-strong-bg)',
                 tone === 'weak' && 'border-(--skill-weak) bg-(--skill-weak-bg)',
+                tone === 'picked' && 'border-primary bg-(--primary-light)',
                 !tone && 'border-border',
               )}
             >
               <div className="flex items-start gap-2">
-                {o.isCorrect
+                {correct
                   ? <CircleCheck className="mt-0.5 size-4 shrink-0 text-(--skill-strong)" aria-hidden />
-                  : picked
+                  : tone === 'weak'
                     ? <CircleX className="mt-0.5 size-4 shrink-0 text-(--skill-weak)" aria-hidden />
                     : <span className="mt-0.5 size-4 shrink-0" aria-hidden />}
                 <Markdown className="min-w-0 flex-1 text-foreground">{o.content}</Markdown>
               </div>
-              {(o.isCorrect || picked) && (
+              {(correct || picked) && (
                 <p className="pl-6 text-xs font-semibold text-foreground">
-                  {[picked && 'Bạn chọn', o.isCorrect && 'Đáp án đúng'].filter(Boolean).join(' · ')}
+                  {[picked && 'Bạn chọn', correct && 'Đáp án đúng'].filter(Boolean).join(' · ')}
                 </p>
               )}
               {o.explanation && (

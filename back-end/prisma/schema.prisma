@@ -732,8 +732,8 @@ model CourseTopic {
   @@map("course_topics")
 }
 
-// Mastery cập nhật bằng EMA sau mỗi quiz/bài tập (spec §4):
-// score = attemptsCount == 0 ? s : 0.7·score + 0.3·s
+// Mastery tính lại sau mỗi lần nộp quiz (spec 2026-10-17-quiz-taking C1): trung bình điểm cao nhất của từng
+// quiz gắn topic, trọng số = số câu. attemptsCount = tổng lượt đã nộp của các quiz đó.
 model UserTopicMastery {
   userId          String   @db.Uuid
   topicId         String   @db.Uuid

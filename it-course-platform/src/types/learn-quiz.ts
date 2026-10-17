@@ -35,7 +35,8 @@ export interface ResultQuestion {
   isCorrect: boolean;
   selectedOptionIds: string[];
   relatedItem: { id: string; title: string } | null;
-  options: { id: string; content: string; isCorrect: boolean; explanation: string | null }[];
+  // isCorrect = null khi chưa đạt quiz lần nào (đáp án đúng + giải thích bị giấu).
+  options: { id: string; content: string; isCorrect: boolean | null; explanation: string | null }[];
 }
 
 export interface AttemptResult {
@@ -47,6 +48,7 @@ export interface AttemptResult {
   correctCount: number;
   total: number;
   timeSpentSec: number;
+  answersRevealed: boolean;
   topics: { id: string; name: string; masteryPct: number }[];
   questions: ResultQuestion[];
 }

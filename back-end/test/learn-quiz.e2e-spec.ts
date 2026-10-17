@@ -37,7 +37,8 @@ describe('Học viên làm quiz (e2e)', () => {
   let topicIds: string[];
   let correct: { questionId: string; optionIds: string[] }[];
   let attempt1: string;
-  let result1: Record<string, unknown>;
+  let attempt2: string;
+  let result2: Record<string, unknown>;
 
   const call = (method: Method, path: string, cookie?: string, body?: object) => {
     const r = request(app.getHttpServer())[method](path).set('Origin', FE_URL).set('X-Forwarded-For', randomIp());
@@ -189,16 +190,39 @@ describe('Học viên làm quiz (e2e)', () => {
   );
 
   it(
-    'nộp đúng hết → 100%, đạt, ghi QuizAnswer/ItemProgress/progressPct/mastery; nộp lại → 409',
+    'lượt 1 bỏ trắng → 0%, chưa đạt: giấu đáp án đúng + giải thích, mastery 0, chưa hoàn thành item',
     async () => {
-      const res = await learn('post', `/attempts/${attempt1}/submit`, stu, { answers: correct }).expect(200);
-      expect(res.body).toMatchObject({ attemptId: attempt1, attemptNo: 1, scorePct: 100, passed: true, correctCount: 2, total: 2 });
-      expect(res.body.questions[0].options[0]).toHaveProperty('isCorrect');
+      const res = await learn('post', `/attempts/${attempt1}/submit`, stu, { answers: [] }).expect(200);
+      expect(res.body).toMatchObject({ attemptNo: 1, scorePct: 0, passed: false, correctCount: 0, answersRevealed: false });
+      for (const q of res.body.questions as { isCorrect: boolean; options: { isCorrect: unknown; explanation: unknown }[] }[]) {
+        expect(q.isCorrect).toBe(false);
+        for (const o of q.options) expect([o.isCorrect, o.explanation]).toEqual([null, null]);
+      }
+      const [progress, mastery] = await Promise.all([
+        prisma.itemProgress.findUnique({ where: { enrollmentId_itemId: { enrollmentId, itemId: quizItemId } } }),
+        prisma.userTopicMastery.findMany({ where: { userId: stu.id, topicId: { in: topicIds } } }),
+      ]);
+      expect(progress).toBeNull();
+      expect(mastery).toHaveLength(2);
+      for (const m of mastery) expect([Number(m.score), m.attemptsCount]).toEqual([0, 1]);
+    },
+    SLOW,
+  );
+
+  it(
+    'lượt 2 đúng hết → 100%, đạt, hiện đáp án, mastery = điểm cao nhất; ghi ItemProgress/progressPct; nộp lại → 409',
+    async () => {
+      const start = await learn('post', '/attempts').expect(200);
+      expect(start.body.attemptNo).toBe(2);
+      attempt2 = start.body.attemptId as string;
+      const res = await learn('post', `/attempts/${attempt2}/submit`, stu, { answers: correct }).expect(200);
+      expect(res.body).toMatchObject({ attemptNo: 2, scorePct: 100, passed: true, correctCount: 2, total: 2, answersRevealed: true });
+      expect(res.body.questions.flatMap((q: { options: { isCorrect: unknown }[] }) => q.options).some((o: { isCorrect: unknown }) => o.isCorrect === true)).toBe(true);
       expect(res.body.topics.every((t: { masteryPct: number }) => t.masteryPct === 100)).toBe(true);
-      result1 = res.body;
+      result2 = res.body;
 
       const [answers, progress, enrollment, mastery] = await Promise.all([
-        prisma.quizAnswer.count({ where: { attemptId: attempt1 } }),
+        prisma.quizAnswer.count({ where: { attemptId: attempt2 } }),
         prisma.itemProgress.findUnique({ where: { enrollmentId_itemId: { enrollmentId, itemId: quizItemId } } }),
         prisma.enrollment.findUniqueOrThrow({ where: { id: enrollmentId } }),
         prisma.userTopicMastery.findMany({ where: { userId: stu.id, topicId: { in: topicIds } } }),
@@ -206,51 +230,45 @@ describe('Học viên làm quiz (e2e)', () => {
       expect(answers).toBe(2);
       expect(progress?.completedAt).not.toBeNull();
       expect(Number(enrollment.progressPct)).toBe(50);
-      expect(mastery).toHaveLength(2);
-      for (const m of mastery) expect([Number(m.score), m.attemptsCount]).toEqual([1, 1]);
+      for (const m of mastery) expect([Number(m.score), m.attemptsCount]).toEqual([1, 2]);
 
-      const dup = await learn('post', `/attempts/${attempt1}/submit`, stu, { answers: correct }).expect(409);
+      const dup = await learn('post', `/attempts/${attempt2}/submit`, stu, { answers: correct }).expect(409);
       expect(dup.body.code).toBe('ATTEMPT_SUBMITTED');
     },
     SLOW,
   );
 
   it(
-    'lượt 2 bỏ trắng → 0%, EMA 0.7, giữ completedAt; overview vẫn đạt',
+    'lượt 3 bỏ trắng → mastery giữ điểm cao nhất, giữ completedAt; overview vẫn đạt; đã đạt thì lượt trượt cũng hiện đáp án',
     async () => {
       const before = await prisma.itemProgress.findUniqueOrThrow({
         where: { enrollmentId_itemId: { enrollmentId, itemId: quizItemId } },
       });
       const start = await learn('post', '/attempts').expect(200);
-      expect(start.body.attemptNo).toBe(2);
       const res = await learn('post', `/attempts/${start.body.attemptId}/submit`, stu, { answers: [] }).expect(200);
-      expect(res.body).toMatchObject({ scorePct: 0, passed: false, correctCount: 0 });
+      expect(res.body).toMatchObject({ attemptNo: 3, scorePct: 0, passed: false, answersRevealed: true });
 
       const [mastery, after, overview] = await Promise.all([
         prisma.userTopicMastery.findMany({ where: { userId: stu.id, topicId: { in: topicIds } } }),
         prisma.itemProgress.findUniqueOrThrow({ where: { enrollmentId_itemId: { enrollmentId, itemId: quizItemId } } }),
         learn('get').expect(200),
       ]);
-      for (const m of mastery) {
-        expect(Number(m.score)).toBeCloseTo(0.7);
-        expect(m.attemptsCount).toBe(2);
-      }
+      for (const m of mastery) expect([Number(m.score), m.attemptsCount]).toEqual([1, 3]);
       expect(after.completedAt).toEqual(before.completedAt);
       expect(overview.body).toMatchObject({ passed: true, bestScorePct: 100, inProgressAttemptId: null });
-      expect(overview.body.attempts.map((a: { attemptNo: number }) => a.attemptNo)).toEqual([2, 1]);
+      expect(overview.body.attempts.map((a: { attemptNo: number }) => a.attemptNo)).toEqual([3, 2, 1]);
     },
     SLOW,
   );
 
   it(
-    'xem kết quả: của người khác → 404; của mình → giống lúc nộp (trừ mastery đã đổi)',
+    'xem kết quả: của người khác → 404; của mình → giống lúc nộp',
     async () => {
       await prisma.enrollment.create({ data: { userId: carol.id, courseId } });
-      await learn('get', `/attempts/${attempt1}`, carol).expect(404);
-      const res = await learn('get', `/attempts/${attempt1}`).expect(200);
-      expect({ ...res.body, topics: [] }).toEqual({ ...result1, topics: [] });
-      expect(res.body.topics.every((t: { masteryPct: number }) => t.masteryPct === 70)).toBe(true);
-      expect(await prisma.quizAttempt.count({ where: { quizId } })).toBe(2);
+      await learn('get', `/attempts/${attempt2}`, carol).expect(404);
+      const res = await learn('get', `/attempts/${attempt2}`).expect(200);
+      expect(res.body).toEqual(result2);
+      expect(await prisma.quizAttempt.count({ where: { quizId } })).toBe(3);
     },
     SLOW,
   );
