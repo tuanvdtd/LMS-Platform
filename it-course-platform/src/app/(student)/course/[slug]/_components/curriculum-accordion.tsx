@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { CirclePlay, Code2, FileQuestion, ListChecks, Play, type LucideIcon } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { curriculumSummary, type CurriculumSection } from '@/types/catalog';
 import { formatDuration } from '@/types/curriculum';
+import { authClient } from '@/lib/auth-client';
+import { getBuyStatus } from '@/lib/api/checkout';
 import { PreviewDialog } from './preview-dialog';
 
 type Item = CurriculumSection['items'][number];
@@ -16,7 +19,13 @@ const TYPE: Record<Item['type'], { icon: LucideIcon; tag?: string }> = {
   coding_exercise: { icon: Code2, tag: 'Bài code' },
 };
 
-export function CurriculumAccordion({ slug, sections }: { slug: string; sections: CurriculumSection[] }) {
+export function CurriculumAccordion({ slug, courseId, sections }: { slug: string; courseId: string; sections: CurriculumSection[] }) {
+  const { data: session } = authClient.useSession();
+  const [enrolled, setEnrolled] = useState(false);
+  // Trang được cache nên trạng thái ghi danh lấy ở client (cùng endpoint với BuyBox).
+  useEffect(() => {
+    if (session) getBuyStatus(courseId).then((s) => setEnrolled(s.enrolled), () => undefined);
+  }, [session, courseId]);
   const [preview, setPreview] = useState<Item | null>(null);
   const [open, setOpen] = useState<string[]>(sections[0] ? [sections[0].id] : []);
   const allOpen = open.length === sections.length;
@@ -73,6 +82,14 @@ export function CurriculumAccordion({ slug, sections }: { slug: string; sections
                         >
                           <Play className="size-3.5" aria-hidden /> Xem thử
                         </button>
+                      )}
+                      {it.type === 'quiz' && enrolled && (
+                        <Link
+                          href={`/learn/${slug}/quiz/${it.id}`}
+                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary no-underline outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
+                        >
+                          <FileQuestion className="size-3.5" aria-hidden /> Làm bài
+                        </Link>
                       )}
                       <span className="w-12 shrink-0 text-right font-mono text-xs text-muted-foreground tabular-nums">
                         {it.durationSec > 0 ? formatDuration(it.durationSec) : ''}
