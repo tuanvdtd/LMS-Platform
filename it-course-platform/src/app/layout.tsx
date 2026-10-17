@@ -28,9 +28,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="vi"
       suppressHydrationWarning
-      className={cn("h-full antialiased font-sans", beVietnamPro.variable, jetbrainsMono.variable)}
+      className={cn("h-full bg-background antialiased font-sans", beVietnamPro.variable, jetbrainsMono.variable)}
     >
-      <body className="min-h-full bg-background">
+      <body className="min-h-full bg-background text-foreground">
         <SentryUser />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Download, Info } from 'lucide-react';
 import { StatCard } from '@/components/shared/product-ui';
+import { Button } from '@/components/ui/button';
 import { videoRetentionData } from '@/lib/mocks/data';
 import { RetentionChart, LessonProgressChart } from './_components/engagement-charts';
 
@@ -16,12 +17,9 @@ export default function AnalyticsEngagementPage() {
         <h1 className="text-2xl font-extrabold" style={{ color: 'var(--foreground)' }}>
           Hành vi học
         </h1>
-        <button
-          className="flex items-center gap-1.5 text-sm border rounded-lg px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
-        >
-          <Download size={14} /> Xuất CSV
-        </button>
+        <Button variant="outline" size="sm">
+          <Download data-icon="inline-start" /> Xuất CSV
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">

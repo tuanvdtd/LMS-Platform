@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { courses } from '@/lib/mocks/data';
 import { ProgressRing } from '@/components/shared/product-ui';
+import { Button } from '@/components/ui/button';
 
 export default function LearnView({ courseSlug, lessonId }: { courseSlug: string; lessonId: string }) {
   const course = courses.find((c) => c.slug === courseSlug) ?? courses[0];
@@ -59,12 +60,9 @@ export default function LearnView({ courseSlug, lessonId }: { courseSlug: string
             {completedLessons.size}/{allLessons.length} bài
           </span>
         </div>
-        <button
-          className="hidden sm:flex items-center gap-1 text-xs border px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
-        >
-          <MessageCircle size={12} /> Đánh giá
-        </button>
+        <Button variant="outline" size="xs" className="hidden sm:inline-flex">
+          <MessageCircle data-icon="inline-start" /> Đánh giá
+        </Button>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
@@ -75,7 +73,7 @@ export default function LearnView({ courseSlug, lessonId }: { courseSlug: string
             <div className="px-4 py-2 flex items-center gap-3 text-sm border-b"
               style={{ background: 'var(--primary-light)', borderColor: '#bfdbfe', color: 'var(--primary)' }}>
               <span>📊 Bạn đạt 35% ở <strong>React Hooks</strong> — nên xem lại <Link href="#" className="underline">Bài 2.1</Link> trước</span>
-              <button onClick={() => setSkillBannerDismissed(true)} className="ml-auto"><X size={14} /></button>
+              <Button variant="ghost" size="icon-xs" onClick={() => setSkillBannerDismissed(true)} className="ml-auto" aria-label="Ẩn gợi ý"><X /></Button>
             </div>
           )}
 
@@ -144,17 +142,14 @@ export default function LearnView({ courseSlug, lessonId }: { courseSlug: string
             >
               <ChevronLeft size={16} /> Bài trước
             </Link>
-            <button
+            <Button
+              size="sm"
               onClick={() => toggleComplete(currentLesson.id)}
-              className="flex items-center gap-2 text-sm px-4 py-1.5 rounded-lg font-semibold transition-colors"
-              style={{
-                background: completedLessons.has(currentLesson.id) ? 'var(--skill-strong-bg)' : 'var(--primary)',
-                color: completedLessons.has(currentLesson.id) ? 'var(--skill-strong)' : '#fff',
-              }}
+              style={completedLessons.has(currentLesson.id) ? { background: 'var(--skill-strong-bg)', color: 'var(--skill-strong)' } : undefined}
             >
-              <CheckCircle size={14} />
+              <CheckCircle data-icon="inline-start" />
               {completedLessons.has(currentLesson.id) ? 'Đã hoàn thành' : 'Đánh dấu hoàn thành'}
-            </button>
+            </Button>
             <Link
               href={nextLesson ? `/learn/${courseSlug}/${nextLesson.id}` : '#'}
               className={`flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border transition-colors ${!nextLesson ? 'opacity-30 pointer-events-none' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
@@ -228,9 +223,9 @@ export default function LearnView({ courseSlug, lessonId }: { courseSlug: string
         >
           <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
             <h3 className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Nội dung khoá học</h3>
-            <button onClick={() => setSidebarOpen(false)} aria-label="Đóng sidebar">
-              <X size={16} style={{ color: 'var(--muted-foreground)' }} />
-            </button>
+            <Button variant="ghost" size="icon-sm" className="text-muted-foreground" onClick={() => setSidebarOpen(false)} aria-label="Đóng sidebar">
+              <X />
+            </Button>
           </div>
           <div className="flex-1 overflow-y-auto">
             {course.curriculum.map((ch) => (

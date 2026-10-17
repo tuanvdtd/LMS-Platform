@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Pagination } from '@/components/ui/pagination';
+import { ClientPagination } from '@/components/shared/client-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { listMyPayouts } from '@/lib/api/revenue';
@@ -102,7 +102,7 @@ export function PayoutHistory() {
           <span className="hidden sm:inline">{total === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} trong </span>
           {total} kỳ thanh toán
         </span>
-        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
+        <ClientPagination page={page} pageCount={pageCount} onPageChange={setPage} />
       </div>
     </section>
   );

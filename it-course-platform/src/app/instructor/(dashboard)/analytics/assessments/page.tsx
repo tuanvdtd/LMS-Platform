@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { demoQuiz, skillHeatmapData } from '@/lib/mocks/data';
+import { Button } from '@/components/ui/button';
 import { ScoreDistributionChart, CodeVerdictPie } from './_components/assessment-charts';
 
 // Gate client ở instructor/layout.tsx không render children khi prerender → tắt instant validation.
@@ -107,7 +108,7 @@ export default function AnalyticsAssessmentsPage() {
                       </span>
                     </td>
                     <td className="px-3 py-2.5">
-                      <button className="text-xs text-blue-600 hover:underline">Phân tích</button>
+                      <Button variant="link" size="xs" className="h-auto px-0 font-normal">Phân tích</Button>
                     </td>
                   </tr>
                 );

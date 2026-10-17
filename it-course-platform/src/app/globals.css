@@ -122,63 +122,12 @@
 }
 
 /* Tailwind v4 mặc định viền = currentColor (đen); như template shadcn, viền mặc định dùng token --border.
-   Mọi rule nền để trong @layer base: rule ngoài layer luôn thắng utility (outline-none, font-*, ring-*…). */
+   Đây là rule nền duy nhất áp lên mọi phần tử — font/màu nền/màu chữ đặt bằng class Tailwind ở <html>/<body> (app/layout.tsx). */
 @layer base {
   *,
   ::before,
   ::after {
     border-color: var(--color-border);
-  }
-
-  html {
-    font-family: var(--font-body);
-    background-color: var(--background);
-    color: var(--foreground);
-  }
-
-  body {
-    margin: 0;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  code, pre {
-    font-family: var(--font-code);
-  }
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Focus ring — trong @layer base để outline-none/ring-* của component (Input…) thắng, tránh viền kép */
-@layer base {
-  :focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
   }
 }
 
@@ -191,6 +140,7 @@
 
 /* <Markdown> (components/markdown.tsx): không dùng plugin typography, chỉ style phần quiz cần. */
 .markdown > * + * { margin-top: 0.5rem; }
+.markdown code, .markdown pre { font-family: var(--font-code); }
 .markdown ul { list-style: disc; padding-left: 1.25rem; }
 .markdown ol { list-style: decimal; padding-left: 1.25rem; }
 .markdown a { text-decoration: underline; }

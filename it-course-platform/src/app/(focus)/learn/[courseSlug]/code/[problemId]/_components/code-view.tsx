@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Play, Upload, RotateCcw, CheckCircle, XCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { demoProblem } from '@/lib/mocks/data';
 import { VerdictBadge, SkillTagBadge } from '@/components/shared/product-ui';
+import { Button } from '@/components/ui/button';
 import type { Verdict } from '@/types';
 
 type RunResult = {
@@ -242,21 +243,18 @@ export default function CodeView() {
             ))}
           </select>
           <div className="ml-auto flex items-center gap-1">
-            <button
+            <Button
+              variant="outline"
+              size="xs"
               onClick={() => setCode(problem.starterCode[lang])}
-              className="flex items-center gap-1 text-xs px-2 py-1 rounded border hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
+              className="text-muted-foreground"
               aria-label="Reset code"
             >
-              <RotateCcw size={11} /> Reset
-            </button>
-            <button
-              onClick={() => setCode(SAMPLE_SOLUTION)}
-              className="text-xs px-2 py-1 rounded border hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
-            >
+              <RotateCcw data-icon="inline-start" /> Reset
+            </Button>
+            <Button variant="outline" size="xs" onClick={() => setCode(SAMPLE_SOLUTION)} className="text-muted-foreground">
               Xem đáp án
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -293,21 +291,18 @@ export default function CodeView() {
               </button>
             ))}
             <div className="ml-auto flex items-center gap-2 pr-3">
-              <button
-                onClick={() => simulateRun(false)}
-                className="flex items-center gap-1 text-xs px-3 py-1 rounded-lg border font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
-              >
-                <Play size={12} /> Chạy thử
-              </button>
-              <button
+              <Button variant="outline" size="xs" onClick={() => simulateRun(false)}>
+                <Play data-icon="inline-start" /> Chạy thử
+              </Button>
+              <Button
+                size="xs"
                 onClick={() => simulateRun(true)}
-                disabled={submitting}
-                className="flex items-center gap-1 text-xs px-3 py-1 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+                isLoading={submitting}
+                className="bg-green-600 text-white hover:bg-green-700"
               >
-                {submitting ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                <Upload data-icon="inline-start" />
                 Nộp bài
-              </button>
+              </Button>
             </div>
           </div>
 

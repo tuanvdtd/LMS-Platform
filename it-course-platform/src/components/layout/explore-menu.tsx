@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { flushSync } from 'react-dom';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { categoryHref, topicHref } from '@/lib/category-links';
 import { Button } from '@/components/ui/button';
@@ -35,8 +35,10 @@ export function ExploreMenu({ categories }: { categories: CategoryNode[] }) {
         }
       }}
     >
-      <PopoverTrigger openOnHover delay={150} render={<Button variant="ghost" size="sm" className="px-3" />}>
+      <PopoverTrigger openOnHover delay={150} render={<Button variant="ghost" className="px-3 font-semibold" />}>
+        <LayoutGrid data-icon="inline-start" aria-hidden />
         Khám phá
+        <ChevronDown data-icon="inline-end" aria-hidden />
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={8} aria-label="Danh mục khoá học" className="flex w-auto flex-row gap-0 overflow-hidden p-0">
         {categories.length === 0 ? (

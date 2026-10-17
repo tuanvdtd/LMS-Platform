@@ -1,47 +1,126 @@
-'use client';
+import * as React from "react"
+import Link from "next/link"
+import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
+import { cn } from "cn"
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from "@/components/ui/button"
 
-function pageWindow(page: number, pageCount: number): (number | '…')[] {
-  if (pageCount <= 7) return Array.from({ length: pageCount }, (_, index) => index + 1);
-  if (page <= 4) return [1, 2, 3, 4, 5, '…', pageCount];
-  if (page >= pageCount - 3) return [1, '…', pageCount - 4, pageCount - 3, pageCount - 2, pageCount - 1, pageCount];
-  return [1, '…', page - 1, page, page + 1, '…', pageCount];
+// shadcn pagination (base-nova). Đã chỉnh: PaginationLink dùng next/link (điều hướng phía client), icon lucide, chữ tiếng Việt.
+function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
+  return (
+    <nav
+      role="navigation"
+      aria-label="Phân trang"
+      data-slot="pagination"
+      className={cn("mx-auto flex w-full justify-center", className)}
+      {...props}
+    />
+  )
 }
 
-export function Pagination({ page, pageCount, onPageChange }: {
-  page: number;
-  pageCount: number;
-  onPageChange: (page: number) => void;
-}) {
-  const pages = pageWindow(page, pageCount);
-
+function PaginationContent({
+  className,
+  ...props
+}: React.ComponentProps<"ul">) {
   return (
-    <nav aria-label="Phân trang" className="flex shrink-0 items-center gap-1">
-      <Button variant="ghost" size="icon" aria-label="Trang trước" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
-        <ChevronLeft aria-hidden="true" />
-      </Button>
-      <span className="px-1 text-sm tabular-nums sm:hidden">{page} / {pageCount}</span>
-      <span className="hidden items-center gap-1 sm:flex">
-        {pages.map((number, index) => number === '…' ? (
-          <span key={`gap-${index}`} className="w-9 text-center text-sm text-muted-foreground" aria-hidden="true">…</span>
-        ) : (
-          <Button
-            key={number}
-            variant={number === page ? 'secondary' : 'ghost'}
-            size="icon"
-            aria-label={`Trang ${number}`}
-            aria-current={number === page ? 'page' : undefined}
-            onClick={() => onPageChange(number)}
-          >
-            {number}
-          </Button>
-        ))}
-      </span>
-      <Button variant="ghost" size="icon" aria-label="Trang sau" disabled={page >= pageCount} onClick={() => onPageChange(page + 1)}>
-        <ChevronRight aria-hidden="true" />
-      </Button>
-    </nav>
-  );
+    <ul
+      data-slot="pagination-content"
+      className={cn("flex items-center gap-0.5", className)}
+      {...props}
+    />
+  )
+}
+
+function PaginationItem({ ...props }: React.ComponentProps<"li">) {
+  return <li data-slot="pagination-item" {...props} />
+}
+
+type PaginationLinkProps = {
+  isActive?: boolean
+} & Pick<React.ComponentProps<typeof Button>, "size"> &
+  React.ComponentProps<typeof Link>
+
+function PaginationLink({
+  className,
+  isActive,
+  size = "icon",
+  ...props
+}: PaginationLinkProps) {
+  // Link + buttonVariants (như bản radix) thay vì <Button render>: Base UI gắn role="button" lên <a>,
+  // làm trình đọc màn hình đọc link phân trang thành "nút".
+  return (
+    <Link
+      aria-current={isActive ? "page" : undefined}
+      data-slot="pagination-link"
+      data-active={isActive}
+      className={cn(buttonVariants({ variant: isActive ? "outline" : "ghost", size }), className)}
+      {...props}
+    />
+  )
+}
+
+function PaginationPrevious({
+  className,
+  text = "Trước",
+  ...props
+}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  return (
+    <PaginationLink
+      aria-label="Trang trước"
+      size="default"
+      className={cn("pl-1.5!", className)}
+      {...props}
+    >
+      <ChevronLeftIcon data-icon="inline-start" className="cn-rtl-flip" />
+      <span className="hidden sm:block">{text}</span>
+    </PaginationLink>
+  )
+}
+
+function PaginationNext({
+  className,
+  text = "Sau",
+  ...props
+}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  return (
+    <PaginationLink
+      aria-label="Trang sau"
+      size="default"
+      className={cn("pr-1.5!", className)}
+      {...props}
+    >
+      <span className="hidden sm:block">{text}</span>
+      <ChevronRightIcon data-icon="inline-end" className="cn-rtl-flip" />
+    </PaginationLink>
+  )
+}
+
+function PaginationEllipsis({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      aria-hidden
+      data-slot="pagination-ellipsis"
+      className={cn(
+        "flex size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    >
+      <MoreHorizontalIcon />
+      <span className="sr-only">Thêm trang</span>
+    </span>
+  )
+}
+
+export {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 }

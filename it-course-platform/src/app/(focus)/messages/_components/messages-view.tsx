@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Search, Send, ChevronLeft, BookOpen } from 'lucide-react';
 import { studentConversations } from '@/lib/mocks/chatData';
 import type { Conversation, ChatMessage } from '@/lib/mocks/chatData';
+import { Button } from '@/components/ui/button';
 
 export default function MessagesView({ conversationId }: { conversationId?: string }) {
   const [conversations, setConversations] = useState<Conversation[]>(studentConversations);
@@ -203,13 +204,15 @@ export default function MessagesView({ conversationId }: { conversationId?: stri
           className="flex items-center gap-3 px-5 py-3 border-b shrink-0"
           style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
         >
-          <button
-            className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="md:hidden"
             onClick={() => setMobileShowChat(false)}
             aria-label="Quay lại"
           >
             <ChevronLeft size={18} style={{ color: 'var(--foreground)' }} />
-          </button>
+          </Button>
           <Image
             src={active.participantAvatar}
             width={36}
@@ -308,14 +311,15 @@ export default function MessagesView({ conversationId }: { conversationId?: stri
               className="flex-1 bg-transparent text-sm outline-none resize-none max-h-32 leading-relaxed"
               style={{ color: 'var(--foreground)' }}
             />
-            <button
+            <Button
+              size="icon-sm"
               onClick={sendMessage}
               disabled={!input.trim()}
-              className="shrink-0 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+              className="size-8 rounded-full"
               aria-label="Gửi"
             >
-              <Send size={14} className="text-white" />
-            </button>
+              <Send size={14} />
+            </Button>
           </div>
           <p className="text-xs mt-1.5 px-1" style={{ color: 'var(--muted-foreground)' }}>
             Enter để gửi · Shift+Enter xuống dòng

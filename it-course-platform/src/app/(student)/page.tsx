@@ -5,6 +5,7 @@ import { ChevronRight, Zap, Target, ArrowRight } from 'lucide-react';
 import { courses, recommendations, demoStudent } from '@/lib/mocks/data';
 import { CourseCard, RecommendationCard, SkillMasteryBar } from '@/components/shared/product-ui';
 import { CourseGridSkeleton } from '@/components/skeletons/course-grid-skeleton';
+import { Button } from '@/components/ui/button';
 import FeaturedCourses from './_components/featured-courses';
 
 export const metadata: Metadata = { title: 'Trang chủ | SkillPath' };
@@ -89,9 +90,9 @@ export default function HomePage() {
               >
                 {title}
               </h2>
-              <button className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-                Xem thêm <ChevronRight size={14} />
-              </button>
+              <Button variant="link" className="h-auto gap-1 p-0 font-normal">
+                Xem thêm <ChevronRight className="size-3.5" />
+              </Button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {recs.map((c) => (
