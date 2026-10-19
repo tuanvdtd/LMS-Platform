@@ -40,7 +40,7 @@ export function ExploreMenu({ categories }: { categories: CategoryNode[] }) {
         Khám phá
         <ChevronDown data-icon="inline-end" aria-hidden />
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={8} aria-label="Danh mục khoá học" className="flex w-auto flex-row gap-0 overflow-hidden p-0">
+      <PopoverContent align="start" sideOffset={8} positionMethod="fixed" aria-label="Danh mục khoá học" className="flex w-auto flex-row gap-0 overflow-hidden p-0">
         {categories.length === 0 ? (
           <p className="w-72 px-4 py-3 text-sm text-muted-foreground">Không tải được danh mục</p>
         ) : (

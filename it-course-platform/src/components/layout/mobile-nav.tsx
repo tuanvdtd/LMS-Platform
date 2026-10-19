@@ -9,9 +9,10 @@ import { categoryHref, topicHref } from '@/lib/category-links';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { accountLinks } from '@/components/layout/account-links';
+import { teachHref } from '@/lib/instructor-role';
 import type { CategoryNode } from '@/types';
 
-type NavUser = { name: string; email: string };
+type NavUser = { name: string; email: string; role?: string | null };
 
 // 3 màn nằm ngang trong một dải rộng 300%, trượt theo độ sâu của stack.
 const SLIDE = ['translate-x-0', '-translate-x-1/3', '-translate-x-2/3'] as const;
@@ -107,7 +108,7 @@ export function MobileNav({
                     {label}
                   </Link>
                 ))}
-                <Link href="/instructor" onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
+                <Link href={teachHref(user)} onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
                   <User size={15} />
                   Chuyển sang Giảng viên
                 </Link>
@@ -125,7 +126,7 @@ export function MobileNav({
               </div>
             )}
             <div className="mt-2 border-t py-2">
-              <Link href="/teach" onClick={close} className="block px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">Dạy học</Link>
+              <Link href={teachHref(user)} onClick={close} className="block px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">Dạy học</Link>
               <button
                 type="button"
                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}

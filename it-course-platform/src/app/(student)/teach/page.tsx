@@ -1,164 +1,249 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import Link from 'next/link';
-import { BookOpen, TrendingUp, Users, Award, ChevronRight, DollarSign, BarChart2, MessageSquare } from 'lucide-react';
+import { Check, ChevronDown, CodeXml, ListChecks, MessageCircle, Play } from 'lucide-react';
+import { SiteFooter } from '@/components/layout/site-footer';
+import { getCategoryTree } from '@/lib/api/categories';
+import { TeachCta } from './_components/teach-cta';
 
 export const metadata: Metadata = { title: 'Trở thành giảng viên | SkillPath' };
 
-const STATS = [
-  { value: '40,000+', label: 'Học viên đang học' },
-  { value: '320+', label: 'Khoá học chất lượng' },
-  { value: '85%', label: 'Tỷ lệ hoàn thành' },
-  { value: '70%', label: 'Doanh thu cho giảng viên' },
+// Landing tuyển giảng viên (spec teach-landing §4, wireframe A). Số khối theo wireframe.
+// Số thật: 70% = mặc định revenue_share_pct; ví dụ chia lấy từ spec revenue-share.
+const FACTS = [
+  { label: 'Doanh thu', value: '70%' },
+  { label: 'Phí bắt đầu', value: '0đ' },
+  { label: 'Duyệt khoá', value: '3–5 ngày' },
 ];
 
-const FEATURES = [
-  { icon: DollarSign, title: 'Thu nhập thụ động', desc: 'Tạo khoá học một lần, nhận doanh thu liên tục. Tỷ lệ chia sẻ doanh thu 70/30 — một trong những mức tốt nhất thị trường Việt Nam.' },
-  { icon: BarChart2, title: 'Analytics chuyên sâu', desc: 'Dashboard thống kê xem video, tỷ lệ hoàn thành, kết quả bài kiểm tra giúp bạn cải thiện nội dung theo dữ liệu thực.' },
-  { icon: Users, title: 'Cộng đồng học viên', desc: 'Tiếp cận hàng chục nghìn học viên IT đang tìm kiếm khoá học chất lượng về React, Node.js, SQL, DevOps...' },
-  { icon: MessageSquare, title: 'Hệ thống hỏi đáp', desc: 'Q&A tích hợp với phân loại câu hỏi, thông báo thời gian thực để bạn tương tác với học viên hiệu quả.' },
-  { icon: BookOpen, title: 'Công cụ xây dựng khoá học', desc: 'Trình tạo khoá học trực quan, hỗ trợ video, quiz tự động chấm, bài tập lập trình với judge engine.' },
-  { icon: Award, title: 'Chứng chỉ có giá trị', desc: 'Học viên hoàn thành nhận chứng chỉ kỹ thuật số có thể xác minh — tăng uy tín cho khoá học của bạn.' },
+const LESSON_KINDS = [
+  { icon: Play, title: 'Video bài giảng', desc: 'Tải lên, hệ thống tự xử lý chất lượng phát. Học viên xem tiếp từ chỗ dừng.' },
+  { icon: ListChecks, title: 'Quiz tự chấm', desc: 'Bạn soạn câu hỏi một lần, điểm và giải thích hiện ngay sau khi nộp.' },
+  { icon: CodeXml, title: 'Bài tập code chấm tự động', desc: 'Viết test case, bài nộp được chạy và chấm Accepted / Wrong Answer — bạn không phải chấm tay.' },
+];
+
+const SAMPLE_LESSONS = [
+  { icon: Play, title: '1.1 Cài đặt môi trường', meta: '08:24' },
+  { icon: ListChecks, title: '1.2 Kiểm tra: module và require', meta: '10 câu' },
+  { icon: CodeXml, title: '1.3 Viết hàm đọc file JSON', meta: '5 test' },
+];
+
+const SPLITS = [
+  { label: 'Khoá 500.000đ', note: 'học viên trả đủ giá', you: '350.000đ', platform: '150.000đ' },
+  { label: 'Cùng khoá, dùng mã giảm còn 200.000đ', note: null, you: '140.000đ', platform: '60.000đ' },
 ];
 
 const STEPS = [
-  { n: '01', title: 'Đăng ký tài khoản giảng viên', desc: 'Hoàn thành hồ sơ cá nhân và nộp hồ sơ xác minh chuyên môn.' },
-  { n: '02', title: 'Tạo khoá học đầu tiên', desc: 'Sử dụng trình xây dựng khoá học để thêm nội dung, quiz và bài tập.' },
-  { n: '03', title: 'Gửi duyệt & xuất bản', desc: 'Đội ngũ kiểm duyệt xem xét trong 3–5 ngày làm việc.' },
-  { n: '04', title: 'Nhận doanh thu', desc: 'Khoá học được duyệt sẽ hiển thị trên nền tảng. Doanh thu được thanh toán hàng tháng.' },
+  { title: 'Bật vai trò giảng viên', desc: 'Một cú bấm ở trang này. Không cần nộp hồ sơ trước.' },
+  { title: 'Soạn khoá và gửi duyệt', desc: 'Đội kiểm duyệt phản hồi trong 3–5 ngày làm việc.' },
+  { title: 'Xác minh khi bán có phí', desc: 'Khoá miễn phí xuất bản ngay sau khi duyệt, không cần xác minh.' },
 ];
 
-const TESTIMONIALS = [
-  {
-    name: 'Trần Anh Tuấn',
-    title: 'Senior Frontend Engineer · 3,200 học viên',
-    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=48&h=48&fit=crop',
-    quote: 'SkillPath giúp tôi biến kiến thức 8 năm kinh nghiệm thành thu nhập thụ động. Dashboard analytics rất chi tiết, giúp tôi liên tục cải thiện nội dung.',
-  },
-  {
-    name: 'Lê Thị Minh',
-    title: 'Data Engineer · 2,800 học viên',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=48&h=48&fit=crop',
-    quote: 'Tính năng bài tập lập trình với auto-judge là điểm khác biệt lớn. Học viên của tôi tiến bộ rõ rệt hơn so với nền tảng khác.',
-  },
+const FAQ = [
+  { q: 'Dạy trên SkillPath có mất phí không?', a: 'Không. Bật vai trò, soạn khoá và xuất bản khoá miễn phí đều không mất phí.' },
+  { q: 'Khi nào tôi phải xác minh danh tính?', a: 'Khi đặt giá cho khoá. Khoá miễn phí không cần.' },
+  { q: 'Doanh thu được chia thế nào?', a: 'Bạn nhận 70% số tiền học viên thực trả cho mỗi đơn.' },
+  { q: 'Duyệt khoá mất bao lâu?', a: '3–5 ngày làm việc. Bị từ chối thì có ghi lý do để bạn sửa và gửi lại.' },
 ];
 
-export default function TeachPage() {
+const NEEDS = [
+  { title: 'Một chủ đề bạn đã làm thực tế', desc: 'Thứ bạn biết người mới hay vấp ở đâu.' },
+  { title: 'Chương đầu tiên', desc: 'Các chương sau soạn dần, lưu nháp lúc nào cũng được.' },
+  { title: 'Không cần hồ sơ trước', desc: 'Xác minh danh tính chỉ khi bạn đặt giá cho khoá.' },
+];
+
+export default async function TeachPage() {
+  const categories = await getCategoryTree();
   return (
-    <div>
-      {/* Hero */}
-      <div className="py-20 px-6 text-center" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%)' }}>
-        <p className="text-blue-200 text-sm font-semibold uppercase tracking-widest mb-3">Trở thành giảng viên</p>
-        <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-          Chia sẻ kiến thức —<br />tạo thu nhập bền vững
-        </h1>
-        <p className="text-blue-100 max-w-xl mx-auto text-lg mb-8">
-          Hàng chục nghìn học viên IT đang chờ học từ chuyên gia như bạn.
-          Tỷ lệ doanh thu 70% — minh bạch và cạnh tranh nhất thị trường.
-        </p>
-        <Link
-          href="/instructor/verification"
-          className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3.5 rounded-2xl text-base transition-colors"
-        >
-          Bắt đầu dạy ngay <ChevronRight size={16} />
-        </Link>
-      </div>
-
-      {/* Stats */}
-      <div className="border-y" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-        <div className="max-w-4xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          {STATS.map(({ value, label }) => (
-            <div key={label}>
-              <p className="text-3xl font-extrabold" style={{ color: 'var(--primary)' }}>{value}</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--muted-foreground)' }}>{label}</p>
-            </div>
-          ))}
+    <>
+      {/* 2 · Hero */}
+      <section className="border-b">
+        <div className="mx-auto grid max-w-screen-xl grid-cols-1 items-center gap-10 px-4 py-14 lg:grid-cols-[1.05fr_1fr] lg:py-20">
+          <div className="flex min-w-0 flex-col gap-5">
+            <p className="text-sm font-semibold text-primary">Dạy học trên SkillPath</p>
+            <h1 className="text-4xl leading-tight font-extrabold text-balance md:text-5xl">
+              Bạn đã viết code nhiều năm.<br className="max-sm:hidden" /> Giờ dạy lại điều đó.
+            </h1>
+            <p className="max-w-xl text-lg text-pretty text-muted-foreground">
+              Soạn khoá với video, quiz tự chấm và bài tập code có chấm tự động. Bắt đầu miễn phí — chỉ cần xác minh danh
+              tính khi bạn bán khoá có phí.
+            </p>
+            <TeachCta />
+            <dl className="mt-4 grid max-w-xl grid-cols-3 divide-x border-t pt-5">
+              {FACTS.map(({ label, value }, i) => (
+                <div key={label} className={i === 0 ? 'pr-4' : i === FACTS.length - 1 ? 'pl-4' : 'px-4'}>
+                  <dt className="text-xs text-muted-foreground">{label}</dt>
+                  <dd className="text-xl font-bold whitespace-nowrap tabular-nums sm:text-2xl">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <figure className="relative">
+            <Image
+              src="https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1000&q=80&auto=format&fit=crop"
+              alt="Giảng viên hướng dẫn học viên viết code"
+              width={1000}
+              height={750}
+              priority
+              sizes="(min-width: 1024px) 600px, 100vw"
+              className="aspect-[4/3] w-full rounded-2xl object-cover"
+            />
+            {/* TODO: dữ liệu mẫu */}
+            <figcaption className="absolute bottom-4 left-4 flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm shadow-lg">
+              <MessageCircle className="size-4 text-primary" aria-hidden />
+              <span><b>3 câu hỏi mới</b> trong Q&amp;A khoá Node.js</span>
+            </figcaption>
+          </figure>
         </div>
-      </div>
+      </section>
 
-      <div className="max-w-5xl mx-auto px-4 py-16 space-y-20">
-        {/* Features */}
-        <section>
-          <h2 className="text-2xl font-extrabold text-center mb-10" style={{ color: 'var(--foreground)' }}>
-            Tại sao chọn SkillPath?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div
-                key={title}
-                className="border rounded-2xl p-5 space-y-3 hover:shadow-md transition-shadow"
-                style={{ borderColor: 'var(--border)', background: 'var(--card)' }}
-              >
-                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Icon size={18} className="text-blue-600" />
-                </div>
-                <p className="font-bold" style={{ color: 'var(--foreground)' }}>{title}</p>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>{desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Steps */}
-        <section>
-          <h2 className="text-2xl font-extrabold text-center mb-10" style={{ color: 'var(--foreground)' }}>
-            Bắt đầu trong 4 bước
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {STEPS.map(({ n, title, desc }) => (
-              <div
-                key={n}
-                className="flex gap-4 p-5 rounded-2xl border"
-                style={{ borderColor: 'var(--border)', background: 'var(--card)' }}
-              >
-                <span className="text-3xl font-extrabold shrink-0" style={{ color: 'var(--primary)', opacity: 0.3 }}>{n}</span>
-                <div>
-                  <p className="font-bold mb-1" style={{ color: 'var(--foreground)' }}>{title}</p>
-                  <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Testimonials */}
-        <section>
-          <h2 className="text-2xl font-extrabold text-center mb-10" style={{ color: 'var(--foreground)' }}>
-            Giảng viên nói gì về SkillPath?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {TESTIMONIALS.map(({ name, title, avatar, quote }) => (
-              <div
-                key={name}
-                className="border rounded-2xl p-5 space-y-4"
-                style={{ borderColor: 'var(--border)', background: 'var(--card)' }}
-              >
-                <p className="text-sm leading-relaxed italic" style={{ color: 'var(--foreground)' }}>&quot;{quote}&quot;</p>
-                <div className="flex items-center gap-3">
-                  <Image src={avatar} alt={name} width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
+      {/* 3 · Một khoá, đủ ba kiểu bài */}
+      <section className="bg-muted">
+        <div className="mx-auto grid max-w-screen-xl grid-cols-1 items-center gap-10 px-4 py-16 lg:grid-cols-[1fr_1.15fr]">
+          <div className="flex min-w-0 flex-col gap-6">
+            <h2 className="text-3xl font-extrabold text-balance">Một khoá, đủ ba kiểu bài</h2>
+            <ul className="grid gap-5">
+              {LESSON_KINDS.map(({ icon: Icon, title, desc }) => (
+                <li key={title} className="flex gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-card ring-1 ring-border">
+                    <Icon className="size-4" aria-hidden />
+                  </span>
                   <div>
-                    <p className="font-bold text-sm" style={{ color: 'var(--foreground)' }}>{name}</p>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{title}</p>
+                    <p className="font-semibold">{title}</p>
+                    <p className="text-sm text-pretty text-muted-foreground">{desc}</p>
                   </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="min-w-0 rounded-xl border bg-card p-4 shadow-sm" role="img" aria-label="Ảnh màn soạn chương trình học">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="truncate text-sm font-semibold">Chương 1 · Nhập môn Node.js</p>
+              <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">3 bài</span>
+            </div>
+            <ul className="grid gap-2 text-sm">
+              {SAMPLE_LESSONS.map(({ icon: Icon, title, meta }) => (
+                <li key={title} className="flex items-center gap-3 rounded-lg border px-3 py-2.5">
+                  <Icon className="size-4 text-muted-foreground" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{title}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">{meta}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 rounded-lg bg-foreground p-3 font-mono text-xs text-white/80 dark:bg-background">
+              <p><span className="text-[var(--skill-strong)]">✓ Accepted</span> · 5/5 test · 42 ms</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4 · Tiền về thế nào */}
+      <section>
+        <div className="mx-auto grid max-w-screen-xl grid-cols-1 gap-10 px-4 py-16 lg:grid-cols-[1fr_1.15fr]">
+          <div className="flex min-w-0 flex-col gap-3">
+            <h2 className="text-3xl font-extrabold text-balance">Bạn nhận 70% mỗi đơn</h2>
+            <p className="text-pretty text-muted-foreground">
+              Tính trên số tiền học viên thực trả, sau mã giảm giá. Tỷ lệ áp chung cho mọi giảng viên, không có hạng mức ẩn.
+            </p>
+          </div>
+          <div className="grid min-w-0 gap-6">
+            {SPLITS.map(({ label, note, you, platform }) => (
+              <div key={label}>
+                <div className="mb-2 flex justify-between gap-3 text-sm">
+                  <span>{label}</span>
+                  {note && <span className="text-muted-foreground">{note}</span>}
+                </div>
+                <div className="flex h-10 overflow-hidden rounded-lg text-sm font-semibold">
+                  <div className="flex w-[70%] items-center bg-primary px-3 text-primary-foreground">{`Bạn · ${you}`}</div>
+                  <div className="flex flex-1 items-center bg-secondary px-3 text-secondary-foreground">{platform}</div>
                 </div>
               </div>
             ))}
           </div>
-        </section>
-
-        {/* CTA */}
-        <div className="text-center py-12 border rounded-3xl" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-          <TrendingUp size={36} className="mx-auto mb-4 text-blue-600" />
-          <h2 className="text-2xl font-extrabold mb-2" style={{ color: 'var(--foreground)' }}>Sẵn sàng chia sẻ chuyên môn?</h2>
-          <p className="mb-6 text-sm" style={{ color: 'var(--muted-foreground)' }}>Tham gia cùng hơn 150 giảng viên đang tạo ra giá trị trên SkillPath.</p>
-          <Link
-            href="/instructor/verification"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-2xl transition-colors"
-          >
-            Đăng ký giảng viên <ChevronRight size={16} />
-          </Link>
         </div>
-      </div>
-    </div>
+      </section>
+
+      {/* 5 · Ba bước */}
+      <section className="border-y bg-muted">
+        <div className="mx-auto max-w-screen-xl px-4 py-16">
+          <h2 className="mb-10 text-3xl font-extrabold text-balance">Từ hôm nay đến khoá đầu tiên</h2>
+          <ol className="grid gap-8 md:grid-cols-3 md:gap-6">
+            {STEPS.map(({ title, desc }, i) => (
+              <li key={title} className={`flex flex-col gap-2 border-t-2 pt-4 ${i === 0 ? 'border-foreground' : 'border-border'}`}>
+                <span className="text-sm font-semibold text-muted-foreground">{`Bước ${i + 1}`}</span>
+                <p className="text-lg font-bold">{title}</p>
+                <p className="text-sm text-pretty text-muted-foreground">{desc}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* 6 · Một giảng viên kể — TODO: dữ liệu mẫu, thay bằng giảng viên thật */}
+      <section>
+        <figure className="mx-auto grid max-w-screen-lg grid-cols-1 items-center gap-8 px-4 py-16 md:grid-cols-[auto_1fr]">
+          <Image
+            src="https://randomuser.me/api/portraits/women/44.jpg"
+            alt=""
+            width={160}
+            height={160}
+            className="size-28 rounded-2xl object-cover md:size-40"
+          />
+          <div className="flex min-w-0 flex-col gap-4">
+            <blockquote className="text-2xl leading-snug font-semibold text-pretty">
+              “Phần bài code chấm tự động là lý do tôi chọn dạy ở đây. Tôi soạn test một lần, 2.800 học viên nộp bài mà tôi
+              không phải chấm bài nào.”
+            </blockquote>
+            <figcaption className="text-sm">
+              <b>Lê Thị Minh</b> <span className="text-muted-foreground">· Data Engineer · khoá “SQL cho người làm dữ liệu”</span>
+            </figcaption>
+          </div>
+        </figure>
+      </section>
+
+      {/* 7 · Câu hỏi thường gặp */}
+      <section className="border-t">
+        <div className="mx-auto grid max-w-screen-xl grid-cols-1 gap-8 px-4 py-16 lg:grid-cols-[1fr_1.6fr]">
+          <h2 className="text-3xl font-extrabold text-balance">Câu hỏi thường gặp</h2>
+          <div className="divide-y border-y">
+            {FAQ.map(({ q, a }, i) => (
+              <details key={q} open={i === 0} className="group">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                  {q}
+                  <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <p className="pb-4 text-sm text-pretty text-muted-foreground">{a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 8 · CTA cuối */}
+      <section className="border-t bg-muted">
+        <div className="mx-auto grid max-w-screen-xl grid-cols-1 items-center gap-10 px-4 py-16 lg:grid-cols-[1fr_1fr]">
+          <div className="flex min-w-0 flex-col gap-5">
+            <h2 className="max-w-lg text-3xl font-extrabold text-balance">Khoá học đầu tiên bắt đầu từ một chương.</h2>
+            <TeachCta />
+          </div>
+          <div className="min-w-0">
+            <p className="mb-4 text-sm font-semibold text-muted-foreground">Để bắt đầu, bạn chỉ cần</p>
+            <ul className="grid gap-4">
+              {NEEDS.map(({ title, desc }) => (
+                <li key={title} className="flex gap-3">
+                  <Check className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+                  <span>
+                    <b>{title}</b>
+                    <br />
+                    <span className="text-sm text-muted-foreground">{desc}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <SiteFooter categories={categories} />
+    </>
   );
 }

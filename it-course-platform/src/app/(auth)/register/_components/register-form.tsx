@@ -134,6 +134,7 @@ export function RegisterForm({ redirect }: { redirect?: string }) {
             id="confirmPassword"
             type={showPw ? 'text' : 'password'}
             autoComplete="new-password"
+            placeholder="Nhập lại mật khẩu"
             aria-invalid={!!errors.confirmPassword}
             aria-describedby={describedBy('confirmPassword')}
             {...register('confirmPassword')}

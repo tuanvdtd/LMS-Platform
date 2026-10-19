@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Bell, LogOut, MessageCircle, Moon, Search, ShoppingCart, Sun, User, X } from 'lucide-react';
+import { LogOut, MessageCircle, Moon, Search, ShoppingCart, Sun, User, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { cn } from '@/lib/utils';
 import { authClient } from '@/lib/auth-client';
+import { teachHref } from '@/lib/instructor-role';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -26,6 +27,7 @@ import { getCart } from '@/lib/api/checkout';
 import { CART_CHANGED } from '@/lib/cart-events';
 import { accountLinks } from '@/components/layout/account-links';
 import { ExploreMenu } from '@/components/layout/explore-menu';
+import { NotificationPanel } from '@/components/layout/notification-panel';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { SignOutDialog } from '@/components/layout/sign-out-dialog';
 import type { CategoryNode } from '@/types';
@@ -85,7 +87,7 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
 
         <div className="ml-auto flex items-center gap-1">
           <Link
-            href="/teach"
+            href={teachHref(user)}
             className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted hover:text-primary lg:block"
           >
             Dạy học
@@ -94,13 +96,13 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
           <Button
             variant="ghost"
             size="icon"
-            className="hidden lg:inline-flex"
+            className="hidden size-10 rounded-full lg:inline-flex"
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             aria-label="Đổi giao diện sáng/tối"
           >
             {/* CSS-driven icon swap avoids a hydration mismatch before the theme is known */}
-            <Sun size={16} className="hidden dark:block" />
-            <Moon size={16} className="dark:hidden" />
+            <Sun size={18} className="hidden dark:block" />
+            <Moon size={18} className="dark:hidden" />
           </Button>
 
           <Button
@@ -114,7 +116,7 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
             {searchOpen ? <X size={18} /> : <Search size={18} />}
           </Button>
 
-          <Separator orientation="vertical" className="mx-1 hidden h-6 lg:block" />
+          <Separator orientation="vertical" className="mx-1 hidden h-6 data-vertical:self-center lg:block" />
 
           <Link href="/cart" className={iconLink} aria-label={user ? `Giỏ hàng (${cartCount} khoá)` : 'Giỏ hàng'}>
             <ShoppingCart size={18} className="text-foreground" />
@@ -131,10 +133,7 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
                 <MessageCircle size={18} className="text-foreground" />
                 <span className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-card" />
               </Link>
-              <Link href="/notifications" className={cn(iconLink, 'hidden lg:flex')} aria-label="Thông báo">
-                <Bell size={18} className="text-foreground" />
-                <span className="absolute top-2 right-2 size-2 rounded-full bg-destructive ring-2 ring-card" />
-              </Link>
+              <NotificationPanel />
             </>
           )}
 
@@ -158,7 +157,7 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
                     <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" positionMethod="fixed" className="w-56">
                   <DropdownMenuGroup>
                     <DropdownMenuLabel>
                       <p className="text-sm font-semibold text-foreground">{user.name}</p>
@@ -173,7 +172,7 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-primary focus:text-primary" render={<Link href="/instructor" />}>
+                  <DropdownMenuItem className="text-primary focus:text-primary" render={<Link href={teachHref(user)} />}>
                     <User size={15} />
                     Chuyển sang Giảng viên
                   </DropdownMenuItem>

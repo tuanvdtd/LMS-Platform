@@ -99,6 +99,7 @@ export function LoginView({ redirect, reset, oauthError }: Props) {
               id="password"
               type={showPw ? 'text' : 'password'}
               autoComplete="current-password"
+              placeholder="Nhập mật khẩu"
               className="pr-10"
               aria-invalid={!!errors.password}
               aria-describedby={describedBy('password')}
