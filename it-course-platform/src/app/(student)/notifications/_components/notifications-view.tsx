@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle, XCircle, BookOpen, Bell, Code, Settings } from 'lucide-react';
+import { CheckCircle, XCircle, BookOpen, Bell, Code, Settings, UserPlus, MessageCircleQuestion, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MOCK_NOTIFICATIONS as INITIAL, type Notif, type NotifType } from '@/lib/mock-notifications';
 
@@ -10,6 +10,9 @@ const ICONS: Record<NotifType, React.ElementType> = {
   course: BookOpen,
   reminder: Bell,
   system: Settings,
+  enrollment: UserPlus,
+  question: MessageCircleQuestion,
+  review: Star,
 };
 
 const COLORS: Record<NotifType, string> = {
@@ -17,6 +20,9 @@ const COLORS: Record<NotifType, string> = {
   course: '#7c3aed',
   reminder: '#d97706',
   system: '#64748b',
+  enrollment: '#059669',
+  question: '#2563eb',
+  review: '#d97706',
 };
 
 export function NotificationsView() {

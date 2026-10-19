@@ -10,6 +10,7 @@ import {
 import { courses } from '@/lib/mocks/data';
 import { ProgressRing } from '@/components/shared/product-ui';
 import { Button } from '@/components/ui/button';
+import { LessonQa } from './lesson-qa';
 
 export default function LearnView({ courseSlug, lessonId }: { courseSlug: string; lessonId: string }) {
   const course = courses.find((c) => c.slug === courseSlug) ?? courses[0];
@@ -38,7 +39,7 @@ export default function LearnView({ courseSlug, lessonId }: { courseSlug: string
   }
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: 'var(--background)' }}>
+    <div className="flex flex-col h-screen" style={{ background: 'var(--background)' }}>
       {/* Top bar */}
       <div
         className="h-12 flex items-center px-4 gap-4 border-b shrink-0"
@@ -65,9 +66,10 @@ export default function LearnView({ courseSlug, lessonId }: { courseSlug: string
         </Button>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         {/* Main content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Cả cột cuộn chung: video, điều hướng bài, tab và nội dung tab */}
+        <div className="flex-1 min-w-0 overflow-y-auto">
           {/* Skill banner */}
           {!skillBannerDismissed && (
             <div className="px-4 py-2 flex items-center gap-3 text-sm border-b"
@@ -78,8 +80,9 @@ export default function LearnView({ courseSlug, lessonId }: { courseSlug: string
           )}
 
           {/* Video player */}
-          <div className="bg-black relative flex-1 min-h-0 flex items-center justify-center" style={{ maxHeight: 'calc(100vh - 12rem)' }}>
-            <div className="w-full h-full flex items-center justify-center" style={{ aspectRatio: '16/9', maxHeight: '100%', margin: 'auto' }}>
+          <div className="bg-black relative">
+            {/* Giữ 16:9 nhưng không cao quá màn hình trừ header + điều hướng bài */}
+            <div className="mx-auto w-full" style={{ maxWidth: 'calc((100vh - 12rem) * 16 / 9)' }}>
               {/* Mock video */}
               <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex flex-col items-center justify-center">
@@ -180,7 +183,7 @@ export default function LearnView({ courseSlug, lessonId }: { courseSlug: string
               })}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="p-4">
             {activeTab === 'overview' && (
               <div className="max-w-2xl space-y-3">
                 <h2 className="font-bold text-lg" style={{ color: 'var(--foreground)' }}>{currentLesson.title}</h2>
@@ -202,17 +205,7 @@ export default function LearnView({ courseSlug, lessonId }: { courseSlug: string
                 />
               </div>
             )}
-            {activeTab === 'qa' && (
-              <div className="max-w-2xl">
-                <p className="text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>Chưa có câu hỏi nào. Hãy là người đầu tiên!</p>
-                <textarea
-                  placeholder="Đặt câu hỏi về bài học..."
-                  rows={3}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
-                  style={{ borderColor: 'var(--border)', background: 'var(--background)', color: 'var(--foreground)' }}
-                />
-              </div>
-            )}
+            {activeTab === 'qa' && <LessonQa />}
           </div>
         </div>
 

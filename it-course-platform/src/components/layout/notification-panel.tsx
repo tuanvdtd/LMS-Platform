@@ -2,18 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Bell, BellDot, BookOpen, Code, Settings } from 'lucide-react';
+import { Bell, BellDot, BookOpen, Code, MessageCircleQuestion, Settings, Star, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { MOCK_NOTIFICATIONS, type Notif, type NotifType } from '@/lib/mock-notifications';
+import { MOCK_NOTIFICATIONS, type Notif, type NotifAudience, type NotifType } from '@/lib/mock-notifications';
 
 const ICONS: Record<NotifType, React.ElementType> = {
   verdict: Code,
   course: BookOpen,
   reminder: Bell,
   system: Settings,
+  enrollment: UserPlus,
+  question: MessageCircleQuestion,
+  review: Star,
 };
 
 // Panel chỉ để liếc mấy cái mới nhất; xem hết thì sang /notifications.
@@ -39,25 +42,30 @@ function getPeekListHeight(list: HTMLElement, max: number) {
 interface NotificationPanelProps {
   // ponytail: dữ liệu giả mặc định, nối API thì truyền vào + nối hai handler.
   notifications?: Notif[];
+  // Chỉ giảng viên mới có tab Giảng viên; học viên thường thấy một danh sách, không tab.
+  isInstructor?: boolean;
   onMarkAllRead?: () => void;
   onOpenNotification?: (n: Notif) => void;
 }
 
 export function NotificationPanel({
   notifications = MOCK_NOTIFICATIONS,
+  isInstructor = false,
   onMarkAllRead = () => {},
   onOpenNotification = () => {},
 }: NotificationPanelProps) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'all' | 'unread'>('all');
+  const [tab, setTab] = useState<NotifAudience>('student');
   const [listHeight, setListHeight] = useState<number>();
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const shown = (tab === 'unread' ? notifications.filter((n) => !n.read) : notifications).slice(0, PANEL_LIMIT);
+  const visible = isInstructor ? notifications : notifications.filter((n) => n.audience === 'student');
+  const unreadCount = visible.filter((n) => !n.read).length;
+  const hasUnread = (a: NotifAudience) => visible.some((n) => n.audience === a && !n.read);
+  const shown = visible.filter((n) => n.audience === tab).slice(0, PANEL_LIMIT);
 
-  // Đo ở tab Tất cả lúc danh sách gắn vào DOM; tab khác giữ chiều cao đó để mép dưới không nhảy.
+  // Giữ chiều cao lớn nhất đã đo: đổi sang tab ít mục thì mép dưới không nhảy.
   const measureList = (el: HTMLDivElement | null) => {
-    if (el && tab === 'all') setListHeight(getPeekListHeight(el, maxListHeight()));
+    if (el) setListHeight((h) => Math.max(h ?? 0, getPeekListHeight(el, maxListHeight())));
   };
 
   const BellIcon = unreadCount > 0 ? BellDot : Bell;
@@ -67,7 +75,10 @@ export function NotificationPanel({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) setTab('all');
+        if (next) {
+          setTab('student');
+          setListHeight(undefined);
+        }
       }}
     >
       <PopoverTrigger
@@ -99,16 +110,24 @@ export function NotificationPanel({
           )}
         </div>
 
-        <div className="border-b border-border px-4 pt-2 pb-3">
-          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-            <TabsList>
-              <TabsTrigger value="all" className="px-3">Tất cả</TabsTrigger>
-              <TabsTrigger value="unread" className="px-3">Chưa đọc</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        {isInstructor ? (
+          <div className="border-b border-border px-4 pt-2 pb-3">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as NotifAudience)}>
+              <TabsList>
+                {(['student', 'instructor'] as const).map((a) => (
+                  <TabsTrigger key={a} value={a} className="px-3">
+                    {a === 'student' ? 'Học viên' : 'Giảng viên'}
+                    {hasUnread(a) && <span className="size-1.5 rounded-full bg-foreground" aria-label="có thông báo chưa đọc" />}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+        ) : (
+          <div className="border-b border-border pt-2" />
+        )}
 
-        {notifications.length === 0 ? (
+        {visible.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">Chưa có thông báo nào</p>
         ) : (
           <div
@@ -117,7 +136,7 @@ export function NotificationPanel({
             style={{ height: listHeight }}
           >
             {shown.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">Bạn đã đọc hết thông báo</p>
+              <p className="py-10 text-center text-sm text-muted-foreground">Chưa có thông báo nào</p>
             ) : (
               shown.map((n) => {
                 const Icon = ICONS[n.type];

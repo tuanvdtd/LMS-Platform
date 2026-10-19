@@ -8,7 +8,7 @@ import { LogOut, MessageCircle, Moon, Search, ShoppingCart, Sun, User, X } from 
 import { LogoMark } from '@/components/shared/logo-mark';
 import { cn } from '@/lib/utils';
 import { authClient } from '@/lib/auth-client';
-import { teachHref } from '@/lib/instructor-role';
+import { isInstructor, teachHref } from '@/lib/instructor-role';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -133,7 +133,7 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
                 <MessageCircle size={18} className="text-foreground" />
                 <span className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-card" />
               </Link>
-              <NotificationPanel />
+              <NotificationPanel isInstructor={isInstructor(user)} />
             </>
           )}
 
