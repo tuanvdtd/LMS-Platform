@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { LogOut, MessageCircle, Moon, Search, ShoppingCart, Sun, User, X } from 'lucide-react';
+import { LogOut, MessageCircle, Moon, Search, ShieldCheck, ShoppingCart, Sun, User, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { cn } from '@/lib/utils';
 import { authClient } from '@/lib/auth-client';
-import { isInstructor, teachHref } from '@/lib/instructor-role';
+import { isInstructor, isStaff, teachHref } from '@/lib/instructor-role';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -40,10 +40,12 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
   const userId = user?.id;
+  // Tài khoản nghiệp vụ không mua/học/dạy (BE trả 403) → ẩn giỏ, link học viên, "Dạy học"; thay bằng "Khu quản trị".
+  const staff = isStaff(user);
 
   // Badge giỏ: chỉ gọi khi có session (khách không gọi → không dính interceptor 401). Lỗi → không badge.
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || staff) return;
     let cancelled = false;
     const load = () =>
       getCart().then(
@@ -56,7 +58,7 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
       cancelled = true;
       window.removeEventListener(CART_CHANGED, load);
     };
-  }, [userId]);
+  }, [userId, staff]);
 
   const iconLink = 'relative flex size-10 items-center justify-center rounded-full transition-colors hover:bg-muted';
 
@@ -86,10 +88,10 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
 
         <div className="ml-auto flex items-center gap-1">
           <Link
-            href={teachHref(user)}
+            href={staff ? '/admin' : teachHref(user)}
             className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted hover:text-primary lg:block"
           >
-            Dạy học
+            {staff ? 'Khu quản trị' : 'Dạy học'}
           </Link>
 
           <Button
@@ -117,14 +119,16 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
 
           <Separator orientation="vertical" className="mx-1 hidden h-6 data-vertical:self-center lg:block" />
 
-          <Link href="/cart" className={iconLink} aria-label={user ? `Giỏ hàng (${cartCount} khoá)` : 'Giỏ hàng'}>
-            <ShoppingCart size={18} className="text-foreground" />
-            {user && cartCount > 0 && (
-              <span className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-brand-accent text-[10px] font-bold text-white ring-2 ring-card">
-                {cartCount}
-              </span>
-            )}
-          </Link>
+          {!staff && (
+            <Link href="/cart" className={iconLink} aria-label={user ? `Giỏ hàng (${cartCount} khoá)` : 'Giỏ hàng'}>
+              <ShoppingCart size={18} className="text-foreground" />
+              {user && cartCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-brand-accent text-[10px] font-bold text-white ring-2 ring-card">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+          )}
 
           {user && (
             <>
@@ -164,17 +168,26 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  {accountLinks.map(({ icon: Icon, label, to }) => (
-                    <DropdownMenuItem key={to} render={<Link href={to} />}>
-                      <Icon size={15} className="text-muted-foreground" />
-                      {label}
+                  {staff ? (
+                    <DropdownMenuItem className="text-primary focus:text-primary" render={<Link href="/admin" />}>
+                      <ShieldCheck size={15} />
+                      Khu quản trị
                     </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-primary focus:text-primary" render={<Link href={teachHref(user)} />}>
-                    <User size={15} />
-                    Chuyển sang Giảng viên
-                  </DropdownMenuItem>
+                  ) : (
+                    <>
+                      {accountLinks.map(({ icon: Icon, label, to }) => (
+                        <DropdownMenuItem key={to} render={<Link href={to} />}>
+                          <Icon size={15} className="text-muted-foreground" />
+                          {label}
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-primary focus:text-primary" render={<Link href={teachHref(user)} />}>
+                        <User size={15} />
+                        Chuyển sang Giảng viên
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setSignOutOpen(true)}>
                     <LogOut size={15} />
                     Đăng xuất

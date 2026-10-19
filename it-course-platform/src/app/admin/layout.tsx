@@ -2,10 +2,11 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { redirect, usePathname, useRouter } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { authClient } from '@/lib/auth-client';
+import { isAdmin, isStaff } from '@/lib/instructor-role';
 import { AdminNav } from './_components/admin-nav';
 
 // Khu admin tối giản (spec revenue-share-payout §5). Gate ở client như instructor/layout.tsx.
@@ -35,22 +36,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     );
   }
-  if (!data.user.role?.split(',').includes('admin')) {
-    return (
-      <Centered>
-        <h1 className="text-2xl font-extrabold">403</h1>
-        <p className="text-sm text-muted-foreground">Trang này chỉ dành cho quản trị viên.</p>
-        <Link href="/" className={buttonVariants({ variant: 'outline' })}>
-          Về trang chủ
-        </Link>
-      </Centered>
-    );
-  }
+  if (!isStaff(data.user)) return <Forbidden />;
+  const admin = isAdmin(data.user);
   return (
     <div className="flex min-h-screen">
-      <AdminNav />
-      <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      <AdminNav admin={admin} />
+      <main className="flex-1 overflow-y-auto p-6">
+        <RoleGate admin={admin}>{children}</RoleGate>
+      </main>
     </div>
+  );
+}
+
+// Moderator chỉ dùng hàng đợi duyệt khoá. Chỉ render sau khi có session (không chạy lúc prerender)
+// nên usePathname không cần Suspense; /admin điều hướng theo vai trò ở đây vì page không biết session.
+function RoleGate({ admin, children }: { admin: boolean; children: React.ReactNode }) {
+  const pathname = usePathname();
+  if (pathname === '/admin') redirect(admin ? '/admin/payouts' : '/admin/course-approvals');
+  if (!admin && !pathname.startsWith('/admin/course-approvals')) return <Forbidden />;
+  return children;
+}
+
+function Forbidden() {
+  return (
+    <Centered>
+      <h1 className="text-2xl font-extrabold">403</h1>
+      <p className="text-sm text-muted-foreground">Trang này chỉ dành cho quản trị viên.</p>
+      <Link href="/" className={buttonVariants({ variant: 'outline' })}>
+        Về trang chủ
+      </Link>
+    </Centered>
   );
 }
 

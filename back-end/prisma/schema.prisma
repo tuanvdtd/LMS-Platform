@@ -55,7 +55,7 @@ model User {
   updatedAt     DateTime @updatedAt
 
   // plugin admin — role là String (không phải enum) theo yêu cầu của Better Auth
-  role       String?   @default("student") // "student" | "instructor" | "admin"
+  role       String?   @default("student") // "student" | "instructor" | "admin" | "moderator"
   banned     Boolean?  @default(false)
   banReason  String?
   banExpires DateTime?
@@ -95,6 +95,7 @@ model User {
   announcementsAuthored Announcement[]
   qaQuestions           CourseQuestion[]
   qaAnswers             CourseAnswer[]
+  moderatorCategories   ModeratorCategory[]
 
   @@index([role])
   @@map("user")
@@ -255,10 +256,11 @@ model Category {
   name     String
   position Int     @default(0)
 
-  parent        Category?       @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children      Category[]      @relation("CategoryTree")
-  courses       Course[]
-  popularTopics CategoryTopic[] // chỉ node cấp 2, xem CategoryTopic
+  parent              Category?           @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children            Category[]          @relation("CategoryTree")
+  courses             Course[]
+  popularTopics       CategoryTopic[] // chỉ node cấp 2, xem CategoryTopic
+  moderatorCategories ModeratorCategory[] // chỉ node cấp 1, xem ModeratorCategory
 
   @@index([parentId, position])
   @@map("categories")
@@ -715,6 +717,19 @@ model CategoryTopic {
   @@id([categoryId, topicId])
   @@index([categoryId, position])
   @@map("category_topics")
+}
+
+// Danh mục cấp 1 moderator được duyệt khoá. "Chỉ cấp 1" kiểm ở ModeratorsService.
+model ModeratorCategory {
+  userId     String @db.Uuid
+  categoryId String @db.Uuid
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([userId, categoryId])
+  @@index([categoryId])
+  @@map("moderator_categories")
 }
 
 // isPrimary = "khoá học chủ yếu dạy gì?" của Udemy. Tối đa 1 dòng true mỗi khoá

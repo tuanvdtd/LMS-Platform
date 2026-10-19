@@ -1,12 +1,13 @@
 import { Controller, Get, HttpCode, Inject, Post } from '@nestjs/common';
 import { AUTH, type Auth, type AuthSession } from './auth.js';
-import { CurrentUser } from './decorators.js';
+import { CurrentUser, StaffAllowed } from './decorators.js';
 
 @Controller('me')
 export class MeController {
   constructor(@Inject(AUTH) private readonly auth: Auth) {}
 
   @Get()
+  @StaffAllowed()
   me(@CurrentUser() user: AuthSession['user']) {
     return user;
   }
