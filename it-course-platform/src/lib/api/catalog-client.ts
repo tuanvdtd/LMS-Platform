@@ -13,3 +13,9 @@ export async function listPopularCourses(category: string) {
   const { data } = await api.get<CourseList>('/courses', { params: { category, sort: 'popular', limit: 8, page: 1 } });
   return data;
 }
+
+// Gợi ý dưới ô tìm trên header. signal để huỷ request cũ khi gõ tiếp.
+export async function searchCourses(q: string, signal: AbortSignal) {
+  const { data } = await api.get<CourseList>('/courses', { params: { q, limit: 6, page: 1 }, signal });
+  return data;
+}

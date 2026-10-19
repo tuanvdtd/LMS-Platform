@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { LogOut, MessageCircle, Moon, Search, ShoppingCart, Sun, User, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
@@ -20,12 +19,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCart } from '@/lib/api/checkout';
 import { CART_CHANGED } from '@/lib/cart-events';
 import { accountLinks } from '@/components/layout/account-links';
+import { CourseSearch } from '@/components/layout/course-search';
 import { ExploreMenu } from '@/components/layout/explore-menu';
 import { NotificationPanel } from '@/components/layout/notification-panel';
 import { MobileNav } from '@/components/layout/mobile-nav';
@@ -83,7 +82,7 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
           <ExploreMenu categories={categories} />
         </div>
 
-        <SearchForm className="mx-2 hidden max-w-2xl flex-1 lg:flex" />
+        <CourseSearch className="mx-2 hidden max-w-2xl flex-1 lg:flex" />
 
         <div className="ml-auto flex items-center gap-1">
           <Link
@@ -189,48 +188,11 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
 
       {searchOpen && (
         <div className="border-t px-4 py-2 lg:hidden">
-          <SearchForm autoFocus onSubmitted={() => setSearchOpen(false)} />
+          <CourseSearch autoFocus onSubmitted={() => setSearchOpen(false)} />
         </div>
       )}
 
       <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
     </header>
-  );
-}
-
-function SearchForm({
-  className = 'flex',
-  autoFocus,
-  onSubmitted,
-}: {
-  className?: string;
-  autoFocus?: boolean;
-  onSubmitted?: () => void;
-}) {
-  const [q, setQ] = useState('');
-  const router = useRouter();
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!q.trim()) return;
-    router.push(`/courses?q=${encodeURIComponent(q)}`);
-    onSubmitted?.();
-  }
-
-  return (
-    <form onSubmit={submit} className={className} role="search">
-      <div className="flex h-11 w-full items-center gap-2.5 rounded-full border bg-muted/70 px-4 transition-colors focus-within:border-primary focus-within:bg-card focus-within:ring-3 focus-within:ring-ring/20 hover:bg-muted">
-        <Search size={18} className="shrink-0 text-muted-foreground" aria-hidden />
-        <Input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          autoFocus={autoFocus}
-          placeholder="Tìm kiếm khoá học, kỹ năng, công nghệ..."
-          aria-label="Tìm kiếm khoá học"
-          className="h-auto flex-1 border-0 bg-transparent p-0 text-sm shadow-none placeholder:text-secondary-foreground/80 focus-visible:ring-0 dark:bg-transparent"
-        />
-      </div>
-    </form>
   );
 }
