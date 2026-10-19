@@ -9,7 +9,7 @@ import { Btn } from '@/components/shared/product-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authClient } from '@/lib/auth-client';
-import { safeRedirect } from '@/lib/safe-redirect';
+import { safeRedirect, withRedirect } from '@/lib/safe-redirect';
 import { AuthShell } from './auth-shell';
 import { fallbackError, NETWORK, resendVerification } from './auth-messages';
 import { Banner, Field, PasswordToggle } from './form-parts';
@@ -112,7 +112,7 @@ export function LoginView({ redirect, reset, oauthError }: Props) {
         </Field>
 
         {banner && <Banner>{banner}</Banner>}
-        {unverified && <UnverifiedNotice email={unverified} />}
+        {unverified && <UnverifiedNotice email={unverified} redirect={redirect} />}
 
         <Btn variant="primary" size="lg" type="submit" isLoading={isSubmitting || done} className="w-full">
           Đăng nhập
@@ -121,13 +121,13 @@ export function LoginView({ redirect, reset, oauthError }: Props) {
 
       <p className="text-center text-sm mt-6" style={{ color: 'var(--muted-foreground)' }}>
         Chưa có tài khoản?{' '}
-        <Link href="/register" className="text-blue-600 font-semibold hover:underline">Đăng ký miễn phí</Link>
+        <Link href={withRedirect('/register', redirect)} className="text-blue-600 font-semibold hover:underline">Đăng ký miễn phí</Link>
       </p>
     </AuthShell>
   );
 }
 
-function UnverifiedNotice({ email }: { email: string }) {
+function UnverifiedNotice({ email, redirect }: { email: string; redirect?: string }) {
   // Lần đầu không khoá: mail xác minh gửi lúc đăng ký, có thể đã lâu
   const { cooldown, restart } = useCooldown();
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
@@ -135,7 +135,7 @@ function UnverifiedNotice({ email }: { email: string }) {
   async function resend() {
     setResult(null);
     restart();
-    const error = await resendVerification(email);
+    const error = await resendVerification(email, redirect);
     setResult(error ? { ok: false, text: error } : { ok: true, text: `Đã gửi lại tới ${email}` });
   }
 

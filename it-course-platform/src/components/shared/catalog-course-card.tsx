@@ -61,9 +61,10 @@ export function CatalogCourseCard({ course }: { course: CourseCard }) {
             {formatHoursMinutes(course.totalDurationSec)}
           </li>
           {course.enrollmentCount > 0 && (
-            <li className="flex items-center gap-1">
+            <li className="flex items-center gap-1" title={`${course.enrollmentCount.toLocaleString('vi-VN')} học viên`}>
               <Users className="size-3.5" aria-hidden />
-              {course.enrollmentCount.toLocaleString('vi-VN')} học viên
+              {course.enrollmentCount.toLocaleString('vi-VN')}
+              <span className="sr-only"> học viên</span>
             </li>
           )}
         </ul>
