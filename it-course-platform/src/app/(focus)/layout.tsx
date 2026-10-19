@@ -4,7 +4,7 @@ import SiteHeader from "@/components/layout/site-header";
 export default function FocusLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <SiteHeader cartCount={2} />
+      <SiteHeader />
       {children}
     </>
   );

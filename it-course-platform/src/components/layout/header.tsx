@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -22,31 +22,40 @@ import {
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getCart } from '@/lib/api/checkout';
+import { CART_CHANGED } from '@/lib/cart-events';
 import { accountLinks } from '@/components/layout/account-links';
 import { ExploreMenu } from '@/components/layout/explore-menu';
 import { MobileNav } from '@/components/layout/mobile-nav';
+import { SignOutDialog } from '@/components/layout/sign-out-dialog';
 import type { CategoryNode } from '@/types';
 
 // Bố cục theo Udemy (spec §5.1): < lg = ☰ · logo giữa · 🔍 🛒; ≥ lg = đầy đủ.
-export default function Header({
-  cartCount = 0,
-  categories,
-}: {
-  cartCount?: number;
-  categories: CategoryNode[];
-}) {
+export default function Header({ categories }: { categories: CategoryNode[] }) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const { resolvedTheme, setTheme } = useTheme();
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
+  const userId = user?.id;
 
-  async function signOut() {
-    const { error } = await authClient.signOut().catch(() => ({ error: true }));
-    if (error) return;
-    // Tải lại toàn trang: cacheComponents giữ các route đã rời bằng <Activity> kèm state của user cũ,
-    // router.refresh() không xoá chúng (docs preserving-ui-state § State and authentication).
-    window.location.replace('/');
-  }
+  // Badge giỏ: chỉ gọi khi có session (khách không gọi → không dính interceptor 401). Lỗi → không badge.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    const load = () =>
+      getCart().then(
+        (c) => { if (!cancelled) setCartCount(c.items.length); },
+        () => { if (!cancelled) setCartCount(0); },
+      );
+    load();
+    window.addEventListener(CART_CHANGED, load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(CART_CHANGED, load);
+    };
+  }, [userId]);
 
   const iconLink = 'relative flex size-10 items-center justify-center rounded-full transition-colors hover:bg-muted';
 
@@ -54,7 +63,7 @@ export default function Header({
     <header className="sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
       <div className="relative mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4">
         <div className="lg:hidden">
-          <MobileNav categories={categories} user={user} isPending={isPending} onSignOut={signOut} />
+          <MobileNav categories={categories} user={user} isPending={isPending} onSignOut={() => setSignOutOpen(true)} />
         </div>
 
         {/* Logo: giữa trên mobile, trái trên desktop */}
@@ -107,9 +116,9 @@ export default function Header({
 
           <Separator orientation="vertical" className="mx-1 hidden h-6 lg:block" />
 
-          <Link href="/cart" className={iconLink} aria-label={`Giỏ hàng (${cartCount} khoá)`}>
+          <Link href="/cart" className={iconLink} aria-label={user ? `Giỏ hàng (${cartCount} khoá)` : 'Giỏ hàng'}>
             <ShoppingCart size={18} className="text-foreground" />
-            {cartCount > 0 && (
+            {user && cartCount > 0 && (
               <span className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-brand-accent text-[10px] font-bold text-white ring-2 ring-card">
                 {cartCount}
               </span>
@@ -168,7 +177,7 @@ export default function Header({
                     <User size={15} />
                     Chuyển sang Giảng viên
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={signOut}>
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setSignOutOpen(true)}>
                     <LogOut size={15} />
                     Đăng xuất
                   </DropdownMenuItem>
@@ -184,6 +193,8 @@ export default function Header({
           <SearchForm autoFocus onSubmitted={() => setSearchOpen(false)} />
         </div>
       )}
+
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
     </header>
   );
 }
@@ -218,7 +229,7 @@ function SearchForm({
           autoFocus={autoFocus}
           placeholder="Tìm kiếm khoá học, kỹ năng, công nghệ..."
           aria-label="Tìm kiếm khoá học"
-          className="h-auto flex-1 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 dark:bg-transparent"
+          className="h-auto flex-1 border-0 bg-transparent p-0 text-sm shadow-none placeholder:text-secondary-foreground/80 focus-visible:ring-0 dark:bg-transparent"
         />
       </div>
     </form>

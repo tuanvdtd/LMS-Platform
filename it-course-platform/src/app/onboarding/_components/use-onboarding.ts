@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { getPopularTopics, getPreferences, updatePreferences } from '@/lib/api/preferences';
+import { safeRedirect } from '@/lib/safe-redirect';
 import type { Ref } from '@/types/instructor-course';
 import type { LearnerLevel, Occupation, UpdatePreferencesPayload } from '@/types/preferences';
 
@@ -85,22 +86,26 @@ export function useOnboarding() {
     }
   }
 
+  // Đến từ đăng ký / OAuth lần đầu khi đang dở việc (vd thêm giỏ) → quay lại đúng trang đó, mặc định '/'.
+  // Đọc từ window lúc bấm: dùng useSearchParams thì trang phải bọc Suspense.
+  const finish = () => router.push(safeRedirect(new URLSearchParams(window.location.search).get('redirect')));
+
   const canNext = step !== 0 || occupation !== null;
 
   async function next() {
     if (!canNext || !(await save(payloadOf(step)))) return;
     if (step < 2) setStep((step + 1) as Step);
-    else router.push('/');
+    else finish();
   }
 
   const back = () => setStep((s) => (s > 0 ? ((s - 1) as Step) : s));
 
   // Bước 3 "Bỏ qua": không gửi level.
-  const skip = () => router.push('/');
+  const skip = () => finish();
 
   async function saveAndExit() {
-    if (step === 0 && !occupation) return router.push('/');
-    if (await save(payloadOf(step))) router.push('/');
+    if (step === 0 && !occupation) return finish();
+    if (await save(payloadOf(step))) finish();
   }
 
   return {

@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CircleCheck, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
+import { notifyCartChanged } from '@/lib/cart-events';
+import { loginUrlFor, parseAction, withoutAction, type ResumeAction } from '@/lib/resume-action';
 import { addToCart, apiMessage, enroll, getBuyStatus, previewCoupon, startCheckout } from '@/lib/api/checkout';
 import type { CouponPreview, CourseBuyStatus } from '@/types/checkout';
 import { formatPrice } from '@/types/instructor-course';
@@ -17,10 +19,13 @@ type Props = { course: { id: string; slug: string; priceAmount: number } };
 // Khối giá + nút mua (spec stripe-checkout §10). Trạng thái riêng từng người lấy ở client vì trang được cache.
 export function BuyBox({ course }: Props) {
   const router = useRouter();
-  const code = useSearchParams().get('couponCode')?.trim().toUpperCase() || undefined;
+  const searchParams = useSearchParams();
+  const code = searchParams.get('couponCode')?.trim().toUpperCase() || undefined;
+  const action = parseAction(searchParams.get('action'));
   const { data: session, isPending } = authClient.useSession();
   const [status, setStatus] = useState<CourseBuyStatus | null>(null);
   const [preview, setPreview] = useState<{ code: string; data: CouponPreview } | null>(null);
+  const [previewDone, setPreviewDone] = useState<string | null>(null); // mã đã preview xong (thành công hoặc lỗi)
   const coupon = preview && preview.code === code ? preview.data : null; // bỏ preview của mã cũ
   const [busy, setBusy] = useState(false);
   const [errorNonce, setErrorNonce] = useState(0);
@@ -34,23 +39,24 @@ export function BuyBox({ course }: Props) {
     if (!code) return;
     let cancelled = false;
     previewCoupon(course.slug, code).then(
-      (c) => { if (!cancelled) setPreview({ code, data: c }); },
-      () => { if (!cancelled) toast.error('Mã giảm giá không hợp lệ hoặc đã hết hạn'); },
+      (c) => { if (!cancelled) { setPreview({ code, data: c }); setPreviewDone(code); } },
+      () => { if (!cancelled) { setPreviewDone(code); toast.error('Mã giảm giá không hợp lệ hoặc đã hết hạn'); } },
     );
     return () => { cancelled = true; };
   }, [code, course.slug]);
 
   const price = coupon?.type === 'free' ? 0 : (coupon?.priceAmount ?? course.priceAmount);
   const discounted = price < course.priceAmount;
+  const couponReady = !code || previewDone === code;
 
-  function requireLogin() {
+  function requireLogin(next: ResumeAction) {
     if (session) return false;
-    router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+    router.push(loginUrlFor(window.location.pathname, window.location.search, next));
     return true;
   }
 
-  async function run(fn: () => Promise<void>) {
-    if (busy || requireLogin()) return;
+  async function run(next: ResumeAction, fn: () => Promise<void>) {
+    if (busy || requireLogin(next)) return;
     setBusy(true);
     try {
       await fn();
@@ -62,6 +68,43 @@ export function BuyBox({ course }: Props) {
       setBusy(false);
     }
   }
+
+  const doEnroll = () =>
+    run('enroll', async () => {
+      await enroll(course.id, coupon?.type === 'free' ? code : undefined);
+      toast.success('Đã ghi danh');
+      router.push('/my-learning');
+    });
+
+  const doAddToCart = () =>
+    run('add-to-cart', async () => {
+      await addToCart(course.id);
+      setStatus((s) => ({ enrolled: false, isOwner: false, ...s, inCart: true }));
+      notifyCartChanged();
+      toast.success('Đã thêm vào giỏ');
+    });
+
+  const doBuyNow = () =>
+    run('buy-now', async () => {
+      const { url } = await startCheckout(idemKey, { courseId: course.id, couponCode: coupon ? code : undefined });
+      window.location.assign(url);
+    });
+
+  // Sau đăng nhập: chạy lại hành động dở đúng một lần, khi đã có status và coupon (nếu có) đã preview xong.
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (!action || resumed.current || !session || !status || !couponReady) return;
+    resumed.current = true;
+    router.replace(withoutAction(window.location.pathname, window.location.search), { scroll: false });
+    if (status.enrolled || status.isOwner) return;
+    // Handler gọi setBusy → không gọi đồng bộ trong effect (react-hooks/set-state-in-effect của eslint-config-next 16).
+    queueMicrotask(() => {
+      if (action === 'add-to-cart' && price > 0 && !status.inCart) doAddToCart();
+      else if (action === 'enroll' && price === 0) doEnroll();
+      // Mã coupon không hợp lệ: không tự thanh toán giá gốc, để người dùng xem lại rồi bấm.
+      else if (action === 'buy-now' && price > 0 && (!code || coupon)) doBuyNow();
+    });
+  }, [action, session, status, couponReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const priceBlock = (
     <div className="flex items-baseline gap-2">
@@ -83,11 +126,7 @@ export function BuyBox({ course }: Props) {
     if (price === 0) {
       return (
         <Button size={size} className={width} disabled={disabled}
-          onClick={() => run(async () => {
-            await enroll(course.id, coupon?.type === 'free' ? code : undefined);
-            toast.success('Đã ghi danh');
-            router.push('/my-learning');
-          })}>
+          onClick={doEnroll}>
           Ghi danh ngay
         </Button>
       );
@@ -101,11 +140,7 @@ export function BuyBox({ course }: Props) {
     }
     return (
       <Button variant="accent" size={size} className={width} disabled={disabled}
-        onClick={() => run(async () => {
-          await addToCart(course.id);
-          setStatus((s) => ({ enrolled: false, isOwner: false, ...s, inCart: true }));
-          toast.success('Đã thêm vào giỏ');
-        })}>
+        onClick={doAddToCart}>
         <ShoppingCart data-icon="inline-start" aria-hidden /> Thêm vào giỏ
       </Button>
     );
@@ -124,10 +159,7 @@ export function BuyBox({ course }: Props) {
       {primaryCta(false)}
       {showBuyNow && (
         <Button variant="secondary" size="lg" className="w-full" disabled={disabled}
-          onClick={() => run(async () => {
-            const { url } = await startCheckout(idemKey, { courseId: course.id, couponCode: coupon ? code : undefined });
-            window.location.assign(url);
-          })}>
+          onClick={doBuyNow}>
           Mua ngay
         </Button>
       )}

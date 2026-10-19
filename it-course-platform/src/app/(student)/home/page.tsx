@@ -1,25 +1,22 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { ChevronRight, Zap, Target, ArrowRight } from 'lucide-react';
+import { ChevronRight, Target, ArrowRight } from 'lucide-react';
 import { courses, recommendations, demoStudent } from '@/lib/mocks/data';
 import { CourseCard, RecommendationCard, SkillMasteryBar } from '@/components/shared/product-ui';
 import { CourseGridSkeleton } from '@/components/skeletons/course-grid-skeleton';
 import { Button } from '@/components/ui/button';
-import FeaturedCourses from './_components/featured-courses';
+import FeaturedCourses from '../_components/featured-courses';
 
 export const metadata: Metadata = { title: 'Trang chủ | SkillPath' };
 
-// Example router renders <HomePage isLoggedIn />; GuestHome kept for when auth lands.
-const isLoggedIn = true;
-
-export default function HomePage() {
+// Trang chủ người đã đăng nhập. proxy.ts rewrite '/' → '/home' khi có cookie session, nên trang '/' của khách
+// không phải đọc cookie và render tĩnh được (spec guest-ui §4.3).
+export default function MemberHomePage() {
   const weakSkills = demoStudent.skills
     .filter((s) => s.mastery < 50)
     .sort((a, b) => a.mastery - b.mastery)
     .slice(0, 3);
-
-  if (!isLoggedIn) return <GuestHome />;
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-8 space-y-12">
@@ -106,92 +103,6 @@ export default function HomePage() {
       <Suspense fallback={<CourseGridSkeleton />}>
         <FeaturedCourses />
       </Suspense>
-    </div>
-  );
-}
-
-function GuestHome() {
-  return (
-    <div>
-      {/* Hero */}
-      <section
-        className="relative overflow-hidden py-20 px-4"
-        style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1a1a2e 100%)' }}
-      >
-        <div className="max-w-3xl mx-auto text-center text-white">
-          <div className="inline-flex items-center gap-2 text-sm font-semibold px-3 py-1 rounded-full mb-6 bg-blue-600/30 text-blue-300 border border-blue-500/30">
-            <Zap size={14} />
-            Học đúng thứ bạn còn thiếu
-          </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-            Học lập trình<br />
-            <span className="text-blue-400">theo năng lực thực tế</span>
-          </h1>
-          <p className="text-lg text-slate-300 mb-8 max-w-xl mx-auto">
-            SkillPath đánh giá kỹ năng của bạn, rồi gợi ý lộ trình học cá nhân hoá — chỉ học thứ bạn thực sự cần.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/register"
-              className="px-8 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors text-lg"
-            >
-              Bắt đầu miễn phí
-            </Link>
-            <Link
-              href="/courses"
-              className="px-8 py-3 rounded-xl font-bold border border-white/30 text-white hover:bg-white/10 transition-colors text-lg"
-            >
-              Khám phá khoá học
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 3 pillars */}
-      <section className="max-w-screen-lg mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-12" style={{ color: 'var(--foreground)' }}>
-          SkillPath khác gì Udemy?
-        </h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            {
-              icon: '🎯',
-              title: 'Đánh giá năng lực tự động',
-              desc: 'Bài trắc nghiệm và bài lập trình được chấm tự động. Hệ thống tính chính xác bạn đang ở đâu.',
-            },
-            {
-              icon: '🗺️',
-              title: 'Lộ trình cá nhân hoá có lý do',
-              desc: '"Gợi ý vì bạn đạt 35% ở React Hooks" — không chỉ gợi ý, mà giải thích tại sao.',
-            },
-            {
-              icon: '📊',
-              title: 'Phân tích học tập sâu',
-              desc: 'Biết chính xác kỹ năng nào đang yếu, bài nào gây khó, nên học gì tiếp theo.',
-            },
-          ].map((p) => (
-            <div
-              key={p.title}
-              className="rounded-2xl p-6 border"
-              style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
-            >
-              <div className="text-4xl mb-4">{p.icon}</div>
-              <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--foreground)' }}>
-                {p.title}
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                {p.desc}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="max-w-screen-xl mx-auto px-4 pb-16">
-        <Suspense fallback={<CourseGridSkeleton />}>
-          <FeaturedCourses />
-        </Suspense>
-      </div>
     </div>
   );
 }

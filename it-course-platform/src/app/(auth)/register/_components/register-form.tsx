@@ -8,11 +8,12 @@ import { Btn } from '@/components/shared/product-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authClient } from '@/lib/auth-client';
+import { withRedirect } from '@/lib/safe-redirect';
 import { AuthShell } from '../../_components/auth-shell';
 import { SocialButtons } from '../../_components/social-buttons';
 import { CheckEmailScreen } from '../../_components/check-email-screen';
 import { Banner, Field, PasswordToggle } from '../../_components/form-parts';
-import { fallbackError, NETWORK, resendVerification } from '../../_components/auth-messages';
+import { fallbackError, NETWORK, onboardingUrl, resendVerification } from '../../_components/auth-messages';
 import { registerSchema, type RegisterInput, type RegisterValues } from './register-form.schema';
 
 // Lỗi 400 của Better Auth lọt qua zod → gắn vào đúng ô
@@ -23,7 +24,7 @@ const FIELD_ERRORS: Record<string, { field: 'email' | 'password'; message: strin
   PASSWORD_TOO_LONG: { field: 'password', message: 'Mật khẩu tối đa 128 ký tự' },
 };
 
-export function RegisterForm() {
+export function RegisterForm({ redirect }: { redirect?: string }) {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
@@ -53,7 +54,7 @@ export function RegisterForm() {
         name: values.name,
         email: values.email,
         password: values.password,
-        callbackURL: `${window.location.origin}/onboarding`,
+        callbackURL: onboardingUrl(redirect),
       });
       if (!error) {
         setSentTo(values.email);
@@ -71,7 +72,7 @@ export function RegisterForm() {
     return (
       <CheckEmailScreen
         title="Kiểm tra email"
-        onResend={() => resendVerification(sentTo)}
+        onResend={() => resendVerification(sentTo, redirect)}
         footer={
           <Button
             variant="link"
@@ -91,7 +92,7 @@ export function RegisterForm() {
         </p>
         <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
           Link hết hạn sau 24 giờ. Nếu email này đã có tài khoản, hãy{' '}
-          <Link href="/login" className="text-blue-600 font-semibold hover:underline">đăng nhập</Link>.
+          <Link href={withRedirect('/login', redirect)} className="text-blue-600 font-semibold hover:underline">đăng nhập</Link>.
         </p>
       </CheckEmailScreen>
     );
@@ -101,7 +102,7 @@ export function RegisterForm() {
 
   return (
     <AuthShell title="Tạo tài khoản">
-      <SocialButtons />
+      <SocialButtons redirect={redirect} />
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         <Field id="name" label="Họ tên" error={errors.name?.message}>
@@ -162,7 +163,7 @@ export function RegisterForm() {
 
       <p className="text-center text-sm mt-6" style={{ color: 'var(--muted-foreground)' }}>
         Đã có tài khoản?{' '}
-        <Link href="/login" className="text-blue-600 font-semibold hover:underline">Đăng nhập</Link>
+        <Link href={withRedirect('/login', redirect)} className="text-blue-600 font-semibold hover:underline">Đăng nhập</Link>
       </p>
     </AuthShell>
   );

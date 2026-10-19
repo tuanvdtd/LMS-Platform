@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { SignOutDialog } from '@/components/layout/sign-out-dialog';
 import { INSTRUCTOR_NAV } from '@/components/layout/instructor-sidebar';
 
 // Header khu giảng viên (kiểu Udemy instructor): không tìm khoá / danh mục / giỏ hàng; có nhãn "Giảng viên"
@@ -30,12 +31,7 @@ export default function InstructorHeader() {
   const { data: session } = authClient.useSession();
   const user = session?.user;
 
-  async function signOut() {
-    const { error } = await authClient.signOut().catch(() => ({ error: true }));
-    if (error) return;
-    // Tải lại toàn trang để xoá state của user cũ trong các route bị <Activity> giữ (như header.tsx).
-    window.location.replace('/');
-  }
+  const [signOutOpen, setSignOutOpen] = useState(false);
 
   const toggleTheme = () => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
 
@@ -45,7 +41,7 @@ export default function InstructorHeader() {
         <div className="lg:hidden">
           {/* usePathname treo khi prerender (cacheComponents) → Suspense */}
           <Suspense fallback={<Button variant="ghost" size="icon" disabled aria-label="Mở menu"><Menu /></Button>}>
-            <InstructorMobileNav user={user} onSignOut={signOut} onToggleTheme={toggleTheme} />
+            <InstructorMobileNav user={user} onSignOut={() => setSignOutOpen(true)} onToggleTheme={toggleTheme} />
           </Suspense>
         </div>
 
@@ -109,7 +105,7 @@ export default function InstructorHeader() {
                     <BookMarked />
                     Chuyển sang Học viên
                   </DropdownMenuItem>
-                  <DropdownMenuItem variant="destructive" onClick={signOut}>
+                  <DropdownMenuItem variant="destructive" onClick={() => setSignOutOpen(true)}>
                     <LogOut />
                     Đăng xuất
                   </DropdownMenuItem>
@@ -119,6 +115,7 @@ export default function InstructorHeader() {
           )}
         </div>
       </div>
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
     </header>
   );
 }

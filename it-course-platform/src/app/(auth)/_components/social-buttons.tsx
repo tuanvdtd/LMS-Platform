@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
 import { safeRedirect } from '@/lib/safe-redirect';
-import { NETWORK } from './auth-messages';
+import { NETWORK, onboardingUrl } from './auth-messages';
 
 const PROVIDERS = [
   {
@@ -38,7 +38,7 @@ export function SocialButtons({ redirect }: { redirect?: string }) {
       const { error } = await authClient.signIn.social({
         provider: id,
         callbackURL: origin + safeRedirect(redirect),
-        newUserCallbackURL: `${origin}/onboarding`,
+        newUserCallbackURL: onboardingUrl(redirect),
         // Lỗi OAuth → back-end redirect về đây kèm ?error=..., giữ nguyên redirect đích
         errorCallbackURL: redirect ? `${origin}/login?redirect=${encodeURIComponent(safeRedirect(redirect))}` : `${origin}/login`,
       });
