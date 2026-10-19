@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Bell, Lock, User, Link2, Eye, EyeOff } from 'lucide-react';
 import { Btn } from '@/components/shared/product-ui';
+import { Button } from '@/components/ui/button';
 
 const TABS = [
   { id: 'profile', label: 'Hồ sơ', icon: User },
@@ -57,9 +58,9 @@ function ProfileTab() {
             width={80}
             height={80}
           />
-          <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold hover:bg-blue-700 transition-colors">
+          <Button size="icon-sm" className="absolute -bottom-1 -right-1 rounded-full text-xs font-bold" aria-label="Đổi ảnh đại diện">
             +
-          </button>
+          </Button>
         </div>
         <div>
           <p className="font-bold" style={{ color: 'var(--foreground)' }}>Nguyễn Minh Khoa</p>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { MessageCircle, Send, ChevronDown } from 'lucide-react';
 import { courses } from '@/lib/mocks/data';
+import { Button } from '@/components/ui/button';
 
 const MOCK_QA = [
   {
@@ -131,13 +132,14 @@ export function QAView() {
                       className="flex-1 border rounded-xl px-3 py-2 text-sm outline-none"
                       style={{ borderColor: 'var(--border)', background: 'var(--background)', color: 'var(--foreground)' }}
                     />
-                    <button
-                      className="self-end p-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                    <Button
+                      size="icon"
+                      className="self-end rounded-xl"
                       disabled={!answers[item.id]?.trim()}
                       aria-label="Gửi trả lời"
                     >
                       <Send size={16} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}

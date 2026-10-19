@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CheckCircle, XCircle, BookOpen, Bell, Code, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 type NotifType = 'verdict' | 'course' | 'reminder' | 'system';
 
@@ -119,9 +120,9 @@ export function NotificationsView() {
           )}
         </div>
         {unreadCount > 0 && (
-          <button onClick={markAll} className="text-sm text-blue-600 hover:underline">
+          <Button variant="link" onClick={markAll} className="px-0">
             Đánh dấu tất cả đã đọc
-          </button>
+          </Button>
         )}
       </div>
 
@@ -193,14 +194,15 @@ export function NotificationsView() {
               </div>
 
               {/* Dismiss */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon-xs"
                 onClick={(e) => { e.stopPropagation(); dismiss(n.id); }}
-                className="shrink-0 text-xs hover:text-red-500 transition-colors self-start mt-0.5"
-                style={{ color: 'var(--muted-foreground)' }}
+                className="self-start text-muted-foreground hover:text-destructive"
                 aria-label="Xoá thông báo"
               >
                 ×
-              </button>
+              </Button>
             </div>
           );
         })}

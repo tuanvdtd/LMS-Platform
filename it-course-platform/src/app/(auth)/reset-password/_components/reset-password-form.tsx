@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
 import { Btn } from '@/components/shared/product-ui';
 import { Input } from '@/components/ui/input';
 import { authClient } from '@/lib/auth-client';
@@ -100,15 +99,8 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
           />
         </Field>
         {banner && <Banner>{banner}</Banner>}
-        <Btn variant="primary" size="lg" type="submit" disabled={isSubmitting || done} className="w-full">
-          {isSubmitting || done ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Đang lưu...
-            </>
-          ) : (
-            'Lưu mật khẩu mới'
-          )}
+        <Btn variant="primary" size="lg" type="submit" isLoading={isSubmitting || done} className="w-full">
+          Lưu mật khẩu mới
         </Btn>
       </form>
     </AuthShell>

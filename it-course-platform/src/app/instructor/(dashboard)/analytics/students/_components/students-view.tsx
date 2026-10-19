@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Mail } from 'lucide-react';
 import { StatCard, Btn } from '@/components/shared/product-ui';
+import { Button } from '@/components/ui/button';
 
 const ALL_STUDENTS = [
   { id: 's-1', name: 'Hoàng Văn Nam', progress: 12, score: 45, lastActive: '14 ngày trước', risk: 'high' },
@@ -127,12 +128,14 @@ export function StudentsView() {
                   </span>
                 </td>
                 <td className="px-3 py-3">
-                  <button
+                  <Button
+                    variant="link"
+                    size="xs"
                     onClick={() => { setSelected(new Set([s.id])); setEmailOpen(true); }}
-                    className="text-xs text-blue-600 hover:underline"
+                    className="h-auto px-0 font-normal"
                   >
                     Nhắn tin
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}

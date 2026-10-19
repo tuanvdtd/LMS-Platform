@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Camera, Link2, Globe } from 'lucide-react';
 import { instructors } from '@/lib/mocks/data';
 import { RatingStars, Btn } from '@/components/shared/product-ui';
+import { Button } from '@/components/ui/button';
 import { PayoutAccountCard } from './payout-account-card';
 
 export default function ProfileForm() {
@@ -25,12 +26,13 @@ export default function ProfileForm() {
           <div className="flex items-center gap-5">
             <div className="relative">
               <Image src={ins.avatar} alt={ins.name} width={80} height={80} className="w-20 h-20 rounded-full object-cover" />
-              <button
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white hover:bg-blue-700 transition-colors"
+              <Button
+                size="icon-sm"
+                className="absolute -bottom-1 -right-1 rounded-full"
                 aria-label="Đổi ảnh đại diện"
               >
-                <Camera size={13} />
-              </button>
+                <Camera className="size-3.5" />
+              </Button>
             </div>
             <div>
               <p className="font-bold text-lg" style={{ color: 'var(--foreground)' }}>{ins.name}</p>

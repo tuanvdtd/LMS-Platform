@@ -4,7 +4,6 @@ import { useLayoutEffect, useState } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
 import { Btn } from '@/components/shared/product-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -156,15 +155,8 @@ export function RegisterForm() {
 
         {banner && <Banner>{banner}</Banner>}
 
-        <Btn variant="primary" size="lg" type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Đang tạo tài khoản...
-            </>
-          ) : (
-            'Tạo tài khoản'
-          )}
+        <Btn variant="primary" size="lg" type="submit" isLoading={isSubmitting} className="w-full">
+          Tạo tài khoản
         </Btn>
       </form>
 

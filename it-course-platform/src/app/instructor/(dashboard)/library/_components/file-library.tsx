@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { ArrowDown, ArrowUp, FileText, FileVideo, Loader2, RotateCw, Search, Upload, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, FileText, FileVideo, RotateCw, Search, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -442,9 +442,8 @@ export function FileLibrary() {
             <AlertDialogCancel variant="ghost" disabled={deleting}>
               Huỷ
             </AlertDialogCancel>
-            <Button variant="destructive" disabled={deleting} onClick={() => void confirmDelete()}>
-              {deleting && <Loader2 data-icon="inline-start" className="animate-spin" />}
-              {deleting ? 'Đang xoá…' : 'Xoá file'}
+            <Button variant="destructive" isLoading={deleting} onClick={() => void confirmDelete()}>
+              Xoá file
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

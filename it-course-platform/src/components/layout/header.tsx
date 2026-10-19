@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Bell, LogOut, MessageCircle, Moon, Search, ShoppingCart, Sun, User, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
+import { cn } from '@/lib/utils';
 import { authClient } from '@/lib/auth-client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { accountLinks } from '@/components/layout/account-links';
 import { ExploreMenu } from '@/components/layout/explore-menu';
@@ -46,11 +48,11 @@ export default function Header({
     window.location.replace('/');
   }
 
-  const iconLink = 'relative rounded-lg p-2 transition-colors hover:bg-muted';
+  const iconLink = 'relative flex size-10 items-center justify-center rounded-full transition-colors hover:bg-muted';
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-card">
-      <div className="relative mx-auto flex h-14 max-w-screen-2xl items-center gap-3 px-4">
+    <header className="sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
+      <div className="relative mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4">
         <div className="lg:hidden">
           <MobileNav categories={categories} user={user} isPending={isPending} onSignOut={signOut} />
         </div>
@@ -70,12 +72,12 @@ export default function Header({
           <ExploreMenu categories={categories} />
         </div>
 
-        <SearchForm className="hidden max-w-xl flex-1 lg:flex" />
+        <SearchForm className="mx-2 hidden max-w-2xl flex-1 lg:flex" />
 
         <div className="ml-auto flex items-center gap-1">
           <Link
             href="/teach"
-            className="hidden rounded-lg px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted lg:block"
+            className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted hover:text-primary lg:block"
           >
             Dạy học
           </Link>
@@ -103,10 +105,12 @@ export default function Header({
             {searchOpen ? <X size={18} /> : <Search size={18} />}
           </Button>
 
+          <Separator orientation="vertical" className="mx-1 hidden h-6 lg:block" />
+
           <Link href="/cart" className={iconLink} aria-label={`Giỏ hàng (${cartCount} khoá)`}>
             <ShoppingCart size={18} className="text-foreground" />
             {cartCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
+              <span className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-brand-accent text-[10px] font-bold text-white ring-2 ring-card">
                 {cartCount}
               </span>
             )}
@@ -114,13 +118,13 @@ export default function Header({
 
           {user && (
             <>
-              <Link href="/messages" className={`${iconLink} hidden lg:block`} aria-label="Tin nhắn">
+              <Link href="/messages" className={cn(iconLink, 'hidden lg:flex')} aria-label="Tin nhắn">
                 <MessageCircle size={18} className="text-foreground" />
-                <span className="absolute right-1 top-1 size-2 rounded-full bg-blue-500" />
+                <span className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-card" />
               </Link>
-              <Link href="/notifications" className={`${iconLink} hidden lg:block`} aria-label="Thông báo">
+              <Link href="/notifications" className={cn(iconLink, 'hidden lg:flex')} aria-label="Thông báo">
                 <Bell size={18} className="text-foreground" />
-                <span className="absolute right-1 top-1 size-2 rounded-full bg-red-500" />
+                <span className="absolute top-2 right-2 size-2 rounded-full bg-destructive ring-2 ring-card" />
               </Link>
             </>
           )}
@@ -140,7 +144,7 @@ export default function Header({
                 <DropdownMenuTrigger
                   render={<Button variant="ghost" size="icon" className="rounded-full" aria-label="Menu tài khoản" />}
                 >
-                  <Avatar className="size-7">
+                  <Avatar className="size-8 ring-2 ring-primary/20">
                     {user.image && <AvatarImage src={user.image} alt={user.name} />}
                     <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
                   </Avatar>
@@ -205,15 +209,16 @@ function SearchForm({
 
   return (
     <form onSubmit={submit} className={className} role="search">
-      <div className="flex w-full items-center gap-2 rounded-full border bg-secondary px-3 py-1.5">
-        <Search size={16} className="text-muted-foreground" />
+      <div className="flex h-11 w-full items-center gap-2.5 rounded-full border bg-muted/70 px-4 transition-colors focus-within:border-primary focus-within:bg-card focus-within:ring-3 focus-within:ring-ring/20 hover:bg-muted">
+        <Search size={18} className="shrink-0 text-muted-foreground" aria-hidden />
         <Input
+          type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           autoFocus={autoFocus}
-          placeholder="Tìm kiếm khoá học, kỹ năng..."
+          placeholder="Tìm kiếm khoá học, kỹ năng, công nghệ..."
           aria-label="Tìm kiếm khoá học"
-          className="h-auto flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+          className="h-auto flex-1 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 dark:bg-transparent"
         />
       </div>
     </form>

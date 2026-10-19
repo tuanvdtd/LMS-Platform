@@ -176,9 +176,8 @@ export function PromoVideoUpload({ disabled }: { disabled: boolean }) {
             <AlertDialogCancel variant="ghost" disabled={removing}>
               Huỷ
             </AlertDialogCancel>
-            <Button variant="destructive" disabled={removing} onClick={() => void remove()}>
-              {removing && <Loader2 data-icon="inline-start" className="animate-spin" />}
-              {removing ? 'Đang gỡ…' : 'Gỡ video'}
+            <Button variant="destructive" isLoading={removing} onClick={() => void remove()}>
+              Gỡ video
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
