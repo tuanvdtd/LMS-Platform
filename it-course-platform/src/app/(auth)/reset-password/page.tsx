@@ -15,9 +15,9 @@ export default function ResetPasswordPage({ searchParams }: PageProps<'/reset-pa
   );
 }
 
-// Back-end redirect về đây kèm ?token=... hoặc ?error=INVALID_TOKEN
+// Back-end redirect về đây kèm ?token=... hoặc ?error=INVALID_TOKEN. invite=1: link mời moderator đặt mật khẩu lần đầu.
 async function ResetPassword({ searchParams }: Pick<PageProps<'/reset-password'>, 'searchParams'>) {
-  const { token, error } = await searchParams;
+  const { token, error, invite } = await searchParams;
   const t = typeof token === 'string' && !error ? token : null;
-  return <ResetPasswordForm token={t} />;
+  return <ResetPasswordForm token={t} invite={invite === '1'} />;
 }

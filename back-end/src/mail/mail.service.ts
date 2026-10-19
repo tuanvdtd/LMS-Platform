@@ -42,6 +42,16 @@ export class MailService {
     );
   }
 
+  // Link là link reset password (hạn 1 giờ); hết hạn thì admin gửi lại.
+  sendStaffInvite(to: string, url: string) {
+    return this.send(
+      to,
+      'Lời mời làm kiểm duyệt viên SkillPath',
+      '<p>Bạn được mời làm kiểm duyệt viên khoá học trên SkillPath.</p>' +
+        `<p>Bấm vào link để đặt mật khẩu (hết hạn sau 1 giờ):</p><p><a href="${url}">${url}</a></p>`,
+    );
+  }
+
   // Kết quả duyệt khoá (spec pricing-submit-review §5.2).
   sendCourseReviewed(to: string, title: string, approved: boolean, reason: string | null) {
     const t = escapeHtml(title);

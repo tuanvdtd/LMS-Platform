@@ -18,3 +18,29 @@ export const getPayout = (id: string) => api.get<AdminPayoutDetail>(`/admin/payo
 
 export const markPayoutPaid = (id: string, bankTxnRef: string) =>
   api.post<AdminPayoutDetail>(`/admin/payouts/${id}/mark-paid`, { bankTxnRef }).then((r) => r.data);
+
+// Tài khoản moderator do admin quản lý; categories là danh mục cấp 1 được gán.
+export type Moderator = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  status: 'active' | 'locked';
+  categories: { id: string; name: string }[];
+  reviewedCount: number;
+};
+
+export const listModerators = () => api.get<{ items: Moderator[] }>('/admin/moderators').then((r) => r.data.items);
+
+export const createModerator = (body: { name: string; email: string; categoryIds: string[] }) =>
+  api.post<Moderator>('/admin/moderators', body).then((r) => r.data);
+
+export const setModeratorCategories = (id: string, categoryIds: string[]) =>
+  api.put<Moderator>(`/admin/moderators/${id}/categories`, { categoryIds }).then((r) => r.data);
+
+export const lockModerator = (id: string) => api.post<Moderator>(`/admin/moderators/${id}/lock`).then((r) => r.data);
+
+export const unlockModerator = (id: string) => api.post<Moderator>(`/admin/moderators/${id}/unlock`).then((r) => r.data);
+
+export const resendModeratorInvite = (id: string) =>
+  api.post(`/admin/moderators/${id}/resend-invite`).then(() => undefined);

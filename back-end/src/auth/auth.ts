@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/nestjs';
 import type { PrismaClient } from '@prisma/client';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { isAPIError } from 'better-auth/api';
+import { APIError, isAPIError } from 'better-auth/api';
 import { admin } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
 import { adminAc, defaultStatements } from 'better-auth/plugins/admin/access';
@@ -21,8 +21,15 @@ export const roles = {
   student: ac.newRole({}),
   instructor: ac.newRole({}),
   admin: ac.newRole({ ...adminAc.statements }),
+  // Không có quyền plugin admin: chỉ duyệt khoá qua API Nest.
+  moderator: ac.newRole({}),
 };
 export type Role = keyof typeof roles;
+
+// Tài khoản nghiệp vụ: không học, không mua, không dạy, không đăng nhập OAuth.
+export const STAFF_ROLES: Role[] = ['admin', 'moderator'];
+export const isStaff = (role: string | null | undefined) =>
+  !!role?.split(',').some((r) => (STAFF_ROLES as string[]).includes(r));
 
 function oauth(prefix: 'GOOGLE' | 'GITHUB') {
   const clientId = optionalEnv(`${prefix}_CLIENT_ID`);
@@ -35,6 +42,12 @@ export function isServerError(e: unknown): boolean {
   return !isAPIError(e) || e.status === 'INTERNAL_SERVER_ERROR';
 }
 
+const staffOAuthError = () =>
+  new APIError('FORBIDDEN', {
+    code: 'STAFF_OAUTH_FORBIDDEN',
+    message: 'Tài khoản nghiệp vụ chỉ đăng nhập bằng email và mật khẩu',
+  });
+
 export function createAuth(
   prisma: PrismaClient,
   redis: Redis,
@@ -43,6 +56,11 @@ export function createAuth(
   const cookieDomain = optionalEnv('COOKIE_DOMAIN');
   const google = oauth('GOOGLE');
   const github = oauth('GITHUB');
+  const staffUser = async (id: string) =>
+    isStaff(
+      (await prisma.user.findUnique({ where: { id }, select: { role: true } }))
+        ?.role,
+    );
 
   return betterAuth({
     baseURL: requireEnv('BETTER_AUTH_URL'),
@@ -64,7 +82,16 @@ export function createAuth(
       // Lộ mật khẩu → đặt lại là đá mọi phiên, kể cả kẻ gian.
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
-        void mail.sendResetPassword(user.email, url);
+        // Admin mời moderator = reset password với redirectTo ?invite=1. url đã mã hoá
+        // callbackURL nên phải parse, không tìm chuỗi thô được. Kiểm thêm role: endpoint
+        // reset là public, ai cũng gửi được ?invite=1 để học viên nhận mail "lời mời" giả.
+        const invite =
+          !!new URL(url).searchParams
+            .get('callbackURL')
+            ?.includes('invite=1') && (await staffUser(user.id));
+        void (invite
+          ? mail.sendStaffInvite(user.email, url)
+          : mail.sendResetPassword(user.email, url));
       },
     },
     emailVerification: {
@@ -86,6 +113,36 @@ export function createAuth(
       additionalFields: {
         occupation: { type: 'string', required: false, input: false },
         level: { type: 'string', required: false, input: false },
+      },
+    },
+    // Chặn staff đăng nhập Google/GitHub. APIError thiếu `code` thì Better Auth biến thành 500;
+    // có code thì redirect về errorCallbackURL?error=STAFF_OAUTH_FORBIDDEN.
+    databaseHooks: {
+      // Chặn ngay lúc link: không thì account Google đã gắn vào TK staff trước khi tới hook session.
+      account: {
+        create: {
+          before: async (account) => {
+            if (
+              account.providerId !== 'credential' &&
+              (await staffUser(account.userId))
+            )
+              throw staffOAuthError();
+          },
+        },
+      },
+      // Account Google/GitHub đã link từ trước khi thành staff → không qua hook trên, chặn lúc tạo session:
+      // /callback/* (luồng redirect) và /sign-in/social (đăng nhập bằng idToken, tạo session ngay).
+      // ctx null khi session tạo ngoài request.
+      session: {
+        create: {
+          before: async (session, ctx) => {
+            const social =
+              ctx?.path?.startsWith('/callback/') ||
+              ctx?.path === '/sign-in/social';
+            if (social && (await staffUser(session.userId)))
+              throw staffOAuthError();
+          },
+        },
       },
     },
     rateLimit: {

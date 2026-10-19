@@ -82,6 +82,7 @@ export function ApprovalsView() {
               <TableRow>
                 <TableHead className="w-20" />
                 <TableHead>Khoá học</TableHead>
+                <TableHead>Danh mục</TableHead>
                 <TableHead>Giảng viên</TableHead>
                 <TableHead>Giá</TableHead>
                 <TableHead>Ngày gửi</TableHead>
@@ -99,6 +100,9 @@ export function ApprovalsView() {
                     )}
                   </TableCell>
                   <TableCell className="font-medium">{row.course.title}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {[row.course.category?.parent?.name, row.course.category?.name].filter(Boolean).join(' › ')}
+                  </TableCell>
                   <TableCell>
                     <div>{row.course.instructor.name}</div>
                     <div className="text-xs text-muted-foreground">{row.course.instructor.email}</div>

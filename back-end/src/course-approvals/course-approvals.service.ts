@@ -35,6 +35,12 @@ const APPROVAL_SELECT = {
   submittedBy: PERSON,
   reviewedBy: { select: { id: true, name: true } },
 } satisfies Prisma.CourseApprovalSelect;
+const CATEGORY = { select: { id: true, name: true, parent: { select: { id: true, name: true } } } } as const;
+
+// null = admin, thấy tất cả. Mảng = id danh mục cấp 1 của moderator (khoá luôn gắn danh mục
+// cấp 2 nên so parentId). Mảng rỗng → `in: []` → không thấy gì.
+export type ReviewScope = string[] | null;
+const inScope = (scope: ReviewScope) => (scope ? { course: { category: { parentId: { in: scope } } } } : {});
 
 // Gửi duyệt (giảng viên) + hàng đợi duyệt (admin) — spec pricing-submit-review §4, §5.
 @Injectable()
@@ -83,9 +89,16 @@ export class CourseApprovalsService {
     return this.courses.detail(courseId, userId);
   }
 
+  // User vừa admin vừa moderator → coi là admin.
+  async scopeOf(user: { id: string; role?: string | null }): Promise<ReviewScope> {
+    if (user.role?.split(',').includes('admin')) return null;
+    const rows = await this.prisma.moderatorCategory.findMany({ where: { userId: user.id }, select: { categoryId: true } });
+    return rows.map((r) => r.categoryId);
+  }
+
   // Pending: cũ nhất trước (xử lý theo thứ tự gửi); đã xử lý: mới nhất trước.
-  async list(q: ApprovalsQuery) {
-    const where = { status: q.status };
+  async list(q: ApprovalsQuery, scope: ReviewScope) {
+    const where = { status: q.status, ...inScope(scope) };
     const [items, total] = await Promise.all([
       this.prisma.courseApproval.findMany({
         where,
@@ -97,7 +110,9 @@ export class CourseApprovalsService {
           status: true,
           createdAt: true,
           reviewedAt: true,
-          course: { select: { id: true, title: true, thumbnailUrl: true, priceAmount: true, instructor: PERSON } },
+          course: {
+            select: { id: true, title: true, thumbnailUrl: true, priceAmount: true, instructor: PERSON, category: CATEGORY },
+          },
         },
       }),
       this.prisma.courseApproval.count({ where }),
@@ -105,9 +120,10 @@ export class CourseApprovalsService {
     return { items, total, page: q.page, pageSize: PAGE_SIZE };
   }
 
-  async detail(id: string) {
+  // Ngoài scope → 404 như không tồn tại.
+  async detail(id: string, scope: ReviewScope) {
     const approval = isGuid(id)
-      ? await this.prisma.courseApproval.findUnique({ where: { id }, select: APPROVAL_SELECT })
+      ? await this.prisma.courseApproval.findFirst({ where: { id, ...inScope(scope) }, select: APPROVAL_SELECT })
       : null;
     if (!approval) throw new NotFoundException();
     const row = await this.prisma.course.findUniqueOrThrow({ where: { id: approval.courseId }, select: COURSE_SELECT });
@@ -130,24 +146,31 @@ export class CourseApprovalsService {
     };
   }
 
-  approve(id: string, adminId: string) {
-    return this.review(id, adminId, 'approved', null);
+  approve(id: string, reviewerId: string, scope: ReviewScope) {
+    return this.review(id, reviewerId, scope, 'approved', null);
   }
 
-  reject(id: string, adminId: string, reason: string) {
-    return this.review(id, adminId, 'rejected', reason);
+  reject(id: string, reviewerId: string, scope: ReviewScope, reason: string) {
+    return this.review(id, reviewerId, scope, 'rejected', reason);
   }
 
-  private async review(id: string, adminId: string, status: 'approved' | 'rejected', reason: string | null) {
+  private async review(
+    id: string,
+    reviewerId: string,
+    scope: ReviewScope,
+    status: 'approved' | 'rejected',
+    reason: string | null,
+  ) {
     if (!isGuid(id)) throw new NotFoundException();
     const row = await this.prisma.$transaction(async (tx) => {
       // WHERE status = pending: hai admin bấm cùng lúc thì người sau count = 0 (spec §5.2).
+      // Scope nằm trong WHERE: ngoài danh mục thì không ghi gì, không phải kiểm sau.
       const res = await tx.courseApproval.updateMany({
-        where: { id, status: 'pending' },
-        data: { status, reason, reviewedById: adminId, reviewedAt: new Date() },
+        where: { id, status: 'pending', ...inScope(scope) },
+        data: { status, reason, reviewedById: reviewerId, reviewedAt: new Date() },
       });
-      const found = await tx.courseApproval.findUnique({
-        where: { id },
+      const found = await tx.courseApproval.findFirst({
+        where: { id, ...inScope(scope) },
         select: { courseId: true, course: { select: { title: true, publishedAt: true, instructor: { select: { email: true } } } } },
       });
       if (!found) throw new NotFoundException();
@@ -166,14 +189,14 @@ export class CourseApprovalsService {
     }, TX_OPTIONS);
     // Không await: MailService không throw, lỗi chỉ ghi log (như auth).
     void this.mail.sendCourseReviewed(row.course.instructor.email, row.course.title, status === 'approved', reason);
-    return this.detail(id);
+    return this.detail(id, scope);
   }
 
   // Admin xem thử video/PDF: chỉ asset gắn vào bài giảng hoặc tài nguyên của chính khoá đang duyệt.
-  async assetUrl(approvalId: string, assetId: string) {
+  async assetUrl(approvalId: string, assetId: string, scope: ReviewScope) {
     const approval =
       isGuid(approvalId) && isGuid(assetId)
-        ? await this.prisma.courseApproval.findUnique({ where: { id: approvalId }, select: { courseId: true } })
+        ? await this.prisma.courseApproval.findFirst({ where: { id: approvalId, ...inScope(scope) }, select: { courseId: true } })
         : null;
     if (!approval) throw new NotFoundException();
     const { courseId } = approval;

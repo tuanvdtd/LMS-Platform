@@ -7,6 +7,7 @@ import { CircleCheck, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
+import { isStaff } from '@/lib/instructor-role';
 import { notifyCartChanged } from '@/lib/cart-events';
 import { loginUrlFor, parseAction, withoutAction, type ResumeAction } from '@/lib/resume-action';
 import { addToCart, apiMessage, enroll, getBuyStatus, previewCoupon, startCheckout } from '@/lib/api/checkout';
@@ -23,6 +24,8 @@ export function BuyBox({ course }: Props) {
   const code = searchParams.get('couponCode')?.trim().toUpperCase() || undefined;
   const action = parseAction(searchParams.get('action'));
   const { data: session, isPending } = authClient.useSession();
+  // Tài khoản nghiệp vụ không mua/ghi danh (BE trả 403) → chỉ hiện giá, không gọi status.
+  const staff = isStaff(session?.user);
   const [status, setStatus] = useState<CourseBuyStatus | null>(null);
   const [preview, setPreview] = useState<{ code: string; data: CouponPreview } | null>(null);
   const [previewDone, setPreviewDone] = useState<string | null>(null); // mã đã preview xong (thành công hoặc lỗi)
@@ -33,8 +36,8 @@ export function BuyBox({ course }: Props) {
   const idemKey = useMemo(() => crypto.randomUUID(), [code, errorNonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (session) getBuyStatus(course.id).then(setStatus, () => undefined);
-  }, [session, course.id]);
+    if (session && !staff) getBuyStatus(course.id).then(setStatus, () => undefined);
+  }, [session, staff, course.id]);
   useEffect(() => {
     if (!code) return;
     let cancelled = false;
@@ -152,6 +155,15 @@ export function BuyBox({ course }: Props) {
     </p>
   );
   const showBuyNow = price > 0 && !status?.enrolled && !status?.isOwner;
+
+  if (staff) {
+    return (
+      <>
+        {priceBlock}
+        <p className="text-sm text-muted-foreground">Tài khoản nghiệp vụ không mua hoặc ghi danh khoá học.</p>
+      </>
+    );
+  }
 
   return (
     <>

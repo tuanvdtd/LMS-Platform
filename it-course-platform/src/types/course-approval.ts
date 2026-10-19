@@ -9,7 +9,16 @@ export interface AdminApprovalRow {
   status: ApprovalStatus;
   createdAt: string;
   reviewedAt: string | null;
-  course: { id: string; title: string; thumbnailUrl: string | null; priceAmount: number; instructor: Person };
+  course: {
+    id: string;
+    title: string;
+    thumbnailUrl: string | null;
+    priceAmount: number;
+    instructor: Person;
+    // Khoá gắn danh mục cấp 2; parent là cấp 1 (cấp moderator được gán).
+    // null khi giảng viên bỏ chọn danh mục sau lần bị từ chối (dòng lịch sử vẫn hiện)
+    category: { id: string; name: string; parent: { id: string; name: string } | null } | null;
+  };
 }
 
 export interface ApprovalRecord {

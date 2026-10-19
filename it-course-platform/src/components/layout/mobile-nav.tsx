@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { Bell, ChevronLeft, ChevronRight, LogOut, Menu, MessageCircle, Moon, Sun, User, X } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, LogOut, Menu, MessageCircle, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { categoryHref, topicHref } from '@/lib/category-links';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { accountLinks } from '@/components/layout/account-links';
-import { teachHref } from '@/lib/instructor-role';
+import { isStaff, teachHref } from '@/lib/instructor-role';
 import type { CategoryNode } from '@/types';
 
 type NavUser = { name: string; email: string; role?: string | null };
@@ -36,6 +36,8 @@ export function MobileNav({
   const close = () => setOpen(false);
   const stripRef = useRef<HTMLElement>(null);
   const prevDepth = useRef(0);
+  // Tài khoản nghiệp vụ không học/dạy → ẩn link học viên, "Dạy học"; thay bằng "Khu quản trị".
+  const staff = isStaff(user);
 
   // Chuyển màn (drill/back) → đưa focus vào màn mới; lần mở đầu để Sheet tự focus.
   useEffect(() => {
@@ -102,16 +104,25 @@ export function MobileNav({
                   <Bell size={15} className="text-muted-foreground" />
                   Thông báo
                 </Link>
-                {accountLinks.map(({ icon: Icon, label, to }) => (
-                  <Link key={to} href={to} onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
-                    <Icon size={15} className="text-muted-foreground" />
-                    {label}
+                {staff ? (
+                  <Link href="/admin" onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
+                    <ShieldCheck size={15} />
+                    Khu quản trị
                   </Link>
-                ))}
-                <Link href={teachHref(user)} onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
-                  <User size={15} />
-                  Chuyển sang Giảng viên
-                </Link>
+                ) : (
+                  <>
+                    {accountLinks.map(({ icon: Icon, label, to }) => (
+                      <Link key={to} href={to} onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
+                        <Icon size={15} className="text-muted-foreground" />
+                        {label}
+                      </Link>
+                    ))}
+                    <Link href={teachHref(user)} onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
+                      <User size={15} />
+                      Chuyển sang Giảng viên
+                    </Link>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -126,7 +137,9 @@ export function MobileNav({
               </div>
             )}
             <div className="mt-2 border-t py-2">
-              <Link href={teachHref(user)} onClick={close} className="block px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">Dạy học</Link>
+              {!staff && (
+                <Link href={teachHref(user)} onClick={close} className="block px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">Dạy học</Link>
+              )}
               <button
                 type="button"
                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}

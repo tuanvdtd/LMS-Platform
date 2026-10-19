@@ -7,6 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { curriculumSummary, type CurriculumSection } from '@/types/catalog';
 import { formatDuration } from '@/types/curriculum';
 import { authClient } from '@/lib/auth-client';
+import { isStaff } from '@/lib/instructor-role';
 import { getBuyStatus } from '@/lib/api/checkout';
 import { PreviewDialog } from './preview-dialog';
 
@@ -22,10 +23,11 @@ const TYPE: Record<Item['type'], { icon: LucideIcon; tag?: string }> = {
 export function CurriculumAccordion({ slug, courseId, sections }: { slug: string; courseId: string; sections: CurriculumSection[] }) {
   const { data: session } = authClient.useSession();
   const [enrolled, setEnrolled] = useState(false);
-  // Trang được cache nên trạng thái ghi danh lấy ở client (cùng endpoint với BuyBox).
+  const staff = isStaff(session?.user);
+  // Trang được cache nên trạng thái ghi danh lấy ở client (cùng endpoint với BuyBox). Staff không học → bỏ qua.
   useEffect(() => {
-    if (session) getBuyStatus(courseId).then((s) => setEnrolled(s.enrolled), () => undefined);
-  }, [session, courseId]);
+    if (session && !staff) getBuyStatus(courseId).then((s) => setEnrolled(s.enrolled), () => undefined);
+  }, [session, staff, courseId]);
   const [preview, setPreview] = useState<Item | null>(null);
   const [open, setOpen] = useState<string[]>(sections[0] ? [sections[0].id] : []);
   const allOpen = open.length === sections.length;

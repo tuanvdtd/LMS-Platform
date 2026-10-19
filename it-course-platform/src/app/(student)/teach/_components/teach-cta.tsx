@@ -9,7 +9,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { becomeInstructor } from '@/lib/api/instructor-courses';
 import { authClient } from '@/lib/auth-client';
-import { isInstructor } from '@/lib/instructor-role';
+import { isInstructor, isStaff } from '@/lib/instructor-role';
 
 // CTA landing /teach (spec teach-landing §4.2): khách → đăng ký, học viên → bật vai trò rồi vào dashboard,
 // giảng viên → vào dashboard. Hai chỗ dùng (khối 2, khối 8) đọc chung một session.
@@ -30,6 +30,18 @@ export function TeachCta() {
           Đã có tài khoản?{' '}
           <Link href="/login?redirect=/teach" className="font-semibold underline underline-offset-4">Đăng nhập</Link>
         </p>
+      </div>
+    );
+  }
+
+  // Tài khoản nghiệp vụ bị BE chặn bật vai trò giảng viên → không hiện nút bấm sẽ lỗi 403.
+  if (isStaff(data.user)) {
+    return (
+      <div className="flex flex-col items-start gap-2">
+        <Link href="/admin" className={buttonVariants({ size: 'lg' })}>
+          Vào khu quản trị <ArrowRight data-icon="inline-end" />
+        </Link>
+        <p className="text-sm text-muted-foreground">Tài khoản nghiệp vụ không dạy học được.</p>
       </div>
     );
   }

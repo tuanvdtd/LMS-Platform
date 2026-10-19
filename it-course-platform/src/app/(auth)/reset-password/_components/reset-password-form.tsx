@@ -18,7 +18,7 @@ const FIELD_ERRORS: Record<string, string> = {
   PASSWORD_TOO_LONG: 'Mật khẩu tối đa 128 ký tự',
 };
 
-export function ResetPasswordForm({ token }: { token: string | null }) {
+export function ResetPasswordForm({ token, invite }: { token: string | null; invite: boolean }) {
   const router = useRouter();
   const [expired, setExpired] = useState(!token);
   const [banner, setBanner] = useState<string | null>(null);
@@ -54,6 +54,19 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
     }
   }
 
+  // Link mời chỉ admin gửi lại được → không đưa sang luồng quên mật khẩu.
+  if (expired && invite) {
+    return (
+      <AuthShell title="Link không hợp lệ">
+        <div className="text-center space-y-4">
+          <p className="text-sm" style={{ color: 'var(--foreground)' }}>
+            Link mời đã hết hạn, liên hệ quản trị viên để gửi lại
+          </p>
+          <Link href="/login" className="block text-sm text-blue-600 hover:underline">Quay lại đăng nhập</Link>
+        </div>
+      </AuthShell>
+    );
+  }
   if (expired) {
     return (
       <AuthShell title="Link không hợp lệ">
@@ -71,7 +84,7 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
   }
 
   return (
-    <AuthShell title="Đặt mật khẩu mới">
+    <AuthShell title={invite ? 'Đặt mật khẩu' : 'Đặt mật khẩu mới'}>
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         <Field id="password" label="Mật khẩu mới" error={errors.password?.message}>
           <div className="relative">

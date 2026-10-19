@@ -19,6 +19,8 @@ import { useCooldown } from './use-cooldown';
 
 const INVALID = 'Email hoặc mật khẩu không đúng';
 const OAUTH_FAILED = 'Đăng nhập bằng Google/GitHub không thành công, vui lòng thử lại';
+const STAFF_OAUTH_FORBIDDEN = 'Tài khoản nghiệp vụ chỉ đăng nhập bằng email và mật khẩu';
+const BANNED = 'Tài khoản đã bị khoá';
 // Better Auth không liên kết OAuth vào tài khoản email chưa xác minh (chống chiếm tài khoản)
 const ACCOUNT_NOT_LINKED =
   'Email này đã được đăng ký nhưng chưa xác minh. Hãy mở link xác minh trong email (hoặc đăng nhập bằng mật khẩu để gửi lại link), sau đó mới liên kết được Google/GitHub.';
@@ -29,7 +31,14 @@ type Props = { redirect?: string; reset?: boolean; oauthError?: string };
 export function LoginView({ redirect, reset, oauthError }: Props) {
   const router = useRouter();
   const [showPw, setShowPw] = useState(false);
-  const initialBanner = oauthError === 'account_not_linked' ? ACCOUNT_NOT_LINKED : oauthError ? OAUTH_FAILED : null;
+  const initialBanner =
+    oauthError === 'account_not_linked'
+      ? ACCOUNT_NOT_LINKED
+      : oauthError === 'STAFF_OAUTH_FORBIDDEN'
+        ? STAFF_OAUTH_FORBIDDEN
+        : oauthError
+          ? OAUTH_FAILED
+          : null;
   const [banner, setBanner] = useState<string | null>(initialBanner);
   const [showReset, setShowReset] = useState(!!reset);
   const [unverified, setUnverified] = useState<string | null>(null);
@@ -70,6 +79,7 @@ export function LoginView({ redirect, reset, oauthError }: Props) {
         return;
       }
       if (error.code === 'EMAIL_NOT_VERIFIED') setUnverified(values.email);
+      else if (error.code === 'BANNED_USER') setBanner(BANNED);
       else if (error.code === 'INVALID_EMAIL_OR_PASSWORD') {
         resetField('password');
         setFocus('password');
