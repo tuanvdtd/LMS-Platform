@@ -210,7 +210,7 @@ export default function CourseDetailView({ course, sections }: { course: CourseD
 
         <section id="noi-dung">
           {sections.length > 0 ? (
-            <CurriculumAccordion slug={course.slug} sections={sections} />
+            <CurriculumAccordion slug={course.slug} courseId={course.id} sections={sections} />
           ) : (
             <>
               <h2 className="mb-3 text-lg font-semibold text-foreground">Nội dung khoá học</h2>
