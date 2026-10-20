@@ -54,6 +54,7 @@ ALTER TABLE assets ADD CONSTRAINT chk_asset_pdf
   CHECK (kind <> 'document' OR "mimeType" = 'application/pdf');
 
 -- [2026-09-30] Vá NULL ở migration exercise_languages_not_null.
+-- [2026-10-19] Đã thay bằng 09_exercise_grading.sql (cột languages).
 ALTER TABLE exercises ADD CONSTRAINT chk_exercise_languages
   CHECK (coalesce(cardinality("allowedLanguageIds"), 0) >= 1);
 

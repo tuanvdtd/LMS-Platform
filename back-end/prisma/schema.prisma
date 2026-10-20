@@ -96,6 +96,7 @@ model User {
   qaQuestions           CourseQuestion[]
   qaAnswers             CourseAnswer[]
   moderatorCategories   ModeratorCategory[]
+  notifications         Notification[]
 
   @@index([role])
   @@map("user")
@@ -920,22 +921,22 @@ model QuizAnswer {
 //  8. BÀI TẬP LẬP TRÌNH (§3.3, §4.5)
 // ============================================================================
 
-// Nhiều ngôn ngữ: test stdin/stdout của Judge0 không phụ thuộc ngôn ngữ (spec D8).
-// Mỗi languageId trong allowedLanguageIds có đúng 1 dòng exercise_starter_codes (service).
+// Nhiều ngôn ngữ: test stdin/stdout của Piston không phụ thuộc ngôn ngữ (spec coding-exercise E1–E4).
+// Mỗi ngôn ngữ trong languages có đúng 1 dòng exercise_starter_codes (service). isPublished của item =
+// lời giải mẫu đã pass bộ test hiện tại (E12).
 model Exercise {
   id                  String     @id @default(uuid(7)) @db.Uuid
   itemId              String     @unique @db.Uuid
   courseId            String     @db.Uuid
   learningObjective   String? // ≤200 ký tự (service)
-  instructionsHtml    String
+  instructions        String // Markdown
   hints               String[]   @default([])
   solutionExplanation String?
   relatedItemId       String?    @db.Uuid
   difficulty          Difficulty @default(medium)
   timeLimitMs         Int        @default(2000)
   memoryLimitKb       Int        @default(128000)
-  allowedLanguageIds  Int[] // id ngôn ngữ của Judge0, ≥1 (chk_exercise_languages)
-  totalPoints         Int        @default(100)
+  languages           String[] // 'javascript' | 'python' | 'cpp' (LANGUAGES ở code-runner.ts), ≥1 (chk_exercise_languages)
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
@@ -955,13 +956,13 @@ model Exercise {
 
 model ExerciseStarterCode {
   exerciseId   String  @db.Uuid
-  languageId   Int
+  language     String
   code         String
-  solutionCode String? // lời giải mẫu, để giảng viên chạy thử bộ test trước khi xuất bản
+  solutionCode String? // lời giải mẫu; null = nháp, verify báo thiếu
 
   exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 
-  @@id([exerciseId, languageId])
+  @@id([exerciseId, language])
   @@map("exercise_starter_codes")
 }
 
@@ -997,10 +998,10 @@ model Submission {
   id           String           @id @default(uuid(7)) @db.Uuid
   exerciseId   String           @db.Uuid
   userId       String           @db.Uuid
-  languageId   Int
+  language     String
   sourceCode   String
   status       SubmissionStatus @default(pending)
-  score        Int              @default(0)
+  score        Int              @default(0) // 0–100 = % điểm test đạt (E11)
   passedTests  Int              @default(0)
   totalTests   Int              @default(0)
   maxTimeMs    Int?
@@ -1018,12 +1019,11 @@ model Submission {
   @@map("submissions")
 }
 
-// judge0Token unique → callback của Judge0 ghi đúng dòng và idempotent khi bị gọi lại (§4.5).
+// Unique (submissionId, testCaseId) → consumer ghi lại khi message giao lại không nhân đôi (spec coding-exercise §5).
 model SubmissionResult {
   id            String           @id @default(uuid(7)) @db.Uuid
   submissionId  String           @db.Uuid
   testCaseId    String           @db.Uuid
-  judge0Token   String           @unique
   status        SubmissionStatus @default(pending)
   timeMs        Int?
   memoryKb      Int?
@@ -1036,6 +1036,28 @@ model SubmissionResult {
 
   @@unique([submissionId, testCaseId])
   @@map("submission_results")
+}
+
+// Thông báo cho user. Feature này chỉ ghi bản ghi verdict; đẩy socket.io + API chuông làm ở feature notification.
+model Notification {
+  id        String           @id @default(uuid(7)) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  body      String
+  link      String?
+  data      Json             @default("{}") // verdict: { submissionId, status, score }
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  verdict
 }
 
 // ============================================================================

@@ -202,19 +202,19 @@ describe('exercises, courses, notes, order_items', () => {
       });
       await expect(
         tx.exercise.create({
-          data: { itemId: item.id, courseId: course.id, instructionsHtml: 'x', allowedLanguageIds: [] },
+          data: { itemId: item.id, courseId: course.id, instructions: 'x', languages: [] },
         }),
       ).rejects.toThrow(/chk_exercise_languages/);
     }));
 
-  it('bài tập coding không được để allowedLanguageIds NULL', () =>
+  it('bài tập coding không được để languages NULL', () =>
     inRollback(async (tx) => {
       const { course, section } = await makeCourse(tx);
       const item = await tx.curriculumItem.create({
         data: { sectionId: section.id, courseId: course.id, title: 'x', type: 'coding_exercise', position: 1 },
       });
       await expect(
-        tx.$executeRaw`INSERT INTO exercises (id, "itemId", "courseId", "instructionsHtml", "allowedLanguageIds", "updatedAt")
+        tx.$executeRaw`INSERT INTO exercises (id, "itemId", "courseId", "instructions", "languages", "updatedAt")
           VALUES (gen_random_uuid(), ${item.id}::uuid, ${course.id}::uuid, 'x', NULL, now())`,
       ).rejects.toThrow(/chk_exercise_languages|23514/);
     }));
@@ -225,7 +225,7 @@ describe('exercises, courses, notes, order_items', () => {
       const base = { sectionId: section.id, courseId: course.id, title: 'x' };
       const ex = await tx.curriculumItem.create({ data: { ...base, type: 'coding_exercise', position: 1 } });
       await tx.exercise.create({
-        data: { itemId: ex.id, courseId: course.id, instructionsHtml: 'x', allowedLanguageIds: [71] },
+        data: { itemId: ex.id, courseId: course.id, instructions: 'x', languages: ['javascript'] },
       });
       await tx.course.update({ where: { id: course.id }, data: { priceAmount: 0 } });
       const lec = await tx.curriculumItem.create({ data: { ...base, type: 'lecture', position: 2 } });

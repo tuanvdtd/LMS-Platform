@@ -6,7 +6,7 @@ export type CourseStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'hidd
 
 export type LessonType = 'video' | 'reading' | 'quiz' | 'coding' | 'attachment';
 
-export type Verdict = 'AC' | 'WA' | 'TLE' | 'RE' | 'CE' | 'Pending' | 'Running';
+export type Verdict = 'AC' | 'WA' | 'TLE' | 'RE' | 'CE' | 'IE' | 'Pending' | 'Running';
 
 export interface SkillTag {
   id: string;
@@ -116,29 +116,6 @@ export interface Quiz {
   maxAttempts: number;
   questions: QuizQuestion[];
   skills: SkillTag[];
-}
-
-export interface TestCase {
-  id: string;
-  input: string;
-  expectedOutput: string;
-  hidden: boolean;
-  weight: number;
-}
-
-export interface CodingProblem {
-  id: string;
-  title: string;
-  description: string;
-  examples: { input: string; output: string; explanation?: string }[];
-  constraints: string[];
-  timeLimit: number; // ms
-  memoryLimit: number; // MB
-  skills: SkillTag[];
-  languages: string[];
-  starterCode: Record<string, string>;
-  testCases: TestCase[];
-  acceptanceRate: number;
 }
 
 export interface Submission {

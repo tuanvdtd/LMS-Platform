@@ -1,0 +1,29 @@
+# Piston chạy code học viên (spec coding-exercise §10). Dev: docker compose -f piston/docker-compose.yml up -d
+# - API chạy TRONG Docker cùng network với Piston: bỏ `ports`, gọi http://piston:2000. Không mở cổng 2000 ra ngoài.
+# - API chạy trên host (pnpm start:dev): giữ `127.0.0.1:2000:2000` (không bao giờ `0.0.0.0`), PISTON_URL=http://127.0.0.1:2000.
+services:
+  piston:
+    # Pin theo digest — đổi digest khi muốn nâng Piston; hành vi response có thể đổi.
+    image: ghcr.io/engineer-man/piston@sha256:2f66b7456189c4d713aa986d98eccd0b6ee16d26c7ec5f21b30e942756fd127a
+    restart: unless-stopped
+    # Piston bắt buộc (isolate/cgroup). Sandbox thủng = root trên host → prod có người dùng thật tách EC2 riêng.
+    privileged: true
+    ports:
+      - 127.0.0.1:2000:2000
+    cpus: 1
+    mem_limit: 1g
+    memswap_limit: 1g
+    pids_limit: 512
+    environment:
+      # 2 job × tối đa 512 MB ≈ trần 1 GB của container; bài thường dùng ít hơn nhiều.
+      PISTON_MAX_CONCURRENT_JOBS: 2
+      PISTON_RUN_TIMEOUT: 10000
+      PISTON_RUN_CPU_TIME: 10000
+      PISTON_OUTPUT_MAX_SIZE: 65536
+      PISTON_DISABLE_NETWORKING: 'true'
+    volumes:
+      - packages:/piston/packages
+    tmpfs:
+      - /tmp:exec
+volumes:
+  packages:

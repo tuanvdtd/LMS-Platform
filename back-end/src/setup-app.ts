@@ -19,6 +19,7 @@ export function setupApp(app: INestApplication): void {
   // express.raw đánh dấu body đã đọc nên express.json bỏ qua. app.use không có prefix 'api' → ghi đủ path.
   app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
   // 4. Body parser SAU auth handler — Better Auth tự đọc body.
-  app.use(express.json());
+  // 4mb: PUT /code của bài code (≤ 20 test × 64 KB × 2 + code 64 KB × 3 ngôn ngữ × 2).
+  app.use(express.json({ limit: '4mb' }));
   app.setGlobalPrefix('api');
 }
