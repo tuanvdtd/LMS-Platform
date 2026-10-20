@@ -2,8 +2,8 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from
 import type { AuthSession } from '../auth/auth.js';
 import { CurrentUser, Roles } from '../auth/decorators.js';
 import { ZodValidationPipe } from '../common/zod.pipe.js';
-import { moveQuestionSchema, questionSchema, updateQuizSchema } from './quiz.schemas.js';
-import type { MoveQuestionInput, QuestionInput, UpdateQuizInput } from './quiz.schemas.js';
+import { importQuestionsSchema, moveQuestionSchema, questionSchema, updateQuizSchema } from './quiz.schemas.js';
+import type { ImportQuestionsInput, MoveQuestionInput, QuestionInput, UpdateQuizInput } from './quiz.schemas.js';
 import { QuizService } from './quiz.service.js';
 
 type User = AuthSession['user'];
@@ -36,6 +36,16 @@ export class QuizController {
     @Body(new ZodValidationPipe(questionSchema)) body: QuestionInput,
   ) {
     return this.quiz.createQuestion(courseId, user.id, itemId, body);
+  }
+
+  @Post('questions/import')
+  importQuestions(
+    @CurrentUser() user: User,
+    @Param('courseId') courseId: string,
+    @Param('itemId') itemId: string,
+    @Body(new ZodValidationPipe(importQuestionsSchema)) body: ImportQuestionsInput,
+  ) {
+    return this.quiz.importQuestions(courseId, user.id, itemId, body);
   }
 
   @Put('questions/:questionId')

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { isGuid } from '../common/zod.pipe.js';
@@ -42,11 +43,26 @@ const quizNotFound = () =>
 const attemptNotFound = () =>
   new NotFoundException({ statusCode: 404, code: 'ATTEMPT_NOT_FOUND', message: 'Không tìm thấy lượt làm' });
 
-// B4: xáo theo seed = attemptId → resume/xem lại cùng thứ tự mà không lưu thứ tự.
-function order<Q extends { id: string; options: O[] }, O>(questions: Q[], shuffle: boolean, attemptId: string): Q[] {
-  return shuffle
-    ? seededShuffle(questions, attemptId).map((q) => ({ ...q, options: seededShuffle(q.options, attemptId + q.id) }))
-    : questions;
+type Db = Prisma.TransactionClient | PrismaService;
+type LearnQuestion = Prisma.QuestionGetPayload<{ select: typeof QUESTION_SELECT }>;
+
+const ATTEMPT_SELECT = { id: true, attemptNo: true, questionIds: true, shuffle: true } satisfies Prisma.QuizAttemptSelect;
+
+// Câu của một lượt theo đúng thứ tự đã chụp lúc bắt đầu, kể cả câu đã archive.
+// `known` = câu đang hoạt động đã tải sẵn → thường không tốn thêm query.
+async function attemptQuestions(db: Db, quizId: string, ids: string[], known: LearnQuestion[]): Promise<LearnQuestion[]> {
+  const byId = new Map(known.map((q) => [q.id, q]));
+  const missing = ids.filter((id) => !byId.has(id));
+  if (missing.length) {
+    const rows = await db.question.findMany({ where: { quizId, id: { in: missing } }, select: QUESTION_SELECT });
+    for (const q of rows) byId.set(q.id, q);
+  }
+  return ids.flatMap((id) => byId.get(id) ?? []);
+}
+
+// Đáp án xáo theo seed attemptId + questionId → resume/xem lại cùng thứ tự mà không phải lưu.
+function shuffleOptions<Q extends { id: string; options: O[] }, O>(questions: Q[], shuffle: boolean, attemptId: string): Q[] {
+  return shuffle ? questions.map((q) => ({ ...q, options: seededShuffle(q.options, attemptId + q.id) })) : questions;
 }
 
 // Học viên làm quiz (spec 2026-10-17-quiz-taking §3). Không @Roles, kiểm ghi danh ở đây.
@@ -88,21 +104,34 @@ export class LearnQuizService {
     const attempt = await this.prisma.$transaction(async (tx) => {
       // Khoá dòng enrollment → 2 request start song song không tạo 2 attempt / trùng attemptNo.
       await tx.$queryRaw`SELECT id FROM enrollments WHERE id = ${enrollment.id}::uuid FOR UPDATE`;
+      // Khoá chia sẻ dòng khoá học: xung đột với FOR UPDATE của GV khi sửa câu → GV không đếm "chưa có lượt nào"
+      // rồi sửa đè câu đúng lúc lượt mới được tạo; các lượt start không chặn nhau.
+      await tx.$queryRaw`SELECT 1 FROM courses WHERE id = ${quiz.courseId}::uuid FOR SHARE`;
       const open = await tx.quizAttempt.findFirst({
         where: { quizId: quiz.id, userId, status: 'in_progress' },
-        select: { id: true, attemptNo: true },
+        select: ATTEMPT_SELECT,
       });
       if (open) return open;
       const { _max } = await tx.quizAttempt.aggregate({ where: { quizId: quiz.id, userId }, _max: { attemptNo: true } });
+      const ids = quiz.questions.map((q) => q.id);
       return tx.quizAttempt.create({
-        data: { quizId: quiz.id, userId, attemptNo: (_max.attemptNo ?? 0) + 1 },
-        select: { id: true, attemptNo: true },
+        data: {
+          quizId: quiz.id,
+          userId,
+          attemptNo: (_max.attemptNo ?? 0) + 1,
+          // Thứ tự câu được lưu vào lượt nên seed chỉ cần ngẫu nhiên.
+          questionIds: quiz.shuffle ? seededShuffle(ids, randomUUID()) : ids,
+          passScorePct: quiz.passScorePct,
+          shuffle: quiz.shuffle,
+        },
+        select: ATTEMPT_SELECT,
       });
     }, TX_OPTIONS);
+    const questions = await attemptQuestions(this.prisma, quiz.id, attempt.questionIds, quiz.questions);
     return {
       attemptId: attempt.id,
       attemptNo: attempt.attemptNo,
-      questions: order(quiz.questions, quiz.shuffle, attempt.id).map((q) => ({
+      questions: shuffleOptions(questions, attempt.shuffle, attempt.id).map((q) => ({
         id: q.id,
         type: q.type,
         stem: q.stem,
@@ -112,18 +141,22 @@ export class LearnQuizService {
   }
 
   async submit(slug: string, userId: string, itemId: string, attemptId: string, body: SubmitInput) {
-    const { quiz, enrollment } = await this.load(slug, userId, itemId);
+    const { quiz, enrollment } = await this.load(slug, userId, itemId, false);
     if (!isGuid(attemptId)) throw attemptNotFound();
     await this.prisma.$transaction(async (tx) => {
-      const [attempt] = await tx.$queryRaw<{ userId: string; quizId: string; status: string; startedAt: Date }[]>`
-        SELECT "userId", "quizId", status, "startedAt" FROM quiz_attempts WHERE id = ${attemptId}::uuid FOR UPDATE`;
+      const [attempt] = await tx.$queryRaw<
+        { userId: string; quizId: string; status: string; startedAt: Date; questionIds: string[]; passScorePct: number }[]
+      >`
+        SELECT "userId", "quizId", status, "startedAt", "questionIds", "passScorePct"
+        FROM quiz_attempts WHERE id = ${attemptId}::uuid FOR UPDATE`;
       if (!attempt || attempt.userId !== userId || attempt.quizId !== quiz.id) throw attemptNotFound();
       if (attempt.status !== 'in_progress') {
         throw new ConflictException({ statusCode: 409, code: 'ATTEMPT_SUBMITTED', message: 'Lượt làm này đã nộp' });
       }
       const now = new Date();
-      const graded = grade(quiz.questions, body.answers);
-      const passed = graded.scorePct >= quiz.passScorePct;
+      const questions = await attemptQuestions(tx, quiz.id, attempt.questionIds, quiz.questions);
+      const graded = grade(questions, body.answers);
+      const passed = graded.scorePct >= attempt.passScorePct;
       await tx.quizAnswer.createMany({ data: graded.answers.map((a) => ({ ...a, attemptId, answeredAt: now })) });
       await tx.quizAttempt.update({
         where: { id: attemptId },
@@ -143,7 +176,7 @@ export class LearnQuizService {
   }
 
   async result(slug: string, userId: string, itemId: string, attemptId: string) {
-    const { quiz } = await this.load(slug, userId, itemId);
+    const { quiz } = await this.load(slug, userId, itemId, false);
     if (!isGuid(attemptId)) throw attemptNotFound();
     return this.buildResult(quiz, userId, attemptId);
   }
@@ -158,15 +191,10 @@ export class LearnQuizService {
           scorePct: true,
           passed: true,
           timeSpentSec: true,
-          answers: {
-            select: {
-              selectedOptionIds: true,
-              isCorrect: true,
-              question: {
-                select: { id: true, type: true, stem: true, position: true, createdAt: true, archivedAt: true, options: OPTION_SELECT, relatedItem: { select: { id: true, title: true } } },
-              },
-            },
-          },
+          questionIds: true,
+          passScorePct: true,
+          shuffle: true,
+          answers: { select: { questionId: true, selectedOptionIds: true, isCorrect: true } },
         },
       }),
       this.prisma.userTopicMastery.findMany({
@@ -178,22 +206,18 @@ export class LearnQuizService {
     if (!attempt) throw attemptNotFound();
     // Chưa đạt lần nào → chỉ báo câu đúng/sai, giấu đáp án đúng + giải thích (không chép đáp án để đạt).
     const answersRevealed = passedCount > 0;
-    // Câu đang hoạt động theo position, câu đã archive xếp sau theo createdAt → cùng đầu vào với start().
-    const rows = attempt.answers
-      .map(({ question: q, ...a }) => ({ ...q, ...a }))
-      .sort((a, b) =>
-        !a.archivedAt && !b.archivedAt
-          ? a.position - b.position
-          : !a.archivedAt || !b.archivedAt
-            ? Number(!!a.archivedAt) - Number(!!b.archivedAt)
-            : a.createdAt.getTime() - b.createdAt.getTime(),
-      );
+    const answerOf = new Map(attempt.answers.map((a) => [a.questionId, a]));
+    const rows = (await attemptQuestions(this.prisma, quiz.id, attempt.questionIds, quiz.questions)).map((q) => ({
+      ...q,
+      selectedOptionIds: answerOf.get(q.id)?.selectedOptionIds ?? [],
+      isCorrect: answerOf.get(q.id)?.isCorrect ?? false,
+    }));
     return {
       attemptId: attempt.id,
       attemptNo: attempt.attemptNo,
       scorePct: Number(attempt.scorePct),
       passed: !!attempt.passed,
-      passScorePct: quiz.passScorePct,
+      passScorePct: attempt.passScorePct,
       correctCount: rows.filter((r) => r.isCorrect).length,
       total: rows.length,
       timeSpentSec: attempt.timeSpentSec ?? 0,
@@ -202,7 +226,7 @@ export class LearnQuizService {
         ...topic,
         masteryPct: Math.round(Number(mastery.find((m) => m.topicId === topic.id)?.score ?? 0) * 100),
       })),
-      questions: order(rows, quiz.shuffle, attempt.id).map((q) => ({
+      questions: shuffleOptions(rows, attempt.shuffle, attempt.id).map((q) => ({
         id: q.id,
         type: q.type,
         stem: q.stem,
@@ -217,16 +241,18 @@ export class LearnQuizService {
   }
 
   // Quiz trước ghi danh (404 trước 403); 2 query chạy song song (DB xa).
-  private async load(slug: string, userId: string, itemId: string) {
+  // strict = quiz đang xuất bản và còn câu (overview, start). Nộp / xem kết quả của lượt đã có
+  // chỉ cần quiz còn thuộc khoá — GV gỡ hết câu thì lượt cũ vẫn dùng đề đã chụp.
+  private async load(slug: string, userId: string, itemId: string, strict = true) {
     if (!isGuid(itemId)) throw quizNotFound();
     const [quiz, enrollment] = await Promise.all([
       this.prisma.quiz.findFirst({
-        where: { itemId, item: { type: 'quiz', isPublished: true }, course: { slug } },
+        where: { itemId, item: { type: 'quiz', ...(strict && { isPublished: true }) }, course: { slug } },
         select: LEARN_QUIZ_SELECT,
       }),
       this.prisma.enrollment.findFirst({ where: { userId, course: { slug } }, select: { id: true, completedAt: true } }),
     ]);
-    if (!quiz?.questions.length) throw quizNotFound();
+    if (!quiz || (strict && !quiz.questions.length)) throw quizNotFound();
     if (!enrollment) {
       throw new ForbiddenException({ statusCode: 403, code: 'NOT_ENROLLED', message: 'Bạn chưa ghi danh khoá học này' });
     }

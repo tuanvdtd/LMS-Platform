@@ -182,7 +182,7 @@ describe('Soạn quiz (e2e)', () => {
         single({ options: [{ content: 'a', isCorrect: false }, { content: 'b', isCorrect: false }] }),
         single({ type: 'multiple_choice', options: [{ content: 'a', isCorrect: false }, { content: 'b', isCorrect: false }] }),
         single({ options: [{ content: 'a', isCorrect: true }] }),
-        single({ options: Array.from({ length: 16 }, (_, i) => ({ content: `${i}`, isCorrect: i === 0 })) }),
+        single({ options: Array.from({ length: 6 }, (_, i) => ({ content: `${i}`, isCorrect: i === 0 })) }),
         single({ stem: '   ' }),
         single({ relatedItemId: quizItemId }),
         single({ relatedItemId: randomUUID() }),
@@ -211,6 +211,22 @@ describe('Soạn quiz (e2e)', () => {
   );
 
   it(
+    'câu chỉ nằm trong lượt đang làm (chưa có bài nộp) → sửa vẫn archive + tạo bản mới',
+    async () => {
+      const quizRow = await prisma.quiz.findUniqueOrThrow({ where: { itemId: quizItemId }, select: { id: true } });
+      const [only] = ((await q('get').expect(200)).body as Quiz).questions;
+      expect(only.answerCount).toBe(0);
+      await prisma.quizAttempt.create({
+        data: { quizId: quizRow.id, userId: alice.id, attemptNo: 2, questionIds: [only.id], passScorePct: 70, shuffle: true },
+      });
+      const res = await q('put', `/questions/${only.id}`, single({ type: only.type, stem: 'Bản mới' })).expect(200);
+      expect((res.body.quiz as Quiz).questions[0].id).not.toBe(only.id);
+      expect((await prisma.question.findUniqueOrThrow({ where: { id: only.id } })).archivedAt).not.toBeNull();
+    },
+    SLOW,
+  );
+
+  it(
     'câu đã có bài làm: sửa → archive + phiên bản mới cùng vị trí; xoá → chỉ archive',
     async () => {
       const quizRow = await prisma.quiz.findUniqueOrThrow({ where: { itemId: quizItemId }, select: { id: true } });
@@ -221,6 +237,9 @@ describe('Soạn quiz (e2e)', () => {
           userId: alice.id,
           attemptNo: 1,
           status: 'submitted',
+          questionIds: [a.id, b.id],
+          passScorePct: 70,
+          shuffle: false,
           answers: {
             create: [
               { questionId: a.id, selectedOptionIds: [a.options[0].id], isCorrect: true },
@@ -271,6 +290,51 @@ describe('Soạn quiz (e2e)', () => {
       expect(res.body.quiz.questions).toEqual([]);
       expect(itemOf(res.body.curriculum, quizItemId).isPublished).toBe(false);
       expect(await prisma.question.count({ where: { id: last.id } })).toBe(0); // chưa có bài làm → xoá cứng
+    },
+    SLOW,
+  );
+
+  it(
+    'import: thêm cuối đúng thứ tự, bỏ relatedItemId; vượt 15 → 400 không nhập câu nào; đủ 15 thì thêm tay → 400',
+    async () => {
+      const many = (n: number, tag: string) =>
+        Array.from({ length: n }, (_, i) =>
+          single({
+            stem: `${tag} ${i + 1}`,
+            relatedItemId: lectureId,
+            options: [
+              { content: `${tag}${i + 1}`, isCorrect: true },
+              { content: 'x', isCorrect: false },
+            ],
+          }),
+        );
+      const res = await q('post', '/questions/import', { questions: many(3, 'A') }).expect(201);
+      const quiz = res.body.quiz as Quiz;
+      expect(quiz.questions.map((x) => x.stem)).toEqual(['A 1', 'A 2', 'A 3']);
+      expect(quiz.questions.every((x) => x.relatedItemId === null)).toBe(true);
+      expect(quiz.questions[2].options.map((o) => [o.position, o.content, o.isCorrect])).toEqual([
+        [0, 'A3', true],
+        [1, 'x', false],
+      ]);
+      expect(itemOf(res.body.curriculum, quizItemId).isPublished).toBe(true);
+
+      const over = await q('post', '/questions/import', { questions: many(13, 'B') }).expect(400);
+      expect(JSON.stringify(over.body)).toContain('chỉ còn chỗ cho 12 câu');
+      expect(((await q('get').expect(200)).body as Quiz).questions).toHaveLength(3);
+
+      await q('post', '/questions/import', { questions: many(12, 'B') }).expect(201);
+      expect(JSON.stringify((await q('post', '/questions', single()).expect(400)).body)).toContain('chỉ còn chỗ cho 0 câu');
+      await q('post', '/questions/import', { questions: [] }).expect(400);
+    },
+    SLOW,
+  );
+
+  it(
+    'import khi khoá in_review → 409',
+    async () => {
+      await prisma.course.update({ where: { id: courseId }, data: { status: 'in_review' } });
+      expect((await q('post', '/questions/import', { questions: [single()] }).expect(409)).body.code).toBe('COURSE_LOCKED');
+      await prisma.course.update({ where: { id: courseId }, data: { status: 'draft' } });
     },
     SLOW,
   );

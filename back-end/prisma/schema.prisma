@@ -838,7 +838,7 @@ model QuestionOption {
   questionId  String  @db.Uuid
   content     String
   isCorrect   Boolean @default(false)
-  explanation String? // giải thích từng đáp án, ≤600 ký tự (service); tối đa 15 đáp án/câu (service)
+  explanation String? // giải thích từng đáp án, ≤600 ký tự (service); tối đa 5 đáp án/câu (service)
   position    Int
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
@@ -893,6 +893,9 @@ model QuizAttempt {
   scorePct     Decimal?      @db.Decimal(5, 2)
   passed       Boolean?
   timeSpentSec Int?
+  questionIds  String[]      @db.Uuid // câu của lượt, đúng thứ tự hiển thị; không FK từng phần tử — câu đã nằm trong lượt chỉ archive, không xoá
+  passScorePct Int // điểm đạt lúc bắt đầu lượt
+  shuffle      Boolean // có xáo đáp án không, lúc bắt đầu lượt
 
   quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)

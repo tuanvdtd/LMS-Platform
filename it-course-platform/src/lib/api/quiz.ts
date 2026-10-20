@@ -21,3 +21,6 @@ export const deleteQuestion = (courseId: string, itemId: string, questionId: str
 
 export const moveQuestion = (courseId: string, itemId: string, questionId: string, index: number) =>
   data<QuizMutation>(api.post(`${base(courseId, itemId)}/questions/${questionId}/move`, { index }));
+
+export const importQuestions = (courseId: string, itemId: string, questions: QuestionPayload[]) =>
+  data<QuizMutation>(api.post(`${base(courseId, itemId)}/questions/import`, { questions }));

@@ -94,7 +94,8 @@ export const QUIZ_LIMITS = {
   option: 500,
   explanation: 600,
   minOptions: 2,
-  maxOptions: 15,
+  maxOptions: 5,
+  maxQuestions: 15,
   maxTopics: 3,
 } as const;
 
