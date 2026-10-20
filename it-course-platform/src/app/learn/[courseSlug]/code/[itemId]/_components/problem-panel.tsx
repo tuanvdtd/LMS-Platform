@@ -93,7 +93,7 @@ function Statement({ courseSlug, exercise: ex }: { courseSlug: string; exercise:
 
       {ex.relatedItem && (
         <Link
-          href={`/learn/${courseSlug}/${ex.relatedItem.id}`}
+          href={`/learn/${courseSlug}/lecture/${ex.relatedItem.id}`}
           className="flex min-h-11 w-fit items-center gap-2 rounded-md text-sm font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <BookOpen className="size-4 shrink-0" aria-hidden />

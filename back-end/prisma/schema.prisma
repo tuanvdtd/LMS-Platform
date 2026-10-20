@@ -388,6 +388,7 @@ model CurriculumItem {
   relatedQuestions Question[]
   relatedExercises Exercise[]        @relation("ExerciseRelatedLecture")
   qaQuestions      CourseQuestion[]
+  lastItemOf       Enrollment[]      @relation("EnrollmentLastItem")
 
   // Không cần @@index([sectionId]): unique (sectionId, position) ở sql/05 đã là index bắt đầu bằng sectionId.
   @@index([courseId])
@@ -470,12 +471,14 @@ model Enrollment {
   progressPct    Decimal   @default(0) @db.Decimal(5, 2)
   completedAt    DateTime?
   lastAccessedAt DateTime?
+  lastItemId     String?   @db.Uuid // bài mở gần nhất → "Tiếp tục học" (spec lecture-player §5)
   createdAt      DateTime  @default(now())
 
-  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   course   Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   order    Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
   coupon   Coupon?        @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  lastItem CurriculumItem? @relation("EnrollmentLastItem", fields: [lastItemId], references: [id], onDelete: SetNull)
   progress ItemProgress[]
   notes    Note[]
 
@@ -483,16 +486,19 @@ model Enrollment {
   @@index([courseId])
   @@index([userId, lastAccessedAt]) // điểm rủi ro bỏ học
   @@index([couponId])
+  @@index([lastItemId])
   @@map("enrollments")
 }
 
-// Heartbeat 15s KHÔNG ghi trực tiếp vào đây — worker gom batch rồi update (§4.5).
+// Heartbeat video (30s) ghi thẳng vào đây (spec lecture-player L3); đoạn đã xem là bitmap 10s/bit.
 model ItemProgress {
   enrollmentId    String    @db.Uuid
   itemId          String    @db.Uuid
   watchedSec      Int       @default(0)
   lastPositionSec Int       @default(0)
+  watchedBuckets  Bytes? // bit i = giây [10i, 10i+10) đã phát thật (src/learn/watch-bitmap.ts)
   completedAt     DateTime?
+  createdAt       DateTime  @default(now()) // mốc bắt đầu xem → trần chống gian lận L5
   updatedAt       DateTime  @updatedAt
 
   enrollment Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)

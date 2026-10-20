@@ -67,11 +67,14 @@ export class StorageService {
     );
   }
 
-  presignGet(bucket: Bucket, key: string, ttlSec: number): Promise<string> {
+  // download: tải về với tên gốc (tên có dấu → filename* RFC 5987); bỏ trống = xem inline như cũ.
+  presignGet(bucket: Bucket, key: string, ttlSec: number, download?: { fileName: string }): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.buckets[bucket],
       Key: key,
-      ResponseContentDisposition: 'inline',
+      ResponseContentDisposition: download
+        ? `attachment; filename*=UTF-8''${encodeURIComponent(download.fileName)}`
+        : 'inline',
     });
     return this.call(() => getSignedUrl(this.clientOf(bucket), command, { expiresIn: ttlSec }));
   }

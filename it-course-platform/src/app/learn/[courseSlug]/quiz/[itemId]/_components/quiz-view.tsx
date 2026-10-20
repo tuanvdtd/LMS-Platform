@@ -9,6 +9,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { apiMessage } from '@/lib/api/checkout';
 import { apiErrorCode, getAttemptResult, getQuizOverview, startAttempt, submitAttempt } from '@/lib/api/learn-quiz';
 import type { AttemptResult, AttemptSheet, QuizOverview, SubmitPayload } from '@/types/learn-quiz';
+import { useLearnShell, useSidebarMode } from '../../../_components/learn-shell';
 import { QuizResult } from './quiz-result';
 import { clearSavedAttempt, QuizRunner } from './quiz-runner';
 import { QuizStart, QuizStartSkeleton } from './quiz-start';
@@ -21,6 +22,7 @@ type Loaded =
 
 // Máy trạng thái: overview → running(sheet) → result. `?attempt=<id>` mở thẳng màn xem lại.
 export default function QuizView({ courseSlug, itemId }: { courseSlug: string; itemId: string }) {
+  const { markCompleted } = useLearnShell();
   const router = useRouter();
   const pathname = usePathname();
   const key = useSearchParams().get('attempt') ?? '';
@@ -30,6 +32,8 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
   const [busy, setBusy] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
   const skipFetch = useRef<string | null>(null); // kết quả vừa nộp đã có sẵn, không GET lại
+  // Đang làm bài → mục lục thành ngăn trượt, nhường chỗ cho đề (spec L1).
+  useSidebarMode(sheet ? 'drawer' : 'docked');
 
   useEffect(() => {
     if (skipFetch.current === key) { skipFetch.current = null; return; }
@@ -71,7 +75,10 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
       skipFetch.current = attemptId;
       router.replace(`${pathname}?attempt=${attemptId}`);
       window.scrollTo({ top: 0 });
-      if (result.passed) toast.success('Chúc mừng, bạn đã đạt bài kiểm tra!');
+      if (result.passed) {
+        markCompleted(itemId);
+        toast.success('Chúc mừng, bạn đã đạt bài kiểm tra!');
+      }
     } catch (e) {
       if (apiErrorCode(e) === 'ATTEMPT_SUBMITTED') {
         // Lượt này đã nộp (tab khác) → mở kết quả của nó.
