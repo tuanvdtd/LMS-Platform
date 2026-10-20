@@ -34,7 +34,7 @@ export function LectureResources({ courseSlug, resources }: { courseSlug: string
               {r.fileName} · {formatBytes(r.sizeBytes)}
             </p>
           </div>
-          <Button variant="outline" className="h-11" disabled={busy === r.id} onClick={() => download(r.id)}>
+          <Button variant="outline" className="h-11" aria-label={`Tải ${r.title}`} disabled={busy === r.id} onClick={() => download(r.id)}>
             <Download data-icon="inline-start" /> Tải
           </Button>
         </li>

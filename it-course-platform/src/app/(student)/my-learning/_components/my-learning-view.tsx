@@ -41,7 +41,7 @@ export default function MyLearningView() {
         <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {items.map(({ course, progressPct }) => (
             <li key={course.id} className="flex flex-col overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-md">
-              <Link href={`/course/${course.slug}`} className="block">
+              <Link href={`/course/${course.slug}`} className="block" aria-hidden tabIndex={-1}>
                 {course.thumbnailUrl ? (
                   <Image src={course.thumbnailUrl} alt="" width={320} height={180} unoptimized className="aspect-video w-full object-cover" />
                 ) : (

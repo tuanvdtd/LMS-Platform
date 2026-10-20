@@ -61,7 +61,7 @@ export function CurriculumAccordion({ slug, courseId, sections }: { slug: string
                 <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{curriculumSummary(s.items)}</span>
               </span>
             </AccordionTrigger>
-            <AccordionContent className="pb-3">
+            <AccordionContent className="pb-3 [&_a]:no-underline">
               <ul>
                 {s.items.map((it) => {
                   const { icon: Icon, tag } = TYPE[it.type];
@@ -80,7 +80,7 @@ export function CurriculumAccordion({ slug, courseId, sections }: { slug: string
                         <button
                           type="button"
                           onClick={() => setPreview(it)}
-                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary no-underline outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
                         >
                           <Play className="size-3.5" aria-hidden /> Xem thử
                         </button>
@@ -88,7 +88,7 @@ export function CurriculumAccordion({ slug, courseId, sections }: { slug: string
                       {it.type === 'lecture' && enrolled && (
                         <Link
                           href={`/learn/${slug}/lecture/${it.id}`}
-                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary no-underline outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
                         >
                           <Play className="size-3.5" aria-hidden /> Học
                         </Link>
@@ -96,7 +96,7 @@ export function CurriculumAccordion({ slug, courseId, sections }: { slug: string
                       {it.type === 'quiz' && enrolled && (
                         <Link
                           href={`/learn/${slug}/quiz/${it.id}`}
-                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary no-underline outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
                         >
                           <FileQuestion className="size-3.5" aria-hidden /> Làm bài
                         </Link>
@@ -104,7 +104,7 @@ export function CurriculumAccordion({ slug, courseId, sections }: { slug: string
                       {it.type === 'coding_exercise' && enrolled && (
                         <Link
                           href={`/learn/${slug}/code/${it.id}`}
-                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary no-underline outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
                         >
                           <Code2 className="size-3.5" aria-hidden /> Làm bài
                         </Link>

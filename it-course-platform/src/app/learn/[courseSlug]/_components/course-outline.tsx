@@ -63,7 +63,7 @@ export function CourseOutline({
                   </span>
                 </span>
               </AccordionTrigger>
-              <AccordionContent className="p-0">
+              <AccordionContent className="p-0 [&_a]:no-underline">
                 <ul>
                   {s.items.map((it) => {
                     const href = itemHref(slug, it);

@@ -83,7 +83,7 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
       {lecture.lectureKind === 'video' ? (
         <VideoPlayer courseSlug={courseSlug} lecture={lecture} videoRef={videoRef} onCompleted={markDone} onRefreshUrl={refreshUrl} />
       ) : (
-        <PdfViewer lecture={lecture} />
+        <PdfViewer lecture={lecture} onRefreshUrl={refreshUrl} />
       )}
       <div className="flex items-center justify-between gap-2 border-b bg-card px-3 py-2 sm:px-4">
         <StepLink slug={courseSlug} item={prev} dir="prev" />
@@ -121,7 +121,7 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
               <LectureResources courseSlug={courseSlug} resources={lecture.resources} />
             </TabsContent>
           )}
-          <TabsContent value="notes" className="pt-4">
+          <TabsContent value="notes" keepMounted className="pt-4">
             <LectureNotes courseSlug={courseSlug} itemId={itemId} videoRef={lecture.lectureKind === 'video' ? videoRef : null} />
           </TabsContent>
         </Tabs>
@@ -136,7 +136,7 @@ function StepLink({ slug, item, dir }: { slug: string; item: LearnItem | null; d
   const Icon = dir === 'prev' ? ChevronLeft : ChevronRight;
   if (!href) return <span className="w-24" aria-hidden />;
   return (
-    <Link href={href} title={item.title} className={buttonVariants({ variant: 'outline', className: 'h-11' })}>
+    <Link href={href} title={item.title} aria-label={`${label}: ${item.title}`} className={buttonVariants({ variant: 'outline', className: 'h-11' })}>
       {dir === 'prev' && <Icon data-icon="inline-start" />}
       <span className="hidden sm:inline">{label}</span>
       {dir === 'next' && <Icon data-icon="inline-end" />}

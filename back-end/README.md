@@ -117,3 +117,8 @@ Cùng VPC, subnet private, security group chỉ cho API vào cổng 2000; máy P
 pnpm test        # unit
 pnpm test:e2e    # cần .env trỏ tới DB + Redis + RabbitMQ dev; mail được mock
 ```
+
+## CORS cho bucket R2 `private`
+
+Trình xem PDF (PDF.js) `fetch` thẳng link ký từ trình duyệt, nên bucket `private` phải cho phép **GET** từ origin FE:
+dev `http://localhost:3000`, prod là origin FE thật. Thiếu CORS thì PDF không tải được (lỗi chỉ hiện ở console trình duyệt).

@@ -63,6 +63,8 @@ export function LectureNotes({
       const note = await createNote(courseSlug, itemId, { positionSec: videoRef ? mark : 0, body });
       setNotes((l) => sortNotes([...(l ?? []), note]));
       setDraft('');
+      // Ô nhập vẫn focus nên mốc không tự cập nhật → lấy lại mốc hiện tại cho ghi chú kế tiếp.
+      setMark(currentSec());
     } catch (e) {
       toast.error(apiMessage(e, 'Không lưu được ghi chú'));
     } finally {
@@ -104,7 +106,7 @@ export function LectureNotes({
     // ref của phần tử DOM do VideoPlayer sở hữu, ghi ở event handler là hợp lệ; rule không phân biệt được.
     // eslint-disable-next-line react-hooks/immutability
     v.currentTime = sec;
-    void v.play();
+    v.play().catch(() => {});
     v.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 

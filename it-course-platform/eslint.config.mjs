@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Sinh từ postinstall (pdfjs wasm), không phải code của mình.
+    "public/pdfjs/**",
   ]),
 ]);
 

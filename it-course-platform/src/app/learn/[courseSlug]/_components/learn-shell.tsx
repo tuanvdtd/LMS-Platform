@@ -4,9 +4,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { BookOpen, ChevronLeft, ChevronRight, FileQuestion, Lock, PanelRight, TriangleAlert } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, FileQuestion, Lock, PanelRight, TriangleAlert, X } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ProgressRing } from '@/components/shared/product-ui';
 import { LearnShellSkeleton } from '@/components/skeletons/learn-shell-skeleton';
 import { apiMessage } from '@/lib/api/checkout';
@@ -184,8 +184,11 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
           )}
         </div>
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-          <SheetContent side="right" className="w-[22rem] max-w-[90vw] gap-0 p-0">
-            <SheetHeader className="border-b">
+          <SheetContent side="right" showCloseButton={false} className="gap-0 p-0 data-[side=right]:w-[22rem] max-w-[90vw]">
+            <SheetClose render={<Button variant="ghost" size="icon" className="absolute right-2 top-2 z-10 size-11" aria-label="Đóng" />}>
+              <X />
+            </SheetClose>
+            <SheetHeader className="border-b pr-14">
               <SheetTitle>Nội dung khoá học</SheetTitle>
             </SheetHeader>
             <CourseOutline outline={outline} currentId={itemId} onNavigate={() => setDrawerOpen(false)} />

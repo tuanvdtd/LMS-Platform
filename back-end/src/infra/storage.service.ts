@@ -73,7 +73,7 @@ export class StorageService {
       Bucket: this.buckets[bucket],
       Key: key,
       ResponseContentDisposition: download
-        ? `attachment; filename*=UTF-8''${encodeURIComponent(download.fileName)}`
+        ? `attachment; filename*=UTF-8''${encodeURIComponent(download.fileName).replace(/['()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())}`
         : 'inline',
     });
     return this.call(() => getSignedUrl(this.clientOf(bucket), command, { expiresIn: ttlSec }));

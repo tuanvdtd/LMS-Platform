@@ -46,3 +46,16 @@ describe('watch-bitmap', () => {
     expect(isWatched(0, 0)).toBe(false);
   });
 });
+
+describe('watch-bitmap: video bị rút ngắn / làm tròn', () => {
+  it('mergeBuckets: xoá bit > total ở byte cuối khi prev dài hơn', () => {
+    const prev = new Uint8Array([0xff, 0xff]); // video cũ 16 đoạn, đã xem hết
+    const bits = mergeBuckets(prev, [], 10, 100); // video mới 10 đoạn
+    expect(popcount(bits)).toBe(10);
+  });
+
+  it('isWatched: 90% không sai số dấu phẩy động (total = 70)', () => {
+    expect(isWatched(63, 70)).toBe(true);
+    expect(isWatched(62, 70)).toBe(false);
+  });
+});
