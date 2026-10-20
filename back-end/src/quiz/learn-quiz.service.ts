@@ -1,8 +1,10 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { isGuid } from '../common/zod.pipe.js';
+import { completeItem } from '../curriculum/progress.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
+import { recomputeMastery } from '../topics/mastery.js';
 import { grade, seededShuffle } from './grading.js';
 import type { SubmitInput } from './learn-quiz.schemas.js';
 
@@ -134,48 +136,8 @@ export class LearnQuizService {
         },
       });
 
-      // C1: mastery topic = trung bình điểm cao nhất của từng quiz gắn topic đó (trọng số = số câu), tính lại từ
-      // quiz_attempts nên đổi công thức sau này không mất dữ liệu. Advisory lock theo user: 2 submit song song
-      // (khác attempt → khác lock) chạy nối tiếp, câu sau đọc được attempt câu trước vừa commit.
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
-      const topicIds = quiz.topics.map((t) => t.topic.id);
-      await tx.$executeRaw`
-        INSERT INTO user_topic_mastery ("userId", "topicId", score, "attemptsCount", "lastEvaluatedAt")
-        SELECT ${userId}::uuid, qt."topicId", SUM(b.best * b.n) / SUM(b.n) / 100, SUM(b.cnt), now()
-        FROM quiz_topics qt
-        JOIN (
-          SELECT a."quizId", MAX(a."scorePct") AS best, COUNT(*) AS cnt,
-            GREATEST((SELECT COUNT(*) FROM questions q WHERE q."quizId" = a."quizId" AND q."archivedAt" IS NULL), 1) AS n
-          FROM quiz_attempts a
-          WHERE a."userId" = ${userId}::uuid AND a.status = 'submitted'
-          GROUP BY a."quizId"
-        ) b ON b."quizId" = qt."quizId"
-        WHERE qt."topicId" = ANY(${topicIds}::uuid[])
-        GROUP BY qt."topicId"
-        ON CONFLICT ("userId", "topicId") DO UPDATE SET
-          score = EXCLUDED.score, "attemptsCount" = EXCLUDED."attemptsCount", "lastEvaluatedAt" = EXCLUDED."lastEvaluatedAt"`;
-
-      // B10: đạt → hoàn thành item (giữ mốc đạt đầu tiên) + tính lại progressPct.
-      if (!passed) return;
-      // Khoá dòng enrollment: 2 quiz đạt song song không ghi đè progressPct/completedAt của nhau.
-      const [locked] = await tx.$queryRaw<{ completedAt: Date | null }[]>`
-        SELECT "completedAt" FROM enrollments WHERE id = ${enrollment.id}::uuid FOR UPDATE`;
-      const key = { enrollmentId: enrollment.id, itemId };
-      await tx.itemProgress.upsert({ where: { enrollmentId_itemId: key }, create: { ...key, completedAt: now }, update: {} });
-      await tx.itemProgress.updateMany({ where: { ...key, completedAt: null }, data: { completedAt: now } });
-      const [done, total] = await Promise.all([
-        tx.itemProgress.count({
-          where: { enrollmentId: enrollment.id, completedAt: { not: null }, item: { isPublished: true } },
-        }),
-        tx.curriculumItem.count({ where: { courseId: quiz.courseId, isPublished: true } }),
-      ]);
-      await tx.enrollment.update({
-        where: { id: enrollment.id },
-        data: {
-          progressPct: Math.round((done / total) * 10_000) / 100,
-          completedAt: done >= total ? (locked?.completedAt ?? now) : undefined,
-        },
-      });
+      await recomputeMastery(tx, userId, quiz.topics.map((t) => t.topic.id));
+      if (passed) await completeItem(tx, enrollment.id, quiz.courseId, itemId, now);
     }, SUBMIT_TX);
     return this.buildResult(quiz, userId, attemptId);
   }

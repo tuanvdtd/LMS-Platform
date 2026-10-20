@@ -183,6 +183,7 @@ const VERDICT_MAP: Record<Verdict, { label: string; color: string; icon: typeof 
   TLE: { label: 'Time Limit', color: 'var(--verdict-tle)', icon: Clock },
   RE: { label: 'Runtime Error', color: 'var(--verdict-re)', icon: AlertCircle },
   CE: { label: 'Compile Error', color: 'var(--verdict-ce)', icon: AlertCircle },
+  IE: { label: 'Lỗi hệ thống', color: 'var(--muted-foreground)', icon: AlertCircle },
   Pending: { label: 'Đang chờ', color: 'var(--verdict-pending)', icon: Loader2 },
   Running: { label: 'Đang chạy', color: 'var(--verdict-pending)', icon: Loader2 },
 };

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -42,13 +42,18 @@ export function CreateCourseDialog() {
     formState: { errors, isSubmitting },
   } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { title: '' } });
   const title = useWatch({ control, name: 'title' });
+  const [navigating, startTransition] = useTransition();
+  const busy = isSubmitting || navigating;
 
   async function onSubmit(values: Values) {
     try {
       const { id } = await createCourse(values.title);
-      setOpen(false);
-      reset();
-      router.push(`/instructor/courses/${id}/manage/goals`);
+      // Đóng dialog cùng transition với router.push: dialog giữ nút loading tới khi trang quản lý render xong.
+      startTransition(() => {
+        setOpen(false);
+        reset();
+        router.push(`/instructor/courses/${id}/manage/goals`);
+      });
     } catch (err) {
       const message =
         axios.isAxiosError(err) && err.response?.status === 400
@@ -63,6 +68,7 @@ export function CreateCourseDialog() {
     <Dialog
       open={open}
       onOpenChange={(next) => {
+        if (!next && busy) return; // Esc / bấm nền khi đang tạo → không đóng giữa chừng
         setOpen(next);
         if (!next) reset();
       }}
@@ -99,9 +105,10 @@ export function CreateCourseDialog() {
             )}
           </Field>
           <DialogFooter>
-            <DialogClose render={<Button type="button" variant="ghost" />}>Huỷ</DialogClose>
-            <Button type="submit" disabled={!title.trim() || isSubmitting}>
-              {isSubmitting ? 'Đang tạo…' : 'Tạo khoá học'}
+            <DialogClose render={<Button type="button" variant="ghost" disabled={busy} />}>Huỷ</DialogClose>
+            <Button type="submit" disabled={!title.trim() || busy} aria-busy={busy}>
+              {busy && <Loader2 data-icon="inline-start" className="animate-spin motion-reduce:animate-none" />}
+              {busy ? 'Đang tạo…' : 'Tạo khoá học'}
             </Button>
           </DialogFooter>
         </form>

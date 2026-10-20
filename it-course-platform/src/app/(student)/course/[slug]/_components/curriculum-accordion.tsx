@@ -93,6 +93,14 @@ export function CurriculumAccordion({ slug, courseId, sections }: { slug: string
                           <FileQuestion className="size-3.5" aria-hidden /> Làm bài
                         </Link>
                       )}
+                      {it.type === 'coding_exercise' && enrolled && (
+                        <Link
+                          href={`/learn/${slug}/code/${it.id}`}
+                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary no-underline outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
+                        >
+                          <Code2 className="size-3.5" aria-hidden /> Làm bài
+                        </Link>
+                      )}
                       <span className="w-12 shrink-0 text-right font-mono text-xs text-muted-foreground tabular-nums">
                         {it.durationSec > 0 ? formatDuration(it.durationSec) : ''}
                       </span>

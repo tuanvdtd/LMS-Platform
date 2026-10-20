@@ -139,6 +139,9 @@ export class InstructorCoursesService {
         await tx.quizTopic.deleteMany({
           where: { quiz: { courseId: id }, topicId: { notIn: topics.map((t) => t.id) } },
         });
+        await tx.exerciseTopic.deleteMany({
+          where: { exercise: { courseId: id }, topicId: { notIn: topics.map((t) => t.id) } },
+        });
         await tx.courseTopic.createMany({
           data: topics.map((t) => ({ courseId: id, topicId: t.id, isPrimary: t.isPrimary })),
         });

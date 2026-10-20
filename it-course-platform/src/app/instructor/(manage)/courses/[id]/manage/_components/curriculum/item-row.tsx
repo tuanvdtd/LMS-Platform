@@ -3,11 +3,12 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ChevronDown, CircleHelp, ClipboardCheck, CodeXml, FileText, Play, Plus, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { deleteItem, updateItem } from '@/lib/api/curriculum';
 import { cn } from '@/lib/utils';
 import { type CurriculumItem, formatDuration, type ItemType } from '@/types/curriculum';
 import { useCourse } from '../course-provider';
+import { GuardedLink } from '../guarded-link';
 import { useCurriculum } from './curriculum-context';
 import { DragHandle } from './drag-handle';
 import { InlineTitle } from './inline-title';
@@ -28,6 +29,9 @@ const IDLE = 'border-transparent bg-muted text-muted-foreground';
 
 function chipOf(item: CurriculumItem): { text: string; className: string } {
   if (item.type === 'quiz') return item.isPublished ? { text: 'Đã có câu hỏi', className: DONE } : { text: 'Chưa có câu hỏi', className: TODO };
+  if (item.type === 'coding_exercise') {
+    return item.isPublished ? { text: 'Đã kiểm lời giải', className: DONE } : { text: 'Chưa kiểm lời giải', className: TODO };
+  }
   if (item.type !== 'lecture') return { text: 'Chưa xuất bản', className: IDLE };
   if (item.lectureKind === 'video') return { text: `Video · ${formatDuration(item.durationSec)}`, className: DONE };
   if (item.lectureKind === 'document') return { text: 'PDF', className: DONE };
@@ -102,9 +106,16 @@ export function ItemRow({ item, label }: { item: CurriculumItem; label: string }
             Soạn câu hỏi
             <ChevronDown data-icon="inline-end" className={cn('transition-transform', open && 'rotate-180')} />
           </Button>
+        ) : item.type === 'coding_exercise' ? (
+          <GuardedLink
+            href={`/instructor/courses/${courseId}/manage/exercises/${item.id}`}
+            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+          >
+            Soạn bài tập
+          </GuardedLink>
         ) : (
           <Button variant="outline" size="sm" disabled title="Sắp có">
-            {item.type === 'coding_exercise' ? 'Soạn bài tập' : 'Soạn câu hỏi'}
+            Soạn câu hỏi
           </Button>
         )}
         {/* Desktop: hiện khi hover/focus cho gọn; màn cảm ứng (không hover) luôn hiện. */}

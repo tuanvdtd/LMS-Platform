@@ -3,10 +3,7 @@ import type {
   Instructor,
   SkillTag,
   Student,
-  SkillMastery,
   Quiz,
-  QuizQuestion,
-  CodingProblem,
   RecommendedCourse,
 } from '@/types';
 
@@ -546,68 +543,6 @@ export const demoQuiz: Quiz = {
   ],
 };
 
-// ─── Coding Problem ───────────────────────────────────────────────────────────
-export const demoProblem: CodingProblem = {
-  id: 'p-1',
-  title: 'Xây dựng useDebounce Hook',
-  description: `## Mô tả bài toán
-
-Viết một custom React hook \`useDebounce\` nhận vào **một giá trị** và **thời gian delay (ms)**, trả về giá trị đã được "debounced" — tức là giá trị chỉ được cập nhật sau khi không có thay đổi nào trong \`delay\` milliseconds.
-
-### Ứng dụng thực tế
-Hook này thường dùng để giảm số lần gọi API khi người dùng gõ vào ô tìm kiếm.
-
-### Yêu cầu
-- Sử dụng \`useState\` và \`useEffect\`
-- Cleanup timer khi component unmount hoặc value/delay thay đổi
-- TypeScript generic: hook phải hoạt động với mọi kiểu dữ liệu`,
-  examples: [
-    {
-      input: 'value = "hello", delay = 500',
-      output: '"hello" (sau 500ms không có thay đổi)',
-      explanation: 'Nếu value thay đổi liên tục trong 500ms, chỉ giá trị cuối cùng được trả về sau khi ngừng gõ',
-    },
-  ],
-  constraints: [
-    'delay > 0',
-    'Phải cleanup setTimeout khi component unmount',
-    'TypeScript: dùng generic `<T>`',
-  ],
-  timeLimit: 2000,
-  memoryLimit: 128,
-  skills: [
-    { id: 'react-hooks', name: 'React Hooks', track: 'frontend' },
-    { id: 'react-basics', name: 'React Cơ bản', track: 'frontend' },
-  ],
-  languages: ['typescript', 'javascript'],
-  starterCode: {
-    typescript: `import { useState, useEffect } from 'react';
-
-function useDebounce<T>(value: T, delay: number): T {
-  // TODO: Implement this hook
-  return value;
-}
-
-export default useDebounce;`,
-    javascript: `import { useState, useEffect } from 'react';
-
-function useDebounce(value, delay) {
-  // TODO: Implement this hook
-  return value;
-}
-
-export default useDebounce;`,
-  },
-  testCases: [
-    { id: 'tc-1', input: 'immediate', expectedOutput: '', hidden: false, weight: 1 },
-    { id: 'tc-2', input: 'debounced after delay', expectedOutput: '', hidden: false, weight: 1 },
-    { id: 'tc-3', input: 'cleanup on unmount', expectedOutput: '', hidden: true, weight: 2 },
-    { id: 'tc-4', input: 'generic type support', expectedOutput: '', hidden: true, weight: 1 },
-    { id: 'tc-5', input: 'delay change resets timer', expectedOutput: '', hidden: true, weight: 2 },
-  ],
-  acceptanceRate: 73.2,
-};
-
 // ─── Instructor Analytics Mock Data ──────────────────────────────────────────
 export const revenueData = Array.from({ length: 30 }, (_, i) => {
   const date = new Date(2025, 8, 1 + i);
@@ -683,11 +618,6 @@ export function getCourse(id: string): Course | undefined {
 
 export function getQuiz(id: string): Quiz | undefined {
   if (id === 'q-2') return demoQuiz;
-  return undefined;
-}
-
-export function getProblem(id: string): CodingProblem | undefined {
-  if (id === 'p-1') return demoProblem;
   return undefined;
 }
 
