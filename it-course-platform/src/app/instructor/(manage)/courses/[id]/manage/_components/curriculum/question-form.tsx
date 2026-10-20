@@ -6,7 +6,6 @@ import { useTheme } from 'next-themes';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2, TriangleAlert } from 'lucide-react';
-import { z } from 'zod';
 import '@uiw/react-md-editor/markdown-editor.css';
 import { Markdown } from '@/components/markdown';
 import { Alert } from '@/components/ui/alert';
@@ -20,38 +19,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { type QuestionPayload, QUESTION_TYPE_LABEL, type QuestionType, QUIZ_LIMITS, type QuizQuestion } from '@/types/curriculum';
 import { useDirtySync } from '../course-provider';
 import { submitToPromise } from '../form-save';
+import { NONE, questionSchema, type QuestionValues as Values, toPayload } from './question-schema';
 
 // Editor chỉ chạy ở client (đụng window) → tắt SSR.
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
 
-const NONE = 'none';
 const L = QUIZ_LIMITS;
-const schema = z
-  .object({
-    type: z.enum(['single_choice', 'multiple_choice']),
-    stem: z.string().trim().min(1, 'Nhập đề bài').max(L.stem, `Tối đa ${L.stem} ký tự`),
-    relatedItemId: z.string(),
-    options: z
-      .array(
-        z.object({
-          content: z.string().trim().min(1, 'Nhập nội dung đáp án').max(L.option, `Tối đa ${L.option} ký tự`),
-          isCorrect: z.boolean(),
-          explanation: z.string().max(L.explanation, `Tối đa ${L.explanation} ký tự`),
-        }),
-      )
-      .min(L.minOptions, `Cần ít nhất ${L.minOptions} đáp án`)
-      .max(L.maxOptions, `Tối đa ${L.maxOptions} đáp án`),
-  })
-  .superRefine((q, ctx) => {
-    const correct = q.options.filter((o) => o.isCorrect).length;
-    if (q.type === 'single_choice' && correct !== 1) {
-      ctx.addIssue({ code: 'custom', path: ['options'], message: 'Chọn đúng 1 đáp án đúng' });
-    }
-    if (q.type === 'multiple_choice' && correct < 1) {
-      ctx.addIssue({ code: 'custom', path: ['options'], message: 'Chọn ít nhất 1 đáp án đúng' });
-    }
-  });
-type Values = z.infer<typeof schema>;
 
 const emptyOption = { content: '', isCorrect: false, explanation: '' };
 const toValues = (q: QuizQuestion | undefined, type: QuestionType): Values =>
@@ -89,22 +62,13 @@ export function QuestionForm({
     reset,
     setValue,
     formState: { errors, isDirty, isSubmitting },
-  } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: toValues(question, newType) });
+  } = useForm<Values>({ resolver: zodResolver(questionSchema), defaultValues: toValues(question, newType) });
   const { fields, append, remove } = useFieldArray({ control, name: 'options' });
   const type = useWatch({ control, name: 'type' });
   const options = useWatch({ control, name: 'options' });
 
   async function onSubmit(values: Values): Promise<boolean> {
-    const ok = await onSave({
-      type: values.type,
-      stem: values.stem.trim(),
-      relatedItemId: values.relatedItemId === NONE ? null : values.relatedItemId,
-      options: values.options.map((o) => ({
-        content: o.content.trim(),
-        isCorrect: o.isCorrect,
-        explanation: o.explanation.trim() || null,
-      })),
-    });
+    const ok = await onSave(toPayload(values));
     if (ok) reset(values);
     return ok;
   }

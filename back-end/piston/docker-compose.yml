@@ -5,6 +5,8 @@ services:
   piston:
     # Pin theo digest — đổi digest khi muốn nâng Piston; hành vi response có thể đổi.
     image: ghcr.io/engineer-man/piston@sha256:2f66b7456189c4d713aa986d98eccd0b6ee16d26c7ec5f21b30e942756fd127a
+    # Image đã pin dùng AMD64; Mac Apple Silicon chạy qua giả lập.
+    platform: linux/amd64
     restart: unless-stopped
     # Piston bắt buộc (isolate/cgroup). Sandbox thủng = root trên host → prod có người dùng thật tách EC2 riêng.
     privileged: true

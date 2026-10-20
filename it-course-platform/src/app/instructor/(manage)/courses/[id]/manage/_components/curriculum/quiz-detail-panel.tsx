@@ -6,7 +6,7 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, FileUp, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { createQuestion, deleteQuestion, getQuiz, moveQuestion, updateQuestion, updateQuiz } from '@/lib/api/quiz';
+import { createQuestion, deleteQuestion, getQuiz, importQuestions, moveQuestion, updateQuestion, updateQuiz } from '@/lib/api/quiz';
 import {
   type CurriculumItem,
   type QuestionPayload,
@@ -30,6 +30,7 @@ import {
 import { useCourse } from '../course-provider';
 import { useCurriculum } from './curriculum-context';
 import { DragHandle } from './drag-handle';
+import { ImportQuestionsDialog } from './import-questions-dialog';
 import { QuestionForm } from './question-form';
 
 // Đang mở form: tạo mới (loại chọn lúc tạo, sửa không đổi được) hoặc sửa câu có sẵn; null = không mở form nào.
@@ -41,6 +42,7 @@ export function QuizDetailPanel({ item }: { item: CurriculumItem }) {
   const [quiz, setQuiz] = useState<QuizDetail | null>(null);
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState<Editing>(null);
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(
     () =>
@@ -101,6 +103,7 @@ export function QuizDetailPanel({ item }: { item: CurriculumItem }) {
         disabled={locked}
         busy={busy}
         onEdit={setEditing}
+        onImport={() => setImporting(true)}
         onDelete={(q, index) =>
           confirm(`Xoá câu ${index + 1}?`, () => void save(() => deleteQuestion(courseId, item.id, q.id)))
         }
@@ -118,6 +121,17 @@ export function QuizDetailPanel({ item }: { item: CurriculumItem }) {
             onCancel={() => setEditing(null)}
           />
         )}
+      />
+      <ImportQuestionsDialog
+        open={importing}
+        onOpenChange={setImporting}
+        current={quiz.questions.length}
+        disabled={locked}
+        onImport={async (questions) => {
+          const ok = await save(() => importQuestions(courseId, item.id, questions));
+          if (ok) toast.success(`Đã nhập ${questions.length} câu. Bấm Sửa ở từng câu để thêm bài giảng liên quan.`);
+          return ok;
+        }}
       />
     </div>
   );
@@ -226,6 +240,7 @@ function QuestionList({
   disabled,
   busy,
   onEdit,
+  onImport,
   onDelete,
   onMove,
   renderForm,
@@ -235,6 +250,7 @@ function QuestionList({
   disabled: boolean;
   busy: boolean;
   onEdit: (e: Editing) => void;
+  onImport: () => void;
   onDelete: (q: QuizQuestion, index: number) => void;
   onMove: (q: QuizQuestion, index: number, optimistic: QuizDetail) => Promise<void>;
   renderForm: (q?: QuizQuestion) => React.ReactNode;
@@ -244,6 +260,7 @@ function QuestionList({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const ids = quiz.questions.map((q) => q.id);
+  const full = quiz.questions.length >= QUIZ_LIMITS.maxQuestions;
 
   function onDragEnd({ active, over }: DragEndEvent) {
     if (!over || active.id === over.id) return;
@@ -282,20 +299,26 @@ function QuestionList({
       {editing?.kind === 'new' ? (
         renderForm()
       ) : (
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={<Button variant="outline" size="sm" className="self-start" disabled={disabled || editing !== null} />}
-          >
-            <Plus data-icon="inline-start" /> Câu hỏi <ChevronDown data-icon="inline-end" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-auto">
-            {(Object.keys(QUESTION_TYPE_LABEL) as QuestionType[]).map((type) => (
-              <DropdownMenuItem key={type} onClick={() => onEdit({ kind: 'new', type })}>
-                {QUESTION_TYPE_LABEL[type]}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex flex-wrap items-center gap-2 self-start">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="outline" size="sm" disabled={disabled || editing !== null || full} />}
+            >
+              <Plus data-icon="inline-start" /> Câu hỏi <ChevronDown data-icon="inline-end" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-auto">
+              {(Object.keys(QUESTION_TYPE_LABEL) as QuestionType[]).map((type) => (
+                <DropdownMenuItem key={type} onClick={() => onEdit({ kind: 'new', type })}>
+                  {QUESTION_TYPE_LABEL[type]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="outline" size="sm" disabled={disabled || editing !== null || full} onClick={onImport}>
+            <FileUp data-icon="inline-start" /> Nhập từ CSV
+          </Button>
+          {full && <span className="text-xs text-muted-foreground">Quiz đã đủ {QUIZ_LIMITS.maxQuestions} câu</span>}
+        </div>
       )}
     </div>
   );

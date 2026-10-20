@@ -36,6 +36,7 @@ describe('Học viên làm quiz (e2e)', () => {
   let enrollmentId: string;
   let topicIds: string[];
   let correct: { questionId: string; optionIds: string[] }[];
+  let q3: { id: string; options: { id: string; isCorrect: boolean }[] };
   let attempt1: string;
   let attempt2: string;
   let result2: Record<string, unknown>;
@@ -173,6 +174,9 @@ describe('Học viên làm quiz (e2e)', () => {
       expect(res.body.questions).toHaveLength(2);
       expect(JSON.stringify(res.body)).not.toContain('isCorrect');
       attempt1 = res.body.attemptId as string;
+      const row = await prisma.quizAttempt.findUniqueOrThrow({ where: { id: attempt1 } });
+      expect(row).toMatchObject({ passScorePct: 70, shuffle: true });
+      expect([...row.questionIds].sort()).toEqual(correct.map((c) => c.questionId).sort());
       const again = await learn('post', '/attempts').expect(200);
       expect(again.body.attemptId).toBe(attempt1);
       expect(again.body.questions).toEqual(res.body.questions);
@@ -185,6 +189,10 @@ describe('Học viên làm quiz (e2e)', () => {
     'body sai → 400',
     async () => {
       await learn('post', `/attempts/${attempt1}/submit`, stu, { answers: [{ questionId: 'x', optionIds: [] }] }).expect(400);
+      const many = Array.from({ length: 16 }, () => ({ questionId: randomUUID(), optionIds: [] }));
+      await learn('post', `/attempts/${attempt1}/submit`, stu, { answers: many }).expect(400);
+      const sixOptions = Array.from({ length: 6 }, () => randomUUID());
+      await learn('post', `/attempts/${attempt1}/submit`, stu, { answers: [{ questionId: randomUUID(), optionIds: sixOptions }] }).expect(400);
     },
     SLOW,
   );
@@ -269,6 +277,75 @@ describe('Học viên làm quiz (e2e)', () => {
       const res = await learn('get', `/attempts/${attempt2}`).expect(200);
       expect(res.body).toEqual(result2);
       expect(await prisma.quizAttempt.count({ where: { quizId } })).toBe(3);
+    },
+    SLOW,
+  );
+
+  it(
+    'GV thêm câu khi HV đang làm → resume vẫn đề gốc, chấm trên đề gốc',
+    async () => {
+      const start = await learn('post', '/attempts').expect(200);
+      expect(start.body.questions).toHaveLength(2);
+      const added = await as('post', `/items/${quizItemId}/quiz/questions`, {
+        type: 'single_choice',
+        stem: 'Câu thêm sau?',
+        options: [
+          { content: 'đúng', isCorrect: true },
+          { content: 'sai', isCorrect: false },
+        ],
+      }).expect(201);
+      q3 = added.body.quiz.questions.at(-1);
+      const again = await learn('post', '/attempts').expect(200);
+      expect(again.body.questions).toEqual(start.body.questions);
+      const res = await learn('post', `/attempts/${start.body.attemptId}/submit`, stu, { answers: correct }).expect(200);
+      expect(res.body).toMatchObject({ scorePct: 100, passed: true, total: 2 });
+      expect((await learn('get').expect(200)).body.questionCount).toBe(3);
+    },
+    SLOW,
+  );
+
+  it(
+    'GV sửa câu chưa ai nộp nhưng nằm trong lượt đang làm → câu cũ archive, HV chấm theo đáp án cũ',
+    async () => {
+      const start = await learn('post', '/attempts').expect(200);
+      expect(start.body.questions.map((x: { id: string }) => x.id)).toContain(q3.id);
+      await as('put', `/items/${quizItemId}/quiz/questions/${q3.id}`, {
+        type: 'single_choice',
+        stem: 'Câu thêm sau (đã sửa)?',
+        options: [
+          { content: 'mới đúng', isCorrect: true },
+          { content: 'mới sai', isCorrect: false },
+        ],
+      }).expect(200);
+      expect((await prisma.question.findUniqueOrThrow({ where: { id: q3.id } })).archivedAt).not.toBeNull();
+      const old = { questionId: q3.id, optionIds: q3.options.filter((o) => o.isCorrect).map((o) => o.id) };
+      const res = await learn('post', `/attempts/${start.body.attemptId}/submit`, stu, { answers: [...correct, old] }).expect(200);
+      expect(res.body).toMatchObject({ scorePct: 100, total: 3 });
+    },
+    SLOW,
+  );
+
+  it(
+    'GV đổi điểm đạt khi HV đang làm → đạt/trượt và kết quả theo điểm đạt cũ',
+    async () => {
+      const start = await learn('post', '/attempts').expect(200);
+      await as('patch', `/items/${quizItemId}/quiz`, { passScorePct: 0 }).expect(200);
+      const res = await learn('post', `/attempts/${start.body.attemptId}/submit`, stu, { answers: [] }).expect(200);
+      expect(res.body).toMatchObject({ scorePct: 0, passed: false, passScorePct: 70 });
+    },
+    SLOW,
+  );
+
+  it(
+    'GV xoá hết câu khi HV đang làm → overview 404 nhưng vẫn nộp và xem lại được',
+    async () => {
+      const start = await learn('post', '/attempts').expect(200);
+      const quiz = (await as('get', `/items/${quizItemId}/quiz`).expect(200)).body as { questions: { id: string }[] };
+      for (const x of quiz.questions) await as('delete', `/items/${quizItemId}/quiz/questions/${x.id}`).expect(200);
+      await learn('get').expect(404);
+      const res = await learn('post', `/attempts/${start.body.attemptId}/submit`, stu, { answers: [] }).expect(200);
+      expect(res.body.total).toBe(3);
+      expect((await learn('get', `/attempts/${start.body.attemptId}`).expect(200)).body).toEqual(res.body);
     },
     SLOW,
   );

@@ -17,6 +17,10 @@ export const updateQuizSchema = z
   .strict();
 export type UpdateQuizInput = z.output<typeof updateQuizSchema>;
 
+// Giới hạn chung cho soạn tay, import và nộp bài; FE (QUIZ_LIMITS) dùng cùng số.
+export const QUIZ_MAX_QUESTIONS = 15;
+export const QUIZ_MAX_OPTIONS = 5;
+
 const optionSchema = z
   .object({
     content: z.string().trim().min(1, 'Nhập nội dung đáp án').max(500, 'Tối đa 500 ký tự'),
@@ -30,7 +34,7 @@ export const questionSchema = z
     type: z.enum(QuestionType),
     stem: z.string().trim().min(1, 'Nhập đề bài').max(5000, 'Tối đa 5000 ký tự'),
     relatedItemId: z.guid().nullable().optional(),
-    options: z.array(optionSchema).min(2, 'Cần ít nhất 2 đáp án').max(15, 'Tối đa 15 đáp án'),
+    options: z.array(optionSchema).min(2, 'Cần ít nhất 2 đáp án').max(QUIZ_MAX_OPTIONS, `Tối đa ${QUIZ_MAX_OPTIONS} đáp án`),
   })
   .strict()
   .superRefine((q, ctx) => {
@@ -46,3 +50,13 @@ export type QuestionInput = z.output<typeof questionSchema>;
 
 export const moveQuestionSchema = z.object({ index: z.int().min(0) }).strict();
 export type MoveQuestionInput = z.output<typeof moveQuestionSchema>;
+
+export const importQuestionsSchema = z
+  .object({
+    questions: z
+      .array(questionSchema)
+      .min(1, 'Chưa có câu hỏi nào')
+      .max(QUIZ_MAX_QUESTIONS, `Tối đa ${QUIZ_MAX_QUESTIONS} câu`),
+  })
+  .strict();
+export type ImportQuestionsInput = z.output<typeof importQuestionsSchema>;
