@@ -124,7 +124,7 @@ export function BuyBox({ course }: Props) {
   function primaryCta(bar: boolean) {
     const size = bar ? 'default' : 'lg';
     const width = bar ? 'h-10' : 'w-full';
-    if (status?.enrolled) return <Link href="/my-learning" className={buttonVariants({ size, className: width })}>Vào học</Link>;
+    if (status?.enrolled) return <Link href={`/learn/${course.slug}`} className={buttonVariants({ size, className: width })}>Vào học</Link>;
     if (status?.isOwner) return <Button size={size} disabled className={width}>Khoá học của bạn</Button>;
     if (price === 0) {
       return (

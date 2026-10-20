@@ -108,14 +108,14 @@ export function QuizResult({
           </p>
         )}
         <ol className="flex flex-col gap-4">
-          {result.questions.map((q, i) => <ReviewQuestion key={q.id} q={q} index={i} />)}
+          {result.questions.map((q, i) => <ReviewQuestion key={q.id} q={q} index={i} courseSlug={courseSlug} />)}
         </ol>
       </section>
     </main>
   );
 }
 
-function ReviewQuestion({ q, index }: { q: ResultQuestion; index: number }) {
+function ReviewQuestion({ q, index, courseSlug }: { q: ResultQuestion; index: number; courseSlug: string }) {
   const Icon = q.isCorrect ? CircleCheck : CircleX;
   return (
     <li className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm sm:p-5">
@@ -169,9 +169,13 @@ function ReviewQuestion({ q, index }: { q: ResultQuestion; index: number }) {
         })}
       </ul>
       {q.relatedItem && (
-        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <BookOpen className="size-4 shrink-0" aria-hidden /> Bài giảng liên quan: <span className="font-medium text-foreground">{q.relatedItem.title}</span>
-        </p>
+        <Link
+          href={`/learn/${courseSlug}/lecture/${q.relatedItem.id}`}
+          className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <BookOpen className="size-4 shrink-0" aria-hidden /> Bài giảng liên quan:{' '}
+          <span className="font-medium text-foreground underline-offset-4 hover:underline">{q.relatedItem.title}</span>
+        </Link>
       )}
     </li>
   );

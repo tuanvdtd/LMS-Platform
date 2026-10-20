@@ -1,5 +1,5 @@
-import { LearnLayoutSkeleton } from '@/components/skeletons/learn-layout-skeleton';
+import { LearnShellSkeleton } from '@/components/skeletons/learn-shell-skeleton';
 
 export default function Loading() {
-  return <LearnLayoutSkeleton className="h-screen" />;
+  return <LearnShellSkeleton />;
 }

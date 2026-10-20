@@ -30,6 +30,7 @@ import {
   type SubmissionDetail,
   type SubmissionSummary,
 } from '@/types/exercise';
+import { useLearnShell, useSidebarMode } from '../../../_components/learn-shell';
 import { EditorPanel } from './editor-panel';
 import { ProblemPanel } from './problem-panel';
 import { ResultPanel, type ResultTab, type ShownResult } from './result-panel';
@@ -58,7 +59,7 @@ function writeStore(key: string, value: string | null) {
 
 const SPLIT = { min: 30, max: 70 };
 const clampSplit = (v: number) => Math.min(SPLIT.max, Math.max(SPLIT.min, v));
-const HEIGHT = 'md:h-[calc(100dvh-4rem-1px)]'; // trừ SiteHeader h-16 + viền
+const HEIGHT = 'md:h-[calc(100dvh-3.5rem-1px)]'; // trừ header khung học h-14 + viền
 
 // Lịch sử giữ 20 bài mới nhất (như API); bài chưa có thì chèn theo thời gian nộp.
 function upsert(list: SubmissionSummary[], s: SubmissionSummary) {
@@ -68,6 +69,9 @@ function upsert(list: SubmissionSummary[], s: SubmissionSummary) {
 
 // Không poll: lịch sử tải một lần khi vào trang; kết quả chấm lấy qua nút "Làm mới" / link thông báo (?submission=<id>).
 export default function CodeView({ courseSlug, itemId }: { courseSlug: string; itemId: string }) {
+  // Bài code cần trọn chiều ngang → mục lục luôn là ngăn trượt (spec L1).
+  useSidebarMode('drawer');
+  const { markCompleted } = useLearnShell();
   const router = useRouter();
   const submissionParam = useSearchParams().get('submission');
   const [exercise, setExercise] = useState<LearnExercise | null>(null);
@@ -143,10 +147,11 @@ export default function CodeView({ courseSlug, itemId }: { courseSlug: string; i
     result?.type === 'submission' && result.submission.status === 'accepted' && exercise?.completed === false;
   useEffect(() => {
     if (!justAccepted) return;
+    markCompleted(itemId);
     getLearnExercise(courseSlug, itemId).then(setExercise, () =>
       toast.error('Không tải lại được bài tập, tải lại trang để xem lời giải'),
     );
-  }, [justAccepted, courseSlug, itemId]);
+  }, [justAccepted, courseSlug, itemId, markCompleted]);
 
   if (!exercise) {
     if (!error) return <CodeViewSkeleton />;

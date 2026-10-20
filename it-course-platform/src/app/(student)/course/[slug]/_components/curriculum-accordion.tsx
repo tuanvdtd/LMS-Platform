@@ -76,7 +76,7 @@ export function CurriculumAccordion({ slug, courseId, sections }: { slug: string
                           </span>
                         )}
                       </span>
-                      {it.isPreview && (
+                      {it.isPreview && !enrolled && (
                         <button
                           type="button"
                           onClick={() => setPreview(it)}
@@ -84,6 +84,14 @@ export function CurriculumAccordion({ slug, courseId, sections }: { slug: string
                         >
                           <Play className="size-3.5" aria-hidden /> Xem thử
                         </button>
+                      )}
+                      {it.type === 'lecture' && enrolled && (
+                        <Link
+                          href={`/learn/${slug}/lecture/${it.id}`}
+                          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary no-underline outline-none hover:bg-[var(--primary-light)] focus-visible:ring-3 focus-visible:ring-ring/50"
+                        >
+                          <Play className="size-3.5" aria-hidden /> Học
+                        </Link>
                       )}
                       {it.type === 'quiz' && enrolled && (
                         <Link

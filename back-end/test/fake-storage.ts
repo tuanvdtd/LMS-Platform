@@ -21,8 +21,9 @@ export class FakeStorage implements StoragePort {
   presignPut(bucket: Bucket, key: string) {
     return Promise.resolve(`https://fake.r2/${bucket}/${key}`);
   }
-  presignGet(bucket: Bucket, key: string) {
-    return Promise.resolve(`https://fake.r2/${bucket}/${key}?signed=1`);
+  presignGet(bucket: Bucket, key: string, _ttlSec?: number, download?: { fileName: string }) {
+    const suffix = download ? `&download=${encodeURIComponent(download.fileName)}` : '';
+    return Promise.resolve(`https://fake.r2/${bucket}/${key}?signed=1${suffix}`);
   }
   head(bucket: Bucket, key: string) {
     const body = this.objects.get(`${bucket}/${key}`);
