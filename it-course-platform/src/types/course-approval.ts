@@ -1,7 +1,7 @@
 import type { CurriculumSection, QuizDetail } from './curriculum';
 import type { ApprovalStatus, CourseDetail } from './instructor-course';
 
-// Khớp API admin back-end/src/course-approvals (spec pricing-submit-review §5.1).
+// Khớp API admin back-end/src/course-approvals.
 type Person = { id: string; name: string; email: string };
 
 export interface AdminApprovalRow {

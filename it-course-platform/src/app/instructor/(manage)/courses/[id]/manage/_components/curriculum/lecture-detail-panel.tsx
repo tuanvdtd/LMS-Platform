@@ -55,7 +55,7 @@ async function viewPdf(assetId: string) {
   }
 }
 
-// Chi tiết bài giảng (spec §5.1): nội dung PDF + tài nguyên ghi ngay; mô tả / xem thử / cho tải có nút Lưu riêng (C3).
+// Chi tiết bài giảng: nội dung PDF + tài nguyên ghi ngay; mô tả / xem thử / cho tải có nút Lưu riêng.
 export function LectureDetailPanel({ item }: { item: CurriculumItem }) {
   const { courseId, locked, run, confirm } = useCurriculum();
   const [picker, setPicker] = useState<AssetKind | 'resource' | null>(null);
@@ -84,7 +84,7 @@ export function LectureDetailPanel({ item }: { item: CurriculumItem }) {
     return ok;
   }
 
-  // Dirty khi form chưa lưu HOẶC đang upload (spec §5.2); "Bỏ thay đổi" = reset + huỷ upload.
+  // Dirty khi form chưa lưu HOẶC đang upload; "Bỏ thay đổi" = reset + huỷ upload.
   useDirtySync(isDirty || uploading, submitToPromise(handleSubmit, onSubmit), () => {
     abortUpload?.();
     reset();

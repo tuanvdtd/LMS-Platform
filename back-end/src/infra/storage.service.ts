@@ -14,8 +14,8 @@ import { requireEnv } from '../env.js';
 export type Bucket = 'public' | 'private' | 'video';
 export type ByteRange = { offset: number; length: number };
 
-// R2 cho ảnh bìa, PDF, video giới thiệu (spec curriculum-upload K1, K2); AWS S3 cho video bài giảng
-// (spec video-upload V1). Cả hai qua S3 SDK, chọn client theo bucket.
+// R2 cho ảnh bìa, PDF, video giới thiệu; AWS S3 cho video bài giảng
+// Cả hai qua S3 SDK, chọn client theo bucket.
 @Injectable()
 export class StorageService {
   // Mặc định SDK gắn x-amz-checksum-crc32 vào URL ký PUT; trình duyệt không gửi header đó → bị từ chối.
@@ -51,7 +51,7 @@ export class StorageService {
     return bucket === 'video' ? this.s3 : this.r2;
   }
 
-  // Chữ ký gắn Content-Type + Content-Length: gửi file khác loại / khác cỡ → 403 (spec K4).
+  // Chữ ký gắn Content-Type + Content-Length: gửi file khác loại / khác cỡ → 403.
   presignPut(bucket: Bucket, key: string, contentType: string, size: number): Promise<string> {
     const command = new PutObjectCommand({
       Bucket: this.buckets[bucket],
@@ -80,7 +80,7 @@ export class StorageService {
   }
 
   // Không có object → null (chưa upload xong / key sai), lỗi khác → 502.
-  // S3 chỉ trả 404 khi IAM có s3:ListBucket (spec video-upload §9), không thì 403 → 502.
+  // S3 chỉ trả 404 khi IAM có s3:ListBucket, không thì 403 → 502.
   async head(bucket: Bucket, key: string): Promise<{ size: number } | null> {
     try {
       const res = await this.clientOf(bucket).send(new HeadObjectCommand({ Bucket: this.buckets[bucket], Key: key }));

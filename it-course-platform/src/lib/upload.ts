@@ -4,7 +4,7 @@ import type { LibraryAsset } from '@/types/curriculum';
 
 type Options = { onProgress?: (percent: number) => void; signal?: AbortSignal };
 
-// Ký URL → PUT thẳng lên R2 / S3 (spec K4, video-upload V3). axios trần, KHÔNG dùng instance `api`: không gửi cookie/baseURL của BE
+// Ký URL → PUT thẳng lên R2 / S3. axios trần, KHÔNG dùng instance `api`: không gửi cookie/baseURL của BE
 // sang R2. Content-Length do trình duyệt tự đặt = file.size (khớp chữ ký). Huỷ bằng AbortSignal.
 async function putToStorage(
   file: File,
@@ -26,7 +26,7 @@ async function putToStorage(
 
 export async function uploadDocument(file: File, options: Options = {}): Promise<LibraryAsset> {
   const ticket = await putToStorage(file, 'document', options);
-  options.signal?.throwIfAborted(); // huỷ sau khi PUT xong → không complete (spec §6)
+  options.signal?.throwIfAborted(); // huỷ sau khi PUT xong → không complete
   return completeUpload(ticket.assetId!, options.signal);
 }
 
@@ -35,7 +35,7 @@ export async function uploadThumbnail(file: File, options: Options = {}): Promis
   return (await putToStorage(file, 'thumbnail', options)).key;
 }
 
-// Video bài giảng lên S3; thời lượng FE đo gửi kèm, complete = BE kiểm cỡ + cấu trúc MP4 (spec video-upload V5, §4.3).
+// Video bài giảng lên S3; thời lượng FE đo gửi kèm, complete = BE kiểm cỡ + cấu trúc MP4.
 export async function uploadVideo(file: File, durationSec: number, options: Options = {}): Promise<LibraryAsset> {
   const ticket = await putToStorage(file, 'video', options, { durationSec });
   options.signal?.throwIfAborted();
@@ -49,8 +49,8 @@ export async function uploadPromo(file: File, options: Options = {}): Promise<st
 
 const UNPLAYABLE = 'Trình duyệt không phát được file này. Hãy xuất lại MP4 (H.264)';
 
-// Kiểm ở FE trước khi tải (spec video-upload §5.1): loại, cỡ, trình duyệt đọc được metadata và có hình.
-// Thời lượng lấy từ video.duration (làm tròn giây) và gửi lên BE — BE không đo (spec video-upload V5).
+// Kiểm ở FE trước khi tải: loại, cỡ, trình duyệt đọc được metadata và có hình.
+// Thời lượng lấy từ video.duration (làm tròn giây) và gửi lên BE — BE không đo.
 export function checkVideo(
   file: File,
   maxBytes: number,

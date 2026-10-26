@@ -12,7 +12,7 @@ import type { LearnerLevel, Occupation, UpdatePreferencesPayload } from '@/types
 export const STEP_COUNT = 3;
 type Step = 0 | 1 | 2;
 
-// Toàn bộ logic wizard /onboarding (spec 2026-10-02-personalize-occupation §5.1); view chỉ render.
+// Toàn bộ logic wizard /onboarding; view chỉ render.
 // 401 do interceptor của api chuyển /login?redirect=/onboarding — ở đây chỉ không toast.
 export function useOnboarding() {
   const router = useRouter();

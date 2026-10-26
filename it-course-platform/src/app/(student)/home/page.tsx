@@ -11,7 +11,7 @@ import FeaturedCourses from '../_components/featured-courses';
 export const metadata: Metadata = { title: 'Trang chủ | SkillPath' };
 
 // Trang chủ người đã đăng nhập. proxy.ts rewrite '/' → '/home' khi có cookie session, nên trang '/' của khách
-// không phải đọc cookie và render tĩnh được (spec guest-ui §4.3).
+// không phải đọc cookie và render tĩnh được.
 export default function MemberHomePage() {
   const weakSkills = demoStudent.skills
     .filter((s) => s.mastery < 50)

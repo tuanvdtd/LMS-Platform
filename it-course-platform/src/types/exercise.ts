@@ -1,6 +1,6 @@
 import type { Verdict } from '@/types';
 
-// Khớp API back-end/src/exercise (spec 2026-10-19-coding-exercise §6–§7). Giới hạn giống BE.
+// Khớp API back-end/src/exercise. Giới hạn giống BE.
 export const LANGUAGES = { javascript: 'JavaScript', python: 'Python', cpp: 'C++' } as const;
 export type Language = keyof typeof LANGUAGES;
 export const LANGUAGE_IDS = Object.keys(LANGUAGES) as Language[];
@@ -13,8 +13,11 @@ export const MAX_HINT = 500;
 export const MAX_INSTRUCTIONS = 20_000;
 export const MAX_OBJECTIVE = 200;
 export const MAX_SOLUTION_EXPLANATION = 5000;
-export const TIME_LIMIT_MS = { min: 500, max: 10_000 } as const;
-export const MEMORY_LIMIT_KB = { min: 32_000, max: 512_000 } as const;
+// Mốc chạy code cố định cho mọi bài — phải khớp LANGUAGES/MEMORY_LIMIT_KB ở back-end/src/exercise/code-runner.ts
+// và VERIFY_BUDGET ở back-end/src/exercise/exercise.service.ts.
+export const CPU_LIMIT_MS: Record<Language, number> = { javascript: 4000, python: 6000, cpp: 2000 };
+export const MEMORY_LIMIT_KB = 256 * 1024;
+export const VERIFY_BUDGET_PCT = 70;
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type SubmissionStatus =
@@ -45,8 +48,6 @@ export interface ExerciseDetail {
   relatedItemId: string | null;
   topicIds: string[];
   languages: Language[];
-  timeLimitMs: number;
-  memoryLimitKb: number;
   updatedAt: string;
   starters: StarterCode[];
   tests: ExerciseTest[];
@@ -56,8 +57,6 @@ export type UpdateExercisePayload = Partial<
 >;
 export interface UpdateCodePayload {
   languages: Language[];
-  timeLimitMs: number;
-  memoryLimitKb: number;
   starters: StarterCode[];
   tests: { id?: string; input: string; expectedOutput: string; isPublic: boolean; points: number }[];
 }
@@ -70,7 +69,7 @@ export interface VerifyReport {
   languages: {
     language: Language;
     compileError: string | null;
-    tests: { testCaseId: string; status: SubmissionStatus; stdout: string; timeMs: number | null }[];
+    tests: { testCaseId: string; status: SubmissionStatus; stdout: string; timeMs: number | null; slow: boolean }[];
   }[];
 }
 
@@ -80,8 +79,6 @@ export interface LearnExercise {
   instructions: string;
   difficulty: Difficulty;
   learningObjective: string | null;
-  timeLimitMs: number;
-  memoryLimitKb: number;
   topics: { id: string; name: string }[];
   relatedItem: { id: string; title: string } | null;
   languages: Language[];

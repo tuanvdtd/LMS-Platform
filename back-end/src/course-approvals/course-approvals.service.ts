@@ -42,7 +42,7 @@ const CATEGORY = { select: { id: true, name: true, parent: { select: { id: true,
 export type ReviewScope = string[] | null;
 const inScope = (scope: ReviewScope) => (scope ? { course: { category: { parentId: { in: scope } } } } : {});
 
-// Gửi duyệt (giảng viên) + hàng đợi duyệt (admin) — spec pricing-submit-review §4, §5.
+// Gửi duyệt (giảng viên) + hàng đợi duyệt (admin).
 @Injectable()
 export class CourseApprovalsService {
   constructor(
@@ -163,7 +163,7 @@ export class CourseApprovalsService {
   ) {
     if (!isGuid(id)) throw new NotFoundException();
     const row = await this.prisma.$transaction(async (tx) => {
-      // WHERE status = pending: hai admin bấm cùng lúc thì người sau count = 0 (spec §5.2).
+      // WHERE status = pending: hai admin bấm cùng lúc thì người sau count = 0.
       // Scope nằm trong WHERE: ngoài danh mục thì không ghi gì, không phải kiểm sau.
       const res = await tx.courseApproval.updateMany({
         where: { id, status: 'pending', ...inScope(scope) },
@@ -179,7 +179,7 @@ export class CourseApprovalsService {
       }
       await tx.course.update({
         where: { id: found.courseId },
-        // publishedAt chỉ ghi lần duyệt đầu → từ đó giá bị khoá (UC13 BR6).
+        // publishedAt chỉ ghi lần duyệt đầu → từ đó giá bị khoá.
         data:
           status === 'approved'
             ? { status: 'published', publishedAt: found.course.publishedAt ?? new Date(), updatedAt: new Date() }

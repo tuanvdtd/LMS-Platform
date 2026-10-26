@@ -2,7 +2,7 @@ import { QuestionType } from '@prisma/client';
 import { z } from 'zod';
 import { emptyToNull } from '../curriculum/curriculum.schemas.js';
 
-// spec 2026-10-08-quiz-authoring §4.3. FE dùng cùng giới hạn.
+// Giới hạn khi soạn quiz. FE dùng cùng giới hạn.
 export const updateQuizSchema = z
   .object({
     description: z.string().trim().max(1000, 'Tối đa 1000 ký tự').transform(emptyToNull).nullable(),

@@ -8,7 +8,7 @@ type Tx = Prisma.TransactionClient;
 export const couponUnavailable = () =>
   new ConflictException({ statusCode: 409, code: 'COUPON_UNAVAILABLE', message: 'Coupon đã hết lượt hoặc hết hạn' });
 
-// Trừ 1 lượt atomic (spec curriculum-schema §3.5). Cùng điều kiện với isCouponActive.
+// Trừ 1 lượt atomic. Cùng điều kiện với isCouponActive.
 export async function reserveCoupon(tx: Tx, couponId: string) {
   const rows = await tx.$queryRaw<{ id: string }[]>`
     UPDATE coupons SET "redeemedCount" = "redeemedCount" + 1
@@ -34,7 +34,7 @@ export async function cancelOrder(tx: Tx, orderId: string) {
 
 export type FulfillResult = 'unpaid' | 'order_not_found' | 'already_paid' | 'paid';
 
-// Session đã trả → order paid + ghi danh + xoá giỏ (spec §8). Idempotent: khoá dòng order rồi UPDATE có điều kiện.
+// Session đã trả → order paid + ghi danh + xoá giỏ. Idempotent: khoá dòng order rồi UPDATE có điều kiện.
 export async function fulfill(tx: Tx, session: Stripe.Checkout.Session): Promise<FulfillResult> {
   if (session.payment_status !== 'paid') return 'unpaid';
   const orderId = session.metadata?.orderId;
@@ -42,7 +42,7 @@ export async function fulfill(tx: Tx, session: Stripe.Checkout.Session): Promise
   const [row] = await tx.$queryRaw<{ status: string }[]>`
     SELECT status::text AS status FROM orders WHERE id = ${orderId}::uuid FOR UPDATE`;
   if (!row) return 'order_not_found';
-  // Chỉ pending/failed → paid (spec §8); paid / refunded / partially_refunded giữ nguyên.
+  // Chỉ pending/failed → paid; paid / refunded / partially_refunded giữ nguyên.
   if (row.status !== 'pending' && row.status !== 'failed') return 'already_paid';
   const order = await tx.order.update({
     where: { id: orderId },

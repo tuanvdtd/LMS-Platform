@@ -8,7 +8,7 @@ import { ChecklistSidebar } from './checklist-sidebar';
 import { useCourse } from './course-provider';
 import { GuardedLink } from './guarded-link';
 
-// Toàn màn hình kiểu Udemy (spec C4): thanh trên + sidebar checklist, không dùng layout /instructor.
+// Toàn màn hình kiểu Udemy: thanh trên + sidebar checklist, không dùng layout /instructor.
 // Thanh trên luôn tối (cả light/dark mode) để tách khỏi vùng soạn thảo.
 export function CourseManageShell({ children }: { children: React.ReactNode }) {
   const { course, dirty } = useCourse();

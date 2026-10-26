@@ -13,7 +13,7 @@ const PUBLISH: Options.Publish & { timeout: number } = { persistent: true, timeo
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-// Ranh giới gửi mail: send() publish job sang mail.send, MailConsumer gửi (spec rabbitmq-mail-queue).
+// Ranh giới gửi mail: send() publish job sang mail.send, MailConsumer gửi.
 // Gọi thẳng REST API của Brevo bằng fetch có sẵn — không cần SDK.
 @Injectable()
 export class MailService {
@@ -52,7 +52,7 @@ export class MailService {
     );
   }
 
-  // Kết quả duyệt khoá (spec pricing-submit-review §5.2).
+  // Kết quả duyệt khoá.
   sendCourseReviewed(to: string, title: string, approved: boolean, reason: string | null) {
     const t = escapeHtml(title);
     return approved

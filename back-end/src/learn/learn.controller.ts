@@ -9,7 +9,7 @@ import { NotesService } from './notes.service.js';
 
 type User = AuthSession['user'];
 
-// Mọi user đăng nhập; ghi danh kiểm trong service (spec 2026-10-20-lecture-player §6).
+// Mọi user đăng nhập; ghi danh kiểm trong service.
 @Controller('learn/:courseSlug')
 export class LearnController {
   constructor(

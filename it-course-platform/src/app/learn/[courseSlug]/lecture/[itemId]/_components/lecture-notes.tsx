@@ -25,7 +25,7 @@ import { NOTE_MAX, type Note } from '@/types/learn';
 const sortNotes = (list: Note[]) =>
   [...list].sort((a, b) => a.positionSec - b.positionSec || a.createdAt.localeCompare(b.createdAt));
 
-// Ghi chú riêng gắn mốc video (spec §7.3). videoRef null = bài PDF (không có mốc).
+// Ghi chú riêng gắn mốc video. videoRef null = bài PDF (không có mốc).
 export function LectureNotes({
   courseSlug,
   itemId,

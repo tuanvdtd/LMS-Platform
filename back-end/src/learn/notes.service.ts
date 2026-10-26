@@ -11,7 +11,7 @@ const NOTE_SELECT = { id: true, positionSec: true, body: true, createdAt: true, 
 const noteNotFound = () =>
   new NotFoundException({ statusCode: 404, code: 'NOTE_NOT_FOUND', message: 'Không tìm thấy ghi chú' });
 
-// Ghi chú riêng của học viên theo bài giảng (spec 2026-10-20-lecture-player §6 #7–#10).
+// Ghi chú riêng của học viên theo bài giảng.
 @Injectable()
 export class NotesService {
   constructor(

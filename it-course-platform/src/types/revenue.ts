@@ -1,4 +1,4 @@
-// Khớp response API module revenue (spec 2026-10-05-revenue-share-payout §4).
+// Khớp response API module revenue.
 export type PayoutStatus = 'pending' | 'paid';
 
 export const PAYOUT_STATUS_LABEL: Record<PayoutStatus, string> = { pending: 'Chờ trả', paid: 'Đã trả' };

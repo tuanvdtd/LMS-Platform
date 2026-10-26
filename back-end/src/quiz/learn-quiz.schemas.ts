@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { QUIZ_MAX_OPTIONS, QUIZ_MAX_QUESTIONS } from './quiz.schemas.js';
 
-// spec 2026-10-17-quiz-taking §3. single_choice gửi > 1 đáp án → chấm sai, không 400.
+// Body nộp bài quiz. single_choice gửi > 1 đáp án → chấm sai, không 400.
 export const submitSchema = z
   .object({
     answers: z

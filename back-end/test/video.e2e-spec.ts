@@ -13,7 +13,7 @@ import { setupApp } from '../src/setup-app.js';
 import { FakeStorage } from './fake-storage.js';
 import { mp4, pdf } from './fixtures/files.js';
 
-// spec video-upload §7. Bootstrap giống curriculum.e2e-spec.ts.
+// Bootstrap giống curriculum.e2e-spec.ts.
 const FE_URL = requireEnv('FE_URL');
 const PASSWORD = 'Password123!';
 const randomIp = () => `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
@@ -196,7 +196,7 @@ describe('Video bài giảng + video giới thiệu (e2e)', () => {
     it(
       'complete video đúng → ready + durationSec từ client; lệch cỡ / không phải MP4 → 400, failed, object bị xoá',
       async () => {
-        // File 10 giây nhưng client khai 754 → server giữ 754 (không tự đo, spec V5).
+        // File 10 giây nhưng client khai 754 → server giữ 754 (không tự đo).
         const ok = await uploaded(alice, 'video', mp4(10, { moovLast: true }), undefined, 754);
         const res = await call('post', `/api/instructor/assets/${ok.assetId}/complete`, alice.cookie).expect(200);
         expect(res.body).toMatchObject({

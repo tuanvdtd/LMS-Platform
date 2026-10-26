@@ -1,5 +1,5 @@
 -- ============================================================================
---  Bổ sung cho migration taxonomy_topics (spec 2026-09-29-udemy-taxonomy-topics §3.3).
+--  Bổ sung cho migration taxonomy_topics.
 --  Prisma DROP các bảng skill cũ nên constraint/index tạo ở 01_post_migrate.sql
 --  mất theo, phải tạo lại trên bảng topic mới.
 --  Cách áp dụng: dán vào cuối migration.sql do `migrate dev --create-only` sinh ra.

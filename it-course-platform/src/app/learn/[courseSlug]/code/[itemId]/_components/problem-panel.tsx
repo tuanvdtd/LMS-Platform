@@ -9,7 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { type Difficulty, type Language, LANGUAGES, type LearnExercise, type SubmissionSummary } from '@/types/exercise';
+import {
+  CPU_LIMIT_MS,
+  type Difficulty,
+  type Language,
+  LANGUAGES,
+  type LearnExercise,
+  MEMORY_LIMIT_KB,
+  type SubmissionSummary,
+} from '@/types/exercise';
 import { CodeEditor } from './editor-panel';
 import { formatKb, formatMs, IoBlock, PANEL_TABS } from './result-panel';
 import { SubmissionHistory } from './submission-history';
@@ -20,7 +28,15 @@ const DIFFICULTY: Record<Difficulty, { label: string; dot: string }> = {
   hard: { label: 'Khó', dot: 'bg-(--skill-weak)' },
 };
 
-function Statement({ courseSlug, exercise: ex }: { courseSlug: string; exercise: LearnExercise }) {
+function Statement({
+  courseSlug,
+  exercise: ex,
+  language,
+}: {
+  courseSlug: string;
+  exercise: LearnExercise;
+  language: Language;
+}) {
   const difficulty = DIFFICULTY[ex.difficulty];
   return (
     <div className="flex flex-col gap-5">
@@ -83,11 +99,11 @@ function Statement({ courseSlug, exercise: ex }: { courseSlug: string; exercise:
       <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
         <div className="flex gap-1.5">
           <dt className="text-muted-foreground">Giới hạn thời gian:</dt>
-          <dd className="font-mono text-foreground">{formatMs(ex.timeLimitMs)}</dd>
+          <dd className="font-mono text-foreground">{formatMs(CPU_LIMIT_MS[language])}</dd>
         </div>
         <div className="flex gap-1.5">
           <dt className="text-muted-foreground">Bộ nhớ:</dt>
-          <dd className="font-mono text-foreground">{formatKb(ex.memoryLimitKb)}</dd>
+          <dd className="font-mono text-foreground">{formatKb(MEMORY_LIMIT_KB)}</dd>
         </div>
       </dl>
 
@@ -199,7 +215,7 @@ export function ProblemPanel({
         </TabsList>
       </div>
       <TabsContent value="statement" className="min-h-0 overflow-y-auto p-4">
-        <Statement courseSlug={courseSlug} exercise={exercise} />
+        <Statement courseSlug={courseSlug} exercise={exercise} language={language} />
       </TabsContent>
       <TabsContent value="hints" className="min-h-0 overflow-y-auto p-4">
         <Hints hints={exercise.hints} shown={hintsShown} onShowMore={() => setHintsShown((n) => n + 1)} />

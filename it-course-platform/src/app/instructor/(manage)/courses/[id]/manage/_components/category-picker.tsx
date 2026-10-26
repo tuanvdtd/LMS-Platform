@@ -6,7 +6,7 @@ import type { CategoryNode } from '@/types';
 
 const labels = (list: { id: string; name: string }[]) => Object.fromEntries(list.map((x) => [x.id, x.name]));
 
-// Cây nhận qua props từ trang server (getCategoryTree có cache), không gọi axios (spec §5.2).
+// Cây nhận qua props từ trang server (getCategoryTree có cache), không gọi axios.
 // Khoá chỉ gắn vào thể loại con → value là id cấp 2; cấp 1 là state cục bộ.
 export function CategoryPicker({
   categories,

@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import { type ExerciseTest, LANGUAGES, type VerifyReport, verdictOf } from '@/types/exercise';
 
 // Báo cáo "Kiểm tra lời giải": lời giải mẫu của từng ngôn ngữ chạy với mọi test.
@@ -22,6 +23,8 @@ export function VerifyReportView({
   onClose: () => void;
 }) {
   const info = new Map(tests.map((t, i) => [t.id, { no: i + 1, isPublic: t.isPublic }]));
+  // Có test sai/lỗi biên dịch thì luôn nói rõ, kể cả khi problems chỉ nêu test chạy chậm.
+  const failing = report.languages.some((l) => l.compileError || l.tests.some((t) => t.status !== 'accepted'));
 
   return (
     <Card role="region" aria-label="Kết quả kiểm tra lời giải">
@@ -44,14 +47,15 @@ export function VerifyReportView({
             <CircleAlert />
             <AlertTitle>Bài chưa được xuất bản</AlertTitle>
             <AlertDescription>
-              {report.problems.length > 0 ? (
+              {(failing || report.problems.length === 0) && (
+                <p>Lời giải mẫu chưa pass toàn bộ test. Sửa lời giải hoặc output mong đợi rồi lưu và kiểm tra lại.</p>
+              )}
+              {report.problems.length > 0 && (
                 <ul className="list-disc pl-4">
                   {report.problems.map((p) => (
                     <li key={p}>{p}</li>
                   ))}
                 </ul>
-              ) : (
-                'Lời giải mẫu chưa pass toàn bộ test. Sửa lời giải hoặc output mong đợi rồi lưu và kiểm tra lại.'
               )}
             </AlertDescription>
           </Alert>
@@ -99,8 +103,11 @@ export function VerifyReportView({
                           <TableCell className="px-3 py-2 whitespace-nowrap">
                             <VerdictBadge verdict={verdictOf(t.status)} />
                           </TableCell>
-                          <TableCell className="px-3 py-2 text-right font-mono whitespace-nowrap">
+                          <TableCell
+                            className={cn('px-3 py-2 text-right font-mono whitespace-nowrap', t.slow && 'text-destructive')}
+                          >
                             {t.timeMs === null ? '–' : `${t.timeMs} ms`}
+                            {t.slow && <span className="block font-sans text-xs">quá sát giới hạn</span>}
                           </TableCell>
                           <TableCell className="min-w-48 px-3 py-2">
                             <div className="flex flex-col items-start gap-1.5">

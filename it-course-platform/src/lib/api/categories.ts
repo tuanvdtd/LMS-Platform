@@ -3,7 +3,7 @@ import { cacheLife } from 'next/cache';
 import type { CategoryNode } from '@/types';
 
 // Chỉ chạy ở server. Taxonomy hầu như không đổi → cache theo giờ.
-// Lỗi: trả [] NGAY TRONG 'use cache' với cacheLife ngắn (spec E10). Bắt ở ngoài thì []
+// Lỗi: trả [] NGAY TRONG 'use cache' với cacheLife ngắn. Bắt ở ngoài thì []
 // bị nướng vào static shell lúc build và không có entry nào để revalidate.
 export async function getCategoryTree(): Promise<CategoryNode[]> {
   'use cache';

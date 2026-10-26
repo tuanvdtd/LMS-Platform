@@ -18,8 +18,6 @@ const EXERCISE_SELECT = {
   solutionExplanation: true,
   relatedItemId: true,
   languages: true,
-  timeLimitMs: true,
-  memoryLimitKb: true,
   updatedAt: true,
   item: { select: { title: true, isPublished: true } },
   topics: { select: { topicId: true }, orderBy: { topicId: 'asc' } },
@@ -58,7 +56,12 @@ export async function withRunLock<T>(redis: RedisService, userId: string, fn: ()
   }
 }
 
-// Soạn bài code (spec 2026-10-19-coding-exercise §6). Ghi qua CurriculumService.mutate → trả { exercise }.
+// Lời giải mẫu phải chạy ≤ 70% mốc CPU: chừa chỗ cho cách giải hơi chậm hơn của học viên và dao động khi Piston bận.
+// Đổi → sửa cả VERIFY_BUDGET_PCT ở it-course-platform/src/types/exercise.ts.
+const VERIFY_BUDGET = 0.7;
+const verifyBudgetMs = (language: Language) => Math.round(LANGUAGES[language].cpuLimitMs * VERIFY_BUDGET);
+
+// Soạn bài code. Ghi qua CurriculumService.mutate → trả { exercise }.
 @Injectable()
 export class ExerciseService {
   constructor(
@@ -123,9 +126,8 @@ export class ExerciseService {
       if (added.length) await tx.exerciseTestCase.createMany({ data: added });
       await tx.exerciseStarterCode.deleteMany({ where: { exerciseId } });
       await tx.exerciseStarterCode.createMany({ data: body.starters.map((s) => ({ ...s, exerciseId })) });
-      const { languages, timeLimitMs, memoryLimitKb } = body;
-      await tx.exercise.update({ where: { id: exerciseId }, data: { languages, timeLimitMs, memoryLimitKb } });
-      // E12: đụng code/test → phải verify lại mới xuất bản.
+      await tx.exercise.update({ where: { id: exerciseId }, data: { languages: body.languages } });
+      // Đụng code/test → phải verify lại mới xuất bản.
       await tx.curriculumItem.update({ where: { id: itemId }, data: { isPublished: false } });
     });
   }
@@ -149,11 +151,17 @@ export class ExerciseService {
       languages = await withRunLock(this.redis, userId, () =>
         Promise.all(
           solutions.map(async ({ language, code }) => {
-            const { compileError, results } = await runTests(this.runner.run.bind(this.runner), language, code, ex.tests, ex);
+            const { compileError, results } = await runTests(this.runner.run.bind(this.runner), language, code, ex.tests);
             return {
               language,
               compileError,
-              tests: results.map((r) => ({ testCaseId: r.testCaseId, status: r.status, stdout: r.run.stdout, timeMs: r.run.timeMs })),
+              tests: results.map((r) => ({
+                testCaseId: r.testCaseId,
+                status: r.status,
+                stdout: r.run.stdout,
+                timeMs: r.run.timeMs,
+                slow: r.status === 'accepted' && r.run.timeMs !== null && r.run.timeMs > verifyBudgetMs(language),
+              })),
             };
           }),
         ),
@@ -162,8 +170,19 @@ export class ExerciseService {
       if (err instanceof RunnerUnavailableError) throw runnerUnavailable();
       throw err;
     }
+    // Số test 1-based theo thứ tự ex.tests (position), khớp cột STT ở báo cáo của giảng viên.
+    for (const l of languages) {
+      const nos = l.tests.flatMap((t, i) => (t.slow ? [i + 1] : []));
+      if (nos.length) {
+        problems.push(
+          `Lời giải ${LANGUAGES[l.language].label} chạy quá sát giới hạn ở test ${nos.join(', ')} ` +
+            `(tối đa ${verifyBudgetMs(l.language).toLocaleString('vi-VN')} ms) — giảm kích thước test hoặc tối ưu lời giải`,
+        );
+      }
+    }
     const passed = languages.every(
-      (l) => !l.compileError && l.tests.length === ex.tests.length && l.tests.every((t) => t.status === 'accepted'),
+      (l) =>
+        !l.compileError && l.tests.length === ex.tests.length && l.tests.every((t) => t.status === 'accepted' && !t.slow),
     );
     if (!passed) return { passed, problems, languages };
     let stale = false;

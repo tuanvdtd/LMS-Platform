@@ -1,5 +1,5 @@
 -- ============================================================================
---  Bổ sung cho migration revenue_payout (spec 2026-10-05-revenue-share-payout §3.1).
+--  Bổ sung cho migration revenue_payout.
 --  Cách áp dụng: dán vào cuối migration.sql do `migrate diff` sinh ra.
 --  Không thêm object mới vào danh sách drift của README (chỉ CHECK chk_* + 1 dòng seed).
 -- ============================================================================

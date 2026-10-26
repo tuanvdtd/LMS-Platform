@@ -32,7 +32,7 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
   const [busy, setBusy] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
   const skipFetch = useRef<string | null>(null); // kết quả vừa nộp đã có sẵn, không GET lại
-  // Đang làm bài → mục lục thành ngăn trượt, nhường chỗ cho đề (spec L1).
+  // Đang làm bài → mục lục thành ngăn trượt, nhường chỗ cho đề.
   useSidebarMode(sheet ? 'drawer' : 'docked');
 
   useEffect(() => {

@@ -41,9 +41,6 @@ ALTER TABLE order_items
     "unitPriceAmount" = "platformFeeAmount" + "instructorEarnAmount"
   );
 
-ALTER TABLE exercises
-  ADD CONSTRAINT chk_exercise_limits CHECK ("timeLimitMs" > 0 AND "memoryLimitKb" > 0);
-
 -- SkillLevel dùng chung cho user và course, nhưng 'all_levels' chỉ có nghĩa với course.
 ALTER TABLE "user"
   ADD CONSTRAINT chk_user_level CHECK (level IS NULL OR level <> 'all_levels');
@@ -108,7 +105,7 @@ CREATE INDEX idx_courses_title_trgm ON courses USING gin (title gin_trgm_ops); -
 CREATE INDEX idx_skills_name_trgm ON skills USING gin (name gin_trgm_ops);
 
 -- ---------------------------------------------------------------------------
---  4. pgvector — recommendation tầng 4 (§3.4)
+--  4. pgvector — recommendation tầng 4
 --  Chỉ index khoá đã duyệt: index nhỏ hơn, và query luôn lọc status anyway.
 -- ---------------------------------------------------------------------------
 -- [2026-09-30] Tạo lại với WHERE status = 'published' ở 05_udemy_curriculum.sql.
@@ -132,7 +129,7 @@ CREATE INDEX idx_certificates_active ON certificates ("serialNo")
   WHERE "revokedAt" IS NULL;
 
 -- ---------------------------------------------------------------------------
---  6. Materialized view — cron REFRESH hằng đêm (§4.5, §4.6)
+--  6. Materialized view — cron REFRESH hằng đêm
 --  Dữ liệu nguồn đã nằm sẵn trong bảng nghiệp vụ nên không cần bảng stat riêng.
 -- ---------------------------------------------------------------------------
 
@@ -153,7 +150,7 @@ WITH NO DATA;
 CREATE UNIQUE INDEX uq_mv_copurchase ON mv_course_copurchase (course_id, other_course_id);
 CREATE INDEX idx_mv_copurchase_rank ON mv_course_copurchase (course_id, co_count DESC);
 
--- §3.5b: "Bài học nào nhiều người dừng lại không học tiếp"
+-- "Bài học nào nhiều người dừng lại không học tiếp"
 -- [2026-09-30] Thay bằng mv_item_dropoff ở 05_udemy_curriculum.sql.
 CREATE MATERIALIZED VIEW mv_lesson_dropoff AS
 SELECT
@@ -174,7 +171,7 @@ WITH NO DATA;
 CREATE UNIQUE INDEX uq_mv_lesson_dropoff ON mv_lesson_dropoff (lesson_id);
 CREATE INDEX idx_mv_lesson_dropoff_course ON mv_lesson_dropoff (course_id, position);
 
--- §3.5b: tỉ lệ hoàn thành khoá + học viên đang hoạt động
+-- Tỉ lệ hoàn thành khoá + học viên đang hoạt động
 CREATE MATERIALIZED VIEW mv_course_completion AS
 SELECT
   e."courseId"                                                AS course_id,

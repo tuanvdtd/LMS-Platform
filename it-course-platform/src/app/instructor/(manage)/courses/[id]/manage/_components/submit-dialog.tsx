@@ -21,7 +21,7 @@ import { useCourse } from './course-provider';
 
 const NOTE_MAX = 1000;
 
-// Gửi duyệt (spec pricing-submit-review §4.3): cam kết bản quyền bắt buộc + ghi chú tuỳ chọn cho admin.
+// Gửi duyệt: cam kết bản quyền bắt buộc + ghi chú tuỳ chọn cho admin.
 export function SubmitDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { course, setCourse } = useCourse();
   const [agree, setAgree] = useState(false);

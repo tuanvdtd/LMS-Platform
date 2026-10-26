@@ -1,7 +1,7 @@
 // Đoạn video đã xem = bitmap, bit i ↔ giây [10i, 10i+10); bit thấp của byte 0 là đoạn 0
-// (spec 2026-10-20-lecture-player §4). FE (use-video-progress.ts) dùng cùng BUCKET_SEC.
+// FE (use-video-progress.ts) dùng cùng BUCKET_SEC.
 export const BUCKET_SEC = 10;
-const MAX_SPEED = 2; // tốc độ phát tối đa hợp lệ (L5)
+const MAX_SPEED = 2; // tốc độ phát tối đa hợp lệ
 const GRACE_SEC = 60; // ân hạn cho lần báo đầu
 
 export const bucketCount = (durationSec: number) => Math.ceil(durationSec / BUCKET_SEC);
@@ -28,7 +28,7 @@ export function mergeBuckets(prev: Uint8Array | null, incoming: number[], total:
   return bits;
 }
 
-// L5: tổng số đoạn ≤ ceil((giây từ lúc bắt đầu xem + 60) × 2 / 10) — trần trên TỔNG nên gửi dồn hay spam đều không
+// Tổng số đoạn ≤ ceil((giây từ lúc bắt đầu xem + 60) × 2 / 10) — trần trên TỔNG nên gửi dồn hay spam đều không
 // lách được. elapsedSec tính trong SQL (now() − createdAt) để không lệch đồng hồ DB ↔ Node.
 export function watchBudget(elapsedSec: number, watched: number): number {
   return Math.ceil(((Math.max(0, elapsedSec) + GRACE_SEC) * MAX_SPEED) / BUCKET_SEC) - watched;

@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 import type { AttemptResult, AttemptSheet, QuizOverview, SubmitPayload } from '@/types/learn-quiz';
 
-// API học viên làm quiz (spec 2026-10-17-quiz-taking §3). Chỉ gọi từ client component.
+// API học viên làm quiz. Chỉ gọi từ client component.
 const base = (slug: string, itemId: string) => `/learn/${encodeURIComponent(slug)}/quizzes/${itemId}`;
 const data = <T>(req: Promise<{ data: T }>) => req.then((r) => r.data);
 

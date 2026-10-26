@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { MAX_TITLE } from '@/types/curriculum';
 
-// Sửa tên tại chỗ (spec §5.2): Enter / rời ô → lưu nếu khác; rỗng → trả tên cũ; Esc → trả tên cũ.
+// Sửa tên tại chỗ: Enter / rời ô → lưu nếu khác; rỗng → trả tên cũ; Esc → trả tên cũ.
 export function InlineTitle({
   value,
   label,

@@ -8,7 +8,7 @@ import type { Lecture } from '@/types/learn';
 import { MediaState } from './media-state';
 import { useVideoProgress } from './use-video-progress';
 
-// <video> gốc + tự hồi phục khi link ký hết hạn (spec §7.3): lỗi → xin link mới 1 lần, quay lại đúng giây.
+// <video> gốc + tự hồi phục khi link ký hết hạn: lỗi → xin link mới 1 lần, quay lại đúng giây.
 export function VideoPlayer({
   courseSlug,
   lecture,

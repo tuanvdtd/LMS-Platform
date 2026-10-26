@@ -20,7 +20,7 @@ type ApiError = { path: string[]; message: string };
 
 const STEPS = ['Hồ sơ giảng viên', 'Tài khoản nhận tiền'];
 
-// Đăng ký giảng viên cao cấp (spec pricing-submit-review §3.3): tự động, không cần admin duyệt hồ sơ.
+// Đăng ký giảng viên cao cấp: tự động, không cần admin duyệt hồ sơ.
 export function PremiumFlow() {
   const [state, setState] = useState<PayoutAccountState | null>(null);
   const [step, setStep] = useState<1 | 2>(1);

@@ -2,7 +2,7 @@ import { api } from '@/lib/api/client';
 import type { AssetKind, LibraryAsset } from '@/types/curriculum';
 import type { CourseDetail } from '@/types/instructor-course';
 
-// spec 2026-10-01-curriculum-upload §4.3, 2026-10-02-video-upload §4.3–4.4.
+// API tải file lên (xin URL ký, complete) và thư viện file của giảng viên.
 export interface UploadTicket {
   assetId: string | null;
   key: string;
@@ -15,7 +15,7 @@ export interface CreateUploadPayload {
   fileName: string;
   mimeType: string;
   sizeBytes: number;
-  durationSec?: number; // chỉ kind video (spec video-upload V5)
+  durationSec?: number; // chỉ kind video
 }
 
 export const createUpload = (body: CreateUploadPayload, signal?: AbortSignal) =>

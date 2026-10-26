@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// 1 lần đầu + 3 retry, mỗi lần chờ 60s ở mail.retry (spec rabbitmq-mail-queue Q6).
+// 1 lần đầu + 3 retry, mỗi lần chờ 60s ở mail.retry.
 export const MAX_ATTEMPTS = 4;
 
 // HTTP status của Brevo, hoặc 'network' khi fetch throw (timeout, DNS, TCP).

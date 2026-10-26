@@ -18,7 +18,7 @@ type Tx = Prisma.TransactionClient;
 type Pending = { id: string; providerSessionId: string | null };
 
 const FE_URL = requireEnv('FE_URL');
-const SESSION_TTL_SEC = 31 * 60; // Stripe đòi 30′–24h; chừa 1′ lệch giờ (P2)
+const SESSION_TTL_SEC = 31 * 60; // Stripe đòi 30′–24h; chừa 1′ lệch giờ
 // DB dev ~1-2s/query × ~10-15 query + Stripe ≤10.5s/lần + thời gian chờ lock của request song song (tính vào timeout).
 // ponytail: giữ 1 connection tới vài chục giây mỗi checkout; nghẽn pool nếu tải cao → tách gọi Stripe ra ngoài TX.
 const CHECKOUT_TX = { maxWait: 10_000, timeout: 60_000 };
@@ -34,7 +34,7 @@ export class CheckoutService {
     private readonly revenue: RevenueService,
   ) {}
 
-  // Lỗi mạng / Stripe → 502 (spec §11). Không dùng cho expire trong closePending (cần bắt lỗi riêng).
+  // Lỗi mạng / Stripe → 502. Không dùng cho expire trong closePending (cần bắt lỗi riêng).
   private async stripeCall<T>(fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();
@@ -192,7 +192,7 @@ export class CheckoutService {
     }, CHECKOUT_TX);
   }
 
-  // ---- Webhook (spec §8) ----
+  // ---- Webhook ----
 
   async handleWebhook(rawBody: Buffer, signature: string | undefined) {
     let event: Stripe.Event;
@@ -250,7 +250,7 @@ export class CheckoutService {
   }
 
   // Trang success: chưa paid → hỏi Stripe, đã trả thì fulfill luôn (không phụ thuộc hẳn webhook). Gồm cả đơn
-  // `failed` mà session `complete` (trả ở tab cũ đúng lúc đơn bị huỷ — spec §11).
+  // `failed` mà session `complete` (trả ở tab cũ đúng lúc đơn bị huỷ).
   async orderBySession(userId: string, sessionId: string) {
     const find = () =>
       this.prisma.order.findFirst({

@@ -29,7 +29,7 @@ import { PausingVideo } from '@/components/shared/pausing-video';
 const focusRing = 'outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
 const dateFmt = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
 
-// Trang chi tiết khoá public (spec public-catalog §4.3), bố cục wireframe B: hero tối, khối mua phủ lên hero và dính phải.
+// Trang chi tiết khoá public, bố cục wireframe B: hero tối, khối mua phủ lên hero và dính phải.
 // Server component; chỉ accordion, dialog xem thử, nút mua là client.
 export default function CourseDetailView({ course, sections }: { course: CourseDetail; sections: CurriculumSection[] }) {
   const { category } = course;

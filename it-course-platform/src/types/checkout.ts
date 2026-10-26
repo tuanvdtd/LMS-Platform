@@ -1,4 +1,4 @@
-// Hợp đồng API thanh toán (spec 2026-10-15-stripe-checkout §6).
+// Hợp đồng API thanh toán.
 export interface CartCourse { id: string; slug: string; title: string; thumbnailUrl: string | null; instructorName: string }
 export interface CartItem { course: CartCourse; listPrice: number; finalPrice: number; couponApplied: boolean }
 export interface Cart { items: CartItem[]; summary: { subtotal: number; discount: number; total: number }; couponError?: string }

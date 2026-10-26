@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 import type { QuestionPayload, QuizDetail, QuizMutation, UpdateQuizPayload } from '@/types/curriculum';
 
-// API soạn quiz (spec 2026-10-08-quiz-authoring §4.2). Mutation trả { quiz, curriculum }.
+// API soạn quiz. Mutation trả { quiz, curriculum }.
 const base = (courseId: string, itemId: string) => `/instructor/courses/${courseId}/items/${itemId}/quiz`;
 const data = <T>(req: Promise<{ data: T }>) => req.then((r) => r.data);
 

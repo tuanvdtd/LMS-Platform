@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: PageProps<'/instructors/[id]'
   return { title: ins ? `${ins.name} | SkillPath` : 'Không tìm thấy giảng viên | SkillPath' };
 }
 
-// Hồ sơ giảng viên public (spec public-catalog §4.4).
+// Hồ sơ giảng viên public.
 // params là runtime data: await bên trong Suspense để điều hướng client không bị chặn.
 export default function InstructorPage(props: PageProps<'/instructors/[id]'>) {
   return (

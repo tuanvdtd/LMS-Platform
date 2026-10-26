@@ -92,8 +92,6 @@ describe('Học viên làm bài code (e2e)', () => {
     draftItem = await addItem('coding_exercise', 'Bài nháp');
     await as('put', `/items/${item}/exercise/code`, {
       languages: ['javascript', 'cpp'],
-      timeLimitMs: 2000,
-      memoryLimitKb: 128000,
       starters: [
         { language: 'javascript', code: '// starter', solutionCode: 'SUM' },
         { language: 'cpp', code: '// cpp', solutionCode: 'SUM' },

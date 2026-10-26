@@ -37,7 +37,7 @@ const toValues = (q: QuizQuestion | undefined, type: QuestionType): Values =>
       }
     : { type, stem: '', relatedItemId: NONE, options: [emptyOption, emptyOption] };
 
-// Form một câu hỏi (spec quiz-authoring §5): lưu từng câu, gửi đủ đề + toàn bộ đáp án.
+// Form một câu hỏi: lưu từng câu, gửi đủ đề + toàn bộ đáp án.
 export function QuestionForm({
   question,
   newType = 'single_choice',

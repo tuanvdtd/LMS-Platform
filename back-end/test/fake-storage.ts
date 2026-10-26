@@ -5,7 +5,7 @@ type StoragePort = Pick<
   'presignPut' | 'presignGet' | 'head' | 'read' | 'delete' | 'publicUrl' | 'keyOfPublicUrl'
 >;
 
-// Thay R2 trong e2e (spec curriculum-upload §7): object nằm trong Map, URL ký là chuỗi giả.
+// Thay R2 trong e2e: object nằm trong Map, URL ký là chuỗi giả.
 // Test "upload" bằng put() thay cho trình duyệt PUT lên URL ký.
 export class FakeStorage implements StoragePort {
   private readonly objects = new Map<string, Buffer>();

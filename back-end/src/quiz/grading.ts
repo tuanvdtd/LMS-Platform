@@ -1,4 +1,4 @@
-// Chấm quiz (spec 2026-10-17-quiz-taking B5–B7). Thuần, không đụng DB.
+// Chấm quiz. Thuần, không đụng DB.
 export type GradeQuestion = { id: string; type: 'single_choice' | 'multiple_choice'; points: number; options: { id: string; isCorrect: boolean }[] };
 export type GradeAnswer = { questionId: string; optionIds: string[] };
 export type GradedAnswer = { questionId: string; selectedOptionIds: string[]; isCorrect: boolean; pointsAwarded: number };

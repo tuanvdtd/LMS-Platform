@@ -17,7 +17,7 @@ import { PageHeader } from './form-save';
 
 const ITEMS = Object.fromEntries(PRICE_TIERS.map((p) => [String(p), formatPrice(p)]));
 
-// Định giá (spec pricing-submit-review §3.3): chọn bậc giá; bậc > 0 cần giảng viên cao cấp + TK ngân hàng.
+// Định giá: chọn bậc giá; bậc > 0 cần giảng viên cao cấp + TK ngân hàng.
 export function PricingForm() {
   const { course, setCourse, patchCourse } = useCourse();
   const [account, setAccount] = useState<PayoutAccountState | null>(null);

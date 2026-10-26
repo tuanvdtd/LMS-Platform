@@ -33,7 +33,7 @@ export default function Page(props: PageProps<'/topic/[slug]'>) {
 
 async function Body({ params, searchParams }: PageProps<'/topic/[slug]'>) {
   const [{ slug }, sp, tree] = await Promise.all([params, searchParams, getCategoryTree()]);
-  // Lấy tên topic từ response.topic (spec §3.1); null = slug không tồn tại.
+  // Lấy tên topic từ response.topic; null = slug không tồn tại.
   const p = parseCatalogParams(sp);
   const head = await listCourses({ ...p, topic: slug, limit: 20 });
   if (head && !head.topic) notFound();

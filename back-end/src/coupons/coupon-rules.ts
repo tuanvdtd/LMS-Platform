@@ -1,7 +1,7 @@
 import type { FieldError } from '../common/zod.pipe.js';
 import { isPriceTier } from '../revenue/price-guard.js';
 
-// Luật coupon D12 (spec curriculum-schema §3.5) + P12 spec stripe-checkout. Hàm thuần.
+// Luật coupon: định dạng mã, thời hạn theo loại, số coupon mỗi tháng, khi nào còn dùng được. Hàm thuần.
 export const COUPON_CODE_RE = /^[A-Z0-9._-]{6,20}$/;
 const DAY = 86_400_000;
 const MAX_DAYS = { fixed_price: 31, free: 5 } as const;
@@ -51,7 +51,7 @@ type ActiveFields = {
   maxRedemptions: number | null;
   redeemedCount: number;
 };
-// Cùng điều kiện với câu UPDATE trừ lượt (§3.5) — đổi một chỗ phải đổi cả hai.
+// Cùng điều kiện với câu UPDATE trừ lượt (orders.ts) — đổi một chỗ phải đổi cả hai.
 export const isCouponActive = (c: ActiveFields, now: Date) =>
   c.disabledAt === null &&
   c.startsAt <= now &&

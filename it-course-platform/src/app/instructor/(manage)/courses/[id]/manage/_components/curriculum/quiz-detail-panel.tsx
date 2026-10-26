@@ -36,7 +36,7 @@ import { QuestionForm } from './question-form';
 // Đang mở form: tạo mới (loại chọn lúc tạo, sửa không đổi được) hoặc sửa câu có sẵn; null = không mở form nào.
 type Editing = { kind: 'new'; type: QuestionType } | { kind: 'edit'; id: string } | null;
 
-// Soạn quiz tại chỗ (spec 2026-10-08-quiz-authoring §5). Mọi ghi đi qua run(): lỗi xử lý chung, cây cập nhật chip.
+// Soạn quiz tại chỗ. Mọi ghi đi qua run(): lỗi xử lý chung, cây cập nhật chip.
 export function QuizDetailPanel({ item }: { item: CurriculumItem }) {
   const { courseId, locked, busy, run, confirm, lectures } = useCurriculum();
   const [quiz, setQuiz] = useState<QuizDetail | null>(null);

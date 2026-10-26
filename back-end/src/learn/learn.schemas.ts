@@ -12,7 +12,7 @@ const noteBody = z
 export const lastItemSchema = z.object({ itemId: z.guid('Bài học không hợp lệ') }).strict();
 export type LastItemInput = z.output<typeof lastItemSchema>;
 
-// Heartbeat video (spec 2026-10-20-lecture-player §4.2). buckets ngoài khoảng/trùng lọc ở watch-bitmap.ts.
+// Heartbeat video. Buckets ngoài khoảng/trùng lọc ở watch-bitmap.ts.
 export const progressSchema = z
   .object({
     positionSec: z.int().min(0).max(24 * 3600),

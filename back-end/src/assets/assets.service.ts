@@ -16,7 +16,7 @@ const LIBRARY_SELECT = {
   createdAt: true,
 } satisfies Prisma.AssetSelect;
 const CONTENT_KINDS: AssetKind[] = ['document', 'video'];
-// Asset document ở R2 private, video ở S3 (spec curriculum-upload K1). Bucket suy từ kind, không có cột riêng.
+// Asset document ở R2 private, video ở S3. Bucket suy từ kind, không có cột riêng.
 export const bucketOf = (kind: AssetKind) => (kind === 'video' ? 'video' : 'private');
 type LibraryRow = Prisma.AssetGetPayload<{ select: typeof LIBRARY_SELECT }>;
 const toLibraryAsset = (a: LibraryRow) => ({
@@ -24,7 +24,7 @@ const toLibraryAsset = (a: LibraryRow) => ({
   sizeBytes: Number(a.sizeBytes),
 });
 
-// ponytail: không cron dọn (spec video-upload V10). PUT lỗi thì không có object; asset kẹt uploading/failed chỉ
+// ponytail: không cron dọn. PUT lỗi thì không có object; asset kẹt uploading/failed chỉ
 // là dòng DB; video bị thay vẫn nằm trong thư viện để dùng lại. Thêm cron @nestjs/schedule khi rác đáng kể.
 @Injectable()
 export class AssetsService {
@@ -33,11 +33,11 @@ export class AssetsService {
     private readonly storage: StorageService,
   ) {}
 
-  // Key do BE sinh (người dùng không chọn đường dẫn), URL ký hạn 10 phút (spec K4).
+  // Key do BE sinh (người dùng không chọn đường dẫn), URL ký hạn 10 phút.
   async createUpload(ownerId: string, body: CreateUploadInput) {
     const headers = { 'Content-Type': body.mimeType };
     if (body.kind === 'thumbnail' || body.kind === 'promo') {
-      // Ảnh bìa, video giới thiệu: R2 public, không vào assets (spec K3, video-upload V7).
+      // Ảnh bìa, video giới thiệu: R2 public, không vào assets.
       const key =
         body.kind === 'thumbnail'
           ? `thumbnails/${ownerId}/${randomUUID()}.${IMAGE_EXT[body.mimeType]}`
@@ -55,7 +55,7 @@ export class AssetsService {
         mimeType: body.mimeType,
         sizeBytes: body.sizeBytes,
         storageKey: key,
-        // Video: thời lượng client gửi (spec video-upload V5).
+        // Video: thời lượng client gửi.
         durationSec: body.kind === 'video' ? body.durationSec : null,
       },
       select: { id: true },
@@ -65,7 +65,7 @@ export class AssetsService {
   }
 
   // Sau PUT: đúng cỡ đã khai + đúng loại (PDF magic bytes, video MP4 hợp lệ) → ready; sai → xoá object, failed, 400.
-  // Thời lượng video đã lưu lúc createUpload từ client, không ghi đè ở đây (spec video-upload V5).
+  // Thời lượng video đã lưu lúc createUpload từ client, không ghi đè ở đây.
   async complete(ownerId: string, id: string) {
     const asset = isGuid(id)
       ? await this.prisma.asset.findFirst({
@@ -135,7 +135,7 @@ export class AssetsService {
     const head = await this.storage.head('video', key);
     if (!head) return 'Chưa tải file lên';
     if (head.size !== size) return 'Kích thước file không khớp lúc khai báo';
-    // Chỉ kiểm cấu trúc MP4; duration trong file bỏ qua (MP4 fragmented có mvhd = 0) — spec video-upload V5.
+    // Chỉ kiểm cấu trúc MP4; duration trong file bỏ qua (MP4 fragmented có mvhd = 0).
     const parsed = await mp4Duration((offset, length) => this.storage.read('video', key, { offset, length }), size);
     return parsed === null ? 'File không phải video MP4 hợp lệ' : null;
   }

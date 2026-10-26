@@ -30,7 +30,7 @@ import { MobileNav } from '@/components/layout/mobile-nav';
 import { SignOutDialog } from '@/components/layout/sign-out-dialog';
 import type { CategoryNode } from '@/types';
 
-// Bố cục theo Udemy (spec §5.1): < lg = ☰ · logo giữa · 🔍 🛒; ≥ lg = đầy đủ.
+// Bố cục theo Udemy: < lg = ☰ · logo giữa · 🔍 🛒; ≥ lg = đầy đủ.
 export default function Header({ categories }: { categories: CategoryNode[] }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);

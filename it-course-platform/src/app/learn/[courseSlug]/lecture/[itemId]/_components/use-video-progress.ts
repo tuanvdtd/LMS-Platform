@@ -8,9 +8,9 @@ const HEARTBEAT_MS = 30_000;
 const BUCKET_SEC = 10; // khớp BE src/learn/watch-bitmap.ts
 const MAX_STEP_SEC = 2; // bước timeupdate lớn hơn (hoặc lùi) = tua → không tính đoạn bị nhảy qua
 
-// Theo dõi đoạn đã phát thật, gửi 30s/lần + khi pause/ended/ẩn tab/rời bài (spec 2026-10-20-lecture-player §4.1).
+// Theo dõi đoạn đã phát thật, gửi 30s/lần + khi pause/ended/ẩn tab/rời bài.
 // Trả về handler gắn thẳng vào <video> → video remount (đổi src khi link hết hạn) không mất listener.
-// ponytail: đóng tab đột ngột có thể mất ≤ 30s (không dùng fetch keepalive — xem spec §4.1).
+// ponytail: đóng tab đột ngột có thể mất ≤ 30s (chưa dùng fetch keepalive; cần giữ nốt đoạn cuối thì thêm).
 export function useVideoProgress({
   courseSlug,
   itemId,

@@ -18,7 +18,6 @@ const BANK = { bankBin: '970436', bankAccountNo: '0123456789', bankAccountName: 
 
 type TestUser = { id: string; cookie: string };
 
-// spec pricing-submit-review §7.
 describe('Định giá, gửi duyệt & duyệt khoá (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;

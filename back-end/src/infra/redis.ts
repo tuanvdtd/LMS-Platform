@@ -22,7 +22,7 @@ async function incrWindow(redis: Redis, key: string, ttl: number) {
   return count as number;
 }
 
-// true = còn trong hạn mức (chạy thử / verify bài code, spec coding-exercise §6–§7).
+// true = còn trong hạn mức (chạy thử / verify bài code).
 export const rateLimit = async (redis: Redis, key: string, limit: number, windowSec: number) =>
   (await incrWindow(redis, key, windowSec)) <= limit;
 

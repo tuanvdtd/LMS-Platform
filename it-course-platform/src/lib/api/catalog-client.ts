@@ -8,7 +8,7 @@ export async function getPreviewUrl(slug: string, itemId: string) {
   return data.url;
 }
 
-// Tab "Khoá học nổi bật" trên trang chủ khách đổi danh mục ở client (spec guest-ui §4.3 khối 4).
+// Tab "Khoá học nổi bật" trên trang chủ khách đổi danh mục ở client.
 export async function listPopularCourses(category: string) {
   const { data } = await api.get<CourseList>('/courses', { params: { category, sort: 'popular', limit: 8, page: 1 } });
   return data;

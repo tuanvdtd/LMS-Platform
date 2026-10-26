@@ -8,7 +8,7 @@ import { LearnExerciseService } from './learn-exercise.service.js';
 
 type User = AuthSession['user'];
 
-// Mọi user đăng nhập; ghi danh kiểm trong service (spec 2026-10-19-coding-exercise §7).
+// Mọi user đăng nhập; ghi danh kiểm trong service.
 @Controller('learn/:courseSlug/exercises/:itemId')
 export class LearnExerciseController {
   constructor(private readonly exercise: LearnExerciseService) {}

@@ -40,7 +40,7 @@ async function checkFile(kind: AssetKind, file: File): Promise<{ problem: string
   return { problem: null, durationSec: 0 };
 }
 
-// Ô chọn PDF / video (spec curriculum-upload K7, video-upload §5.2): tab Tải lên / Thư viện. Thư viện mount khi
+// Ô chọn PDF / video: tab Tải lên / Thư viện. Thư viện mount khi
 // mở lần đầu, sau đó giữ cả 2 (ẩn tab kia) để đổi tab không huỷ upload.
 export function ContentPicker({ kind = 'document', onPick, onClose, onUploadingChange }: Props) {
   const [tab, setTab] = useState<'upload' | 'library'>('upload');
@@ -85,11 +85,11 @@ function UploadTab({ kind, onPick, onUploadingChange }: Omit<Props, 'onClose'> &
   const [phase, setPhase] = useState<'checking' | 'uploading' | null>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [failedFile, setFailedFile] = useState<File | null>(null); // file PUT lỗi → nút "Thử lại" (spec §6)
+  const [failedFile, setFailedFile] = useState<File | null>(null); // file PUT lỗi → nút "Thử lại"
   const [over, setOver] = useState(false);
   const ctrlRef = useRef<AbortController | null>(null);
   const copy = COPY[kind];
-  // Đóng ô chọn / thu gọn bài giảng / rời trang khi đang tải → huỷ PUT (spec §6).
+  // Đóng ô chọn / thu gọn bài giảng / rời trang khi đang tải → huỷ PUT.
   useEffect(() => () => ctrlRef.current?.abort(), []);
 
   async function start(file: File | undefined) {

@@ -67,7 +67,7 @@ const announcements: Announcements = {
   onDragCancel: () => 'Đã huỷ, trả về chỗ cũ.',
 };
 
-// Trang Khung chương trình (spec curriculum-upload §5): ghi ngay từng thao tác (K5), không có thanh Lưu.
+// Trang Khung chương trình: ghi ngay từng thao tác, không có thanh Lưu.
 export function CurriculumEditor() {
   const { course, patchCourse, dirty } = useCourse();
   const courseId = course.id;
@@ -107,7 +107,7 @@ export function CurriculumEditor() {
     void reload();
   }, [reload]);
 
-  // Lỗi theo spec §6: 409 → khoá trang (banner ở shell); 404 → tải lại cây; 400 → câu lỗi đầu; còn lại → toast.
+  // Xử lý lỗi: 409 → khoá trang (banner ở shell); 404 → tải lại cây; 400 → câu lỗi đầu; còn lại → toast.
   const run = useCallback<CurriculumContextValue['run']>(
     async (fn, failMessage = 'Lưu thất bại, thử lại') => {
       setPending((n) => n + 1);
@@ -231,7 +231,7 @@ export function CurriculumEditor() {
     });
   }
 
-  // Thả: cập nhật state ngay (optimistic) rồi gọi move; lỗi → trả cây trước khi kéo (spec §5.2).
+  // Thả: cập nhật state ngay (optimistic) rồi gọi move; lỗi → trả cây trước khi kéo.
   function onDragEnd({ active, over }: DragEndEvent) {
     const before = beforeDrag.current;
     beforeDrag.current = null;
