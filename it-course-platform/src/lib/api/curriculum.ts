@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 import type { CurriculumResponse, ItemType, UpdateItemPayload } from '@/types/curriculum';
 
-// API khung chương trình (spec 2026-10-01-curriculum-upload §4.2). Mọi mutation trả cây mới + checklist.
+// API khung chương trình. Mọi mutation trả cây mới + checklist.
 const base = (courseId: string) => `/instructor/courses/${courseId}`;
 const tree = (req: Promise<{ data: CurriculumResponse }>) => req.then((r) => r.data);
 

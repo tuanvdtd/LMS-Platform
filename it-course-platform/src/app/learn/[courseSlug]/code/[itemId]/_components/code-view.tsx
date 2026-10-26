@@ -69,7 +69,7 @@ function upsert(list: SubmissionSummary[], s: SubmissionSummary) {
 
 // Không poll: lịch sử tải một lần khi vào trang; kết quả chấm lấy qua nút "Làm mới" / link thông báo (?submission=<id>).
 export default function CodeView({ courseSlug, itemId }: { courseSlug: string; itemId: string }) {
-  // Bài code cần trọn chiều ngang → mục lục luôn là ngăn trượt (spec L1).
+  // Bài code cần trọn chiều ngang → mục lục luôn là ngăn trượt.
   useSidebarMode('drawer');
   const { markCompleted } = useLearnShell();
   const router = useRouter();

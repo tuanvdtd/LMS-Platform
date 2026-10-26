@@ -1,4 +1,4 @@
-// pnpm r2:check — kiểm env + quyền + domain công khai của R2 thật (spec curriculum-upload §7).
+// pnpm r2:check — kiểm env + quyền + domain công khai của R2 thật.
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { DeleteObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 

@@ -3,7 +3,6 @@ import { excerpt, judge, normalize, notificationBody, runTests, summarize, type 
 const ok = (stdout: string, timeMs: number | null = 5, memoryKb: number | null = 1000): RunResult => ({
   verdict: 'ok', stdout, stderr: '', compileOutput: null, timeMs, memoryKb,
 });
-const limits = { timeLimitMs: 2000, memoryLimitKb: 128000 };
 
 describe('normalize / excerpt', () => {
   it('bỏ CRLF, khoảng trắng cuối dòng, dòng trống cuối', () => {
@@ -37,16 +36,16 @@ describe('runTests', () => {
     { id: 'a', input: '1 2', expectedOutput: '3' },
     { id: 'b', input: '2 2', expectedOutput: '4' },
   ];
-  it('chạy tuần tự từng test, truyền stdin + limits', async () => {
+  it('chạy tuần tự từng test, truyền stdin', async () => {
     const run = vi.fn().mockResolvedValueOnce(ok('3')).mockResolvedValueOnce(ok('5'));
-    const out = await runTests(run, 'javascript', 'code', tests, limits);
-    expect(run).toHaveBeenNthCalledWith(1, 'javascript', 'code', '1 2', limits);
+    const out = await runTests(run, 'javascript', 'code', tests);
+    expect(run).toHaveBeenNthCalledWith(1, 'javascript', 'code', '1 2');
     expect(out.compileError).toBeNull();
     expect(out.results.map((r) => [r.testCaseId, r.status])).toEqual([['a', 'accepted'], ['b', 'wrong_answer']]);
   });
   it('lỗi biên dịch → dừng ngay, trả compileError', async () => {
     const run = vi.fn().mockResolvedValue({ ...ok(''), verdict: 'compile_error', compileOutput: 'main.cpp:1: error' });
-    const out = await runTests(run, 'cpp', 'x', tests, limits);
+    const out = await runTests(run, 'cpp', 'x', tests);
     expect(run).toHaveBeenCalledTimes(1);
     expect(out).toEqual({ compileError: 'main.cpp:1: error', results: [] });
   });

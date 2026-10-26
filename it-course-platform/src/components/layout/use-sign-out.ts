@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { authClient } from '@/lib/auth-client';
 import { isPrivatePath } from '@/lib/private-routes';
 
-// Trang công khai → ở lại; trang riêng tư → về '/' (proxy sẽ đá sang /login nếu ở lại). Spec guest-ui §4.6.
+// Trang công khai → ở lại; trang riêng tư → về '/' (proxy sẽ đá sang /login nếu ở lại).
 export function useSignOut() {
   const [pending, setPending] = useState(false);
 
@@ -19,7 +19,7 @@ export function useSignOut() {
     }
     const { pathname, search } = window.location;
     // Tải lại toàn trang: cacheComponents giữ các route đã rời bằng <Activity> kèm state của user cũ,
-    // router.refresh() không xoá chúng (docs preserving-ui-state § State and authentication).
+    // router.refresh() không xoá chúng (xem docs Next.js "Preserving UI state" → State and authentication).
     window.location.replace(isPrivatePath(pathname) ? '/' : pathname + search);
   }
 

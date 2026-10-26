@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { isPriceTier } from '../revenue/price-guard.js';
 import { countWords } from './course-checklist.js';
 
-// Luật PATCH theo spec course-create-basics §4.3. FE dùng cùng giới hạn.
+// Luật PATCH. FE dùng cùng giới hạn.
 const title = z.string().trim().min(1, 'Nhập tên khoá học').max(60, 'Tối đa 60 ký tự');
 const emptyToNull = (s: string) => (s === '' ? null : s);
 const stringList = z
@@ -27,7 +27,7 @@ export const updateCourseSchema = z
     level: z.enum(SkillLevel).nullable(),
     // guid: chỉ kiểm dạng 8-4-4-4-12; tồn tại/cấp 2 do service kiểm.
     categoryId: z.guid().nullable(),
-    // Thay cả bộ (spec 2026-10-06 D4): tối đa 3, không trùng, có topic thì đúng 1 chủ đề chính.
+    // Thay cả bộ: tối đa 3, không trùng, có topic thì đúng 1 chủ đề chính.
     topics: z
       .array(z.object({ id: z.guid(), isPrimary: z.boolean() }).strict())
       .max(3, 'Tối đa 3 chủ đề')
@@ -45,7 +45,7 @@ export type UpdateCourseInput = z.output<typeof updateCourseSchema>;
 export const mediaKeySchema = z.object({ key: z.string().max(200) }).strict();
 export type MediaKeyInput = z.output<typeof mediaKeySchema>;
 
-// PUT /instructor/courses/:id/price (spec pricing-submit-review §3.1).
+// PUT /instructor/courses/:id/price.
 export const priceSchema = z
   .object({ priceAmount: z.number().int().refine(isPriceTier, 'Chọn một mức giá trong danh sách') })
   .strict();

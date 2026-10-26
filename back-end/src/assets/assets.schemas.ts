@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PDF_MAX_BYTES, PROMO_MAX_BYTES, THUMBNAIL_MAX_BYTES, VIDEO_MAX_BYTES } from './file-check.js';
 
-// spec curriculum-upload §4.3, video-upload §4.3. kind lạ → 400.
+// Body xin URL tải lên, mỗi kind có loại file + cỡ riêng. kind lạ → 400.
 const fileName = z.string().trim().min(1).max(255);
 const mp4 = z.literal('video/mp4', 'Chỉ nhận video MP4');
 
@@ -28,7 +28,7 @@ export const createUploadSchema = z.discriminatedUnion('kind', [
       fileName,
       mimeType: mp4,
       sizeBytes: z.int().min(1).max(VIDEO_MAX_BYTES, 'Video tối đa 1 GB'),
-      // Thời lượng lấy từ FE (video.duration), server không đo — spec video-upload V5.
+      // Thời lượng lấy từ FE (video.duration), server không đo.
       durationSec: z.int('Thiếu thời lượng video').min(0, 'Thời lượng video không hợp lệ').max(24 * 3600, 'Video tối đa 24 giờ'),
     })
     .strict(),

@@ -14,7 +14,7 @@ import { useCourse } from './course-provider';
 
 const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-// Kiểm ở FE trước cho nhanh; BE kiểm lại magic bytes + kích thước (spec §4.3).
+// Kiểm ở FE trước cho nhanh; BE kiểm lại magic bytes + kích thước.
 async function checkImage(file: File): Promise<string | null> {
   if (!TYPES.includes(file.type)) return 'Chỉ nhận ảnh JPG, PNG hoặc WebP';
   if (file.size > THUMBNAIL_MAX_BYTES) return 'Ảnh tối đa 5 MB';
@@ -29,12 +29,12 @@ async function checkImage(file: File): Promise<string | null> {
   }
 }
 
-// Ảnh bìa ghi ngay khi tải xong (spec §5.3), không đi theo nút Lưu và không làm form basics dirty.
+// Ảnh bìa ghi ngay khi tải xong, không đi theo nút Lưu và không làm form basics dirty.
 export function ThumbnailUpload({ disabled }: { disabled: boolean }) {
   const { course, setCourse, patchCourse } = useCourse();
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [failedFile, setFailedFile] = useState<File | null>(null); // file PUT lỗi → nút "Thử lại" (spec §6)
+  const [failedFile, setFailedFile] = useState<File | null>(null); // file PUT lỗi → nút "Thử lại"
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function start(file: File | undefined) {

@@ -53,7 +53,7 @@ const toRef = (a: { id: string; fileName: string; sizeBytes: bigint }) => ({
   sizeBytes: Number(a.sizeBytes),
 });
 
-// Khung chương trình (spec curriculum-upload §4.2): mỗi thao tác ghi ngay (K5), trả cây + checklist (K12).
+// Khung chương trình: mỗi thao tác ghi ngay, trả cây + checklist.
 @Injectable()
 export class CurriculumService {
   constructor(
@@ -107,7 +107,7 @@ export class CurriculumService {
         data: { sectionId, courseId, ...body, position: (_max.position ?? -1) + 1 },
         select: { id: true },
       });
-      // Quiz / bài code 1-1 với item; topic mặc định = topic của khoá (spec quiz-authoring Q1, coding-exercise §6).
+      // Quiz / bài code 1-1 với item; topic mặc định = topic của khoá.
       if (body.type === 'quiz' || body.type === 'coding_exercise') {
         const topics = await tx.courseTopic.findMany({ where: { courseId }, select: { topicId: true } });
         if (body.type === 'quiz') await tx.quiz.create({ data: { itemId: item.id, courseId, topics: { create: topics } } });
@@ -166,12 +166,12 @@ export class CurriculumService {
     return this.mutate(courseId, userId, async (tx) => {
       await this.lecture(tx, courseId, itemId);
       const asset = await this.usableAsset(tx, userId, assetId, ['document', 'video']);
-      // Video: thời lượng BE đã đo lúc complete, chép vào bài để checklist cộng (spec video-upload §4.5).
+      // Video: thời lượng BE đã đo lúc complete, chép vào bài để checklist cộng.
       const content =
         asset.kind === 'video'
           ? { lectureKind: 'video' as const, videoAssetId: assetId, durationSec: asset.durationSec ?? 0, isDownloadable: false }
           : { lectureKind: 'document' as const, documentAssetId: assetId };
-      // Một câu update: luôn thoả chk_item_payload; bài giảng có nội dung tự xuất bản (K9).
+      // Một câu update: luôn thoả chk_item_payload; bài giảng có nội dung tự xuất bản.
       await tx.curriculumItem.update({
         where: { id: itemId },
         data: { ...NO_CONTENT, ...content, isPublished: true },
@@ -231,7 +231,7 @@ export class CurriculumService {
     return this.tree(course);
   }
 
-  // Cây + checklist. Admin duyệt khoá dùng lại (spec pricing-submit-review §5.1). Checklist không query thêm: dòng khoá đã có, số bài giảng/giây video đếm từ cây.
+  // Cây + checklist. Admin duyệt khoá dùng lại. Checklist không query thêm: dòng khoá đã có, số bài giảng/giây video đếm từ cây.
   async tree(course: CourseRow) {
     const sections = await this.prisma.section.findMany({
       where: { courseId: course.id },
@@ -293,7 +293,7 @@ export class CurriculumService {
     return item;
   }
 
-  // Asset của mình, đã ready, đúng loại. Tài nguyên đính kèm chỉ nhận document (spec video-upload §4.5).
+  // Asset của mình, đã ready, đúng loại. Tài nguyên đính kèm chỉ nhận document.
   private async usableAsset(tx: Tx, userId: string, assetId: string, kinds: AssetKind[]) {
     const asset = await tx.asset.findFirst({
       where: { id: assetId, ownerId: userId, kind: { in: kinds }, status: 'ready' },

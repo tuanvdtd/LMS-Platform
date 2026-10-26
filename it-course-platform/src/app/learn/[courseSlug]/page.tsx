@@ -7,7 +7,7 @@ export const instant = false;
 
 export const metadata: Metadata = { title: 'Vào học | SkillPath' };
 
-// /learn/<slug> → bài đang học dở (spec §5).
+// /learn/<slug> → bài đang học dở.
 export default function LearnIndexPage() {
   return <ResumeRedirect />;
 }

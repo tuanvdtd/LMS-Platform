@@ -14,7 +14,7 @@ export function PageHeader({ title, description }: { title: string; description:
   );
 }
 
-// Thanh lưu dính đáy, chỉ hiện khi form có thay đổi (spec C3: không autosave, Lưu chỉ bật khi có thay đổi).
+// Thanh lưu dính đáy, chỉ hiện khi form có thay đổi (không autosave, Lưu chỉ bật khi có thay đổi).
 export function SaveBar({
   isDirty,
   isSubmitting,
@@ -64,7 +64,7 @@ export function submitToPromise<T extends FieldValues>(
 
 type ApiFieldError = { path: string[]; message: string };
 
-// Lỗi khi lưu (spec §5.3, §7): 400 → lỗi dưới từng ô theo path; 409 COURSE_LOCKED → khoá form;
+// Lỗi khi lưu: 400 → lỗi dưới từng ô theo path; 409 COURSE_LOCKED → khoá form;
 // còn lại (mạng/500/400 không có path) → toast, giữ nguyên dữ liệu form.
 // toField đổi path API → tên field của form (mặc định nối bằng dấu chấm).
 export function applySaveError<T extends FieldValues>(

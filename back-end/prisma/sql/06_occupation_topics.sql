@@ -1,5 +1,5 @@
 -- ============================================================================
---  Seed nghề → topic phổ biến (spec 2026-10-02-personalize-occupation §3.3).
+--  Seed nghề → topic phổ biến.
 --  Idempotent. Slug không có trong topics thì tự rơi khỏi JOIN.
 --  Nội dung file này được chép nguyên vào migration <t2>_occupation_topics_seed.
 -- ============================================================================

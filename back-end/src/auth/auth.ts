@@ -68,7 +68,7 @@ export function createAuth(
     secret: requireEnv('BETTER_AUTH_SECRET'),
     trustedOrigins: [requireEnv('FE_URL')],
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
-    // Redis là lớp đọc nhanh; bảng session vẫn là nguồn chính (spec §2).
+    // Redis là lớp đọc nhanh; bảng session vẫn là nguồn chính.
     secondaryStorage: redisStorage(redis),
     session: { storeSessionInDatabase: true },
     advanced: {

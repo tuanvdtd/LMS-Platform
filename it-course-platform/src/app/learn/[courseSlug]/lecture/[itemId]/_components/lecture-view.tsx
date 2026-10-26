@@ -20,7 +20,7 @@ import { LectureResources } from './lecture-resources';
 import { PdfViewer } from './pdf-viewer';
 import { VideoPlayer } from './video-player';
 
-// Trang bài giảng (spec 2026-10-20-lecture-player §7.3). Page key theo itemId → state mới mỗi bài.
+// Trang bài giảng. Page key theo itemId → state mới mỗi bài.
 export default function LectureView({ courseSlug, itemId }: { courseSlug: string; itemId: string }) {
   useSidebarMode('docked');
   const { outline, markCompleted } = useLearnShell();

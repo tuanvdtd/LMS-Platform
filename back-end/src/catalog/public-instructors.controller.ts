@@ -3,7 +3,7 @@ import { Controller, Get, Header, Param } from '@nestjs/common';
 import { Public } from '../auth/decorators.js';
 import { CatalogService } from './catalog.service.js';
 
-// Hồ sơ giảng viên công khai (spec public-catalog §3.5). Khác /instructor/* (có quyền).
+// Hồ sơ giảng viên công khai. Khác /instructor/* (có quyền).
 @Public()
 @Controller('instructors')
 export class PublicInstructorsController {

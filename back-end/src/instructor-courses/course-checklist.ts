@@ -1,4 +1,4 @@
-// Checklist "đã sẵn sàng gửi duyệt" (spec course-create-basics §4.4). Hàm thuần: đợt 4 dùng lại
+// Checklist "đã sẵn sàng gửi duyệt". Hàm thuần: đợt 4 dùng lại
 // khi gửi duyệt. Định giá/khuyến mại thêm ở đợt 4.
 export const MIN_OBJECTIVES = 4;
 export const MIN_DESCRIPTION_WORDS = 200;

@@ -8,7 +8,7 @@ import { LearnQuizService } from './learn-quiz.service.js';
 
 type User = AuthSession['user'];
 
-// Mọi user đăng nhập; ghi danh kiểm trong service (spec 2026-10-17-quiz-taking §3).
+// Mọi user đăng nhập; ghi danh kiểm trong service.
 @Controller('learn/:courseSlug/quizzes/:itemId')
 export class LearnQuizController {
   constructor(private readonly quiz: LearnQuizService) {}

@@ -1,6 +1,6 @@
 import type { Ref, SkillLevel } from './instructor-course';
 
-// Khớp enum Occupation ở back-end (spec 2026-10-02-personalize-occupation §3.1).
+// Khớp enum Occupation ở back-end.
 export const OCCUPATION_LABEL = {
   frontend_developer: 'Lập trình viên Frontend',
   backend_developer: 'Lập trình viên Backend',

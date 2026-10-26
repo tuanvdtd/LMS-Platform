@@ -16,7 +16,7 @@ import type { Paged } from '@/types/revenue';
 
 const TABS = Object.keys(APPROVAL_STATUS_LABEL) as ApprovalStatus[];
 
-// Hàng đợi duyệt khoá (spec pricing-submit-review §5.3).
+// Hàng đợi duyệt khoá.
 export function ApprovalsView() {
   const router = useRouter();
   const [status, setStatus] = useState<ApprovalStatus>('pending');

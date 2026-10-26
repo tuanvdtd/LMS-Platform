@@ -7,7 +7,7 @@ type Db = Pick<Prisma.TransactionClient, 'course' | 'enrollment'>;
 export const BUY_SELECT = { id: true, slug: true, title: true, thumbnailUrl: true, priceAmount: true, instructorId: true } as const;
 export type BuyableCourse = Prisma.CourseGetPayload<{ select: typeof BUY_SELECT }>;
 
-// Spec stripe-checkout P8: published, không phải khoá mình, chưa ghi danh.
+// Mua được khi: published, không phải khoá mình, chưa ghi danh.
 export async function loadBuyable(db: Db, userId: string, courseId: string): Promise<BuyableCourse> {
   const course = isGuid(courseId)
     ? await db.course.findFirst({ where: { id: courseId, status: 'published' }, select: BUY_SELECT })

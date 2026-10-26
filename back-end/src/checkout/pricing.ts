@@ -1,4 +1,4 @@
-// Tính giá từng dòng đơn (spec stripe-checkout §5). Hàm thuần, dùng chung cho GET /cart và checkout.
+// Tính giá từng dòng đơn. Hàm thuần, dùng chung cho GET /cart và checkout.
 export type PricedCourse = { id: string; instructorId: string; priceAmount: number };
 export type CouponPick = { id: string; courseId: string; type: 'fixed_price' | 'free'; priceAmount: number | null };
 export type Line = {
@@ -9,7 +9,7 @@ export type Line = {
   unitPriceAmount: number;
 };
 
-// Chỉ coupon fixed_price rẻ hơn giá khoá được áp (P10: coupon free dùng ở trang khoá).
+// Chỉ coupon fixed_price rẻ hơn giá khoá được áp (coupon free dùng ở trang khoá).
 export function priceLines(courses: PricedCourse[], coupons: CouponPick[]): Line[] {
   const byCourse = new Map(coupons.filter((c) => c.type === 'fixed_price').map((c) => [c.courseId, c]));
   return courses.map((c) => {

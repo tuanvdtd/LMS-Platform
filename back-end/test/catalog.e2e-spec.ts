@@ -19,7 +19,6 @@ const randomIp = () => `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 25
 // Token chữ thường không dấu, nằm trong title mọi khoá test → lọc bằng q để không lẫn khoá có sẵn trong DB.
 const TOKEN = `zq${randomUUID().slice(0, 8)}`;
 
-// spec public-catalog §6.
 describe('Catalog công khai (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;

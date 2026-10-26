@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { Public } from '../auth/decorators.js';
 import { CheckoutService } from './checkout.service.js';
 
-// Body là Buffer nhờ express.raw ở setup-app.ts (P7).
+// Body là Buffer nhờ express.raw ở setup-app.ts.
 @Public()
 @Controller('webhooks')
 export class StripeWebhookController {

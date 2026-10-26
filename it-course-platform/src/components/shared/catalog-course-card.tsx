@@ -5,7 +5,7 @@ import { RatingStars } from '@/components/shared/product-ui';
 import { formatHoursMinutes, type CourseCard } from '@/types/catalog';
 import { formatPrice, SKILL_LEVEL_LABEL } from '@/types/instructor-course';
 
-// Thẻ khoá học từ API public catalog (spec public-catalog §4.1). Server-safe: không state, không handler.
+// Thẻ khoá học từ API public catalog. Server-safe: không state, không handler.
 // Chỉ hiện dữ liệu API có: không có cờ bán chạy/mới/giá gốc nên không vẽ các badge đó.
 export function CatalogCourseCard({ course }: { course: CourseCard }) {
   return (

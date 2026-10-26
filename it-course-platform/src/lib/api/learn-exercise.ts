@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 import type { CodePayload, LearnExercise, RunResult, SubmissionDetail, SubmissionSummary } from '@/types/exercise';
 
-// API học viên làm bài code (spec 2026-10-19-coding-exercise §7). Không poll: gọi một lần theo thao tác.
+// API học viên làm bài code. Không poll: gọi một lần theo thao tác.
 const base = (slug: string, itemId: string) => `/learn/${slug}/exercises/${itemId}`;
 const data = <T>(req: Promise<{ data: T }>) => req.then((r) => r.data);
 

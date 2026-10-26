@@ -27,7 +27,7 @@ class PublicCacheInterceptor implements NestInterceptor {
   }
 }
 
-// API khoá public cho khách/học viên (spec public-catalog §3).
+// API khoá public cho khách/học viên.
 @Public()
 @Controller('courses')
 export class CatalogController {

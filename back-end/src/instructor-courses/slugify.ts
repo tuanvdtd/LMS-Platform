@@ -15,7 +15,7 @@ export function slugify(text: string): string {
 
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
-// Hậu tố ngẫu nhiên để hai khoá cùng tên không đụng nhau; slug không đổi khi sửa tiêu đề (spec §4.1).
+// Hậu tố ngẫu nhiên để hai khoá cùng tên không đụng nhau; slug không đổi khi sửa tiêu đề.
 export function courseSlug(title: string): string {
   const suffix = Array.from(randomBytes(6), (b) => ALPHABET[b % ALPHABET.length]).join('');
   const base = slugify(title);

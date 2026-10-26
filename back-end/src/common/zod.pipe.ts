@@ -7,7 +7,7 @@ z.config(z.locales.vi());
 
 export type FieldError = { path: string[]; message: string };
 
-// Body 400 chung của API nghiệp vụ (spec course-create-basics §4.3). Service dùng lại cho
+// Body 400 chung của API nghiệp vụ. Service dùng lại cho
 // lỗi chỉ kiểm được bằng DB (vd categoryId không tồn tại).
 export function validationError(errors: FieldError[]) {
   return new BadRequestException({ statusCode: 400, message: 'Dữ liệu không hợp lệ', errors });

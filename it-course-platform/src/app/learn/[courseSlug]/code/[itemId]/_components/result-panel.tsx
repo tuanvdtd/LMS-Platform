@@ -21,7 +21,7 @@ export type ShownResult = { type: 'run'; run: RunResult } | { type: 'submission'
 
 export const PANEL_TABS = 'w-full justify-start overflow-x-auto overflow-y-hidden group-data-horizontal/tabs:h-11 md:group-data-horizontal/tabs:h-10';
 export const formatMs = (ms: number | null) => (ms === null ? '–' : `${ms.toLocaleString('vi-VN')} ms`);
-export const formatKb = (kb: number | null) => (kb === null ? '–' : `${(kb / 1000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB`);
+export const formatKb = (kb: number | null) => (kb === null ? '–' : `${(kb / 1024).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB`);
 
 export function IoBlock({ label, value, tone }: { label: string; value: string; tone?: 'error' }) {
   return (

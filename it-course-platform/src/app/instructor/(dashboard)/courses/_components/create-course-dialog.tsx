@@ -29,7 +29,7 @@ const schema = z.object({
 });
 type Values = z.infer<typeof schema>;
 
-// Không có wizard: chỉ nhập tên rồi vào trang quản lý (spec C1).
+// Không có wizard: chỉ nhập tên rồi vào trang quản lý.
 export function CreateCourseDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);

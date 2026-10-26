@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 import type { Lecture, LearnOutline, Note, ProgressResult } from '@/types/learn';
 
-// API khung học + bài giảng (spec 2026-10-20-lecture-player §6). Chỉ gọi từ client component.
+// API khung học + bài giảng. Chỉ gọi từ client component.
 const base = (slug: string) => `/learn/${encodeURIComponent(slug)}`;
 const data = <T>(req: Promise<{ data: T }>) => req.then((r) => r.data);
 

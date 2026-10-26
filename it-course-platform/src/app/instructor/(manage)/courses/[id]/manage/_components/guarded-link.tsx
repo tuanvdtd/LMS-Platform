@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { flashAnchor, useCourse } from './course-provider';
 
-// Link trong trang quản lý: form chưa lưu thì mở dialog hỏi trước khi rời trang (spec §5.3).
+// Link trong trang quản lý: form chưa lưu thì mở dialog hỏi trước khi rời trang.
 // Cùng trang (chỉ đổi #anchor) thì không hỏi. Link có #anchor thì nháy viền ô đích.
 export function GuardedLink({
   href,

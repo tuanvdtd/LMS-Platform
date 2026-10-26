@@ -1,7 +1,7 @@
 import type { Prisma } from '@prisma/client';
 
 // Mastery topic = trung bình điểm cao nhất của từng quiz (trọng số = số câu đang hoạt động) và từng bài code
-// (trọng số 5), tính lại từ quiz_attempts + submissions (spec quiz-taking C1, coding-exercise E6) nên đổi công thức
+// (trọng số 5), tính lại từ quiz_attempts + submissions nên đổi công thức
 // không mất dữ liệu. Advisory lock theo user: 2 lần nộp song song chạy nối tiếp, lần sau thấy lần trước đã commit.
 export async function recomputeMastery(tx: Prisma.TransactionClient, userId: string, topicIds: string[]) {
   if (!topicIds.length) return;

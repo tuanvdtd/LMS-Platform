@@ -58,7 +58,7 @@ describe('mp4Duration', () => {
 
   it('moov trước mdat → số giây làm tròn', async () => {
     expect(await run(mp4(754))).toBe(754);
-    expect(await run(mp4(0))).toBe(0); // MP4 phân mảnh: mvhd duration = 0 → hợp lệ, không null (spec V5)
+    expect(await run(mp4(0))).toBe(0); // MP4 phân mảnh: mvhd duration = 0 → hợp lệ, không null
     expect(await run(mp4(10, { timescale: 30000 }))).toBe(10);
   });
   it('moov sau mdat (kiểu OBS), mdat dùng largesize', async () => {

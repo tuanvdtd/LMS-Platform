@@ -1,4 +1,4 @@
-// Khớp API back-end/src/catalog (spec 2026-10-13-public-catalog §3). File thuần, không import alias → test bằng node:test.
+// Khớp API back-end/src/catalog. File thuần, không import alias → test bằng node:test.
 export type SkillLevel = 'all_levels' | 'beginner' | 'intermediate' | 'advanced';
 export type CatalogSort = 'newest' | 'popular' | 'price_asc' | 'price_desc';
 
@@ -7,7 +7,7 @@ export interface CourseCard {
   slug: string;
   title: string;
   subtitle: string | null;
-  thumbnailUrl: string; // khoá published luôn có ảnh bìa (spec D5)
+  thumbnailUrl: string; // khoá published luôn có ảnh bìa
   priceAmount: number;
   currency: string;
   level: SkillLevel | null;

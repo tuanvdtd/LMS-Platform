@@ -1,4 +1,4 @@
-// Vai trò giảng viên (spec teach-landing §3.1). File thuần, không import alias → test bằng node:test.
+// Vai trò giảng viên. File thuần, không import alias → test bằng node:test.
 type MaybeUser = { role?: string | null } | null | undefined;
 
 // Better Auth admin plugin lưu nhiều vai trò dạng "user,instructor".

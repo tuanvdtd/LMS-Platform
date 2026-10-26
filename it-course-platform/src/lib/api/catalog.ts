@@ -4,7 +4,7 @@ import type { CatalogParams, CourseDetail, CourseList, CurriculumSection, Public
 
 const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
-// Theo mẫu getCategoryTree: bắt lỗi TRONG 'use cache' + cacheLife ngắn (spec E10).
+// Theo mẫu getCategoryTree: bắt lỗi TRONG 'use cache' + cacheLife ngắn.
 // 404 → null (trang gọi notFound()); lỗi khác → Sentry + null, cache 'seconds' để thử lại sớm.
 async function fetchJson<T>(path: string): Promise<T | null> {
   try {

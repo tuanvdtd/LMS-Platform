@@ -1,6 +1,6 @@
 import type { Language } from '@/types/exercise';
 
-// Starter có sẵn khung đọc stdin / in stdout (spec coding-exercise E4). Giảng viên thêm ngôn ngữ → điền mẫu này.
+// Starter có sẵn khung đọc stdin / in stdout. Giảng viên thêm ngôn ngữ → điền mẫu này.
 export const STARTER_TEMPLATES: Record<Language, string> = {
   javascript: `const lines = require('fs').readFileSync(0, 'utf8').trim().split('\\n');
 

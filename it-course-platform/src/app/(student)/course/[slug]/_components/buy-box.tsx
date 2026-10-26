@@ -17,7 +17,7 @@ import { formatVnd } from '@/types/revenue';
 
 type Props = { course: { id: string; slug: string; priceAmount: number } };
 
-// Khối giá + nút mua (spec stripe-checkout §10). Trạng thái riêng từng người lấy ở client vì trang được cache.
+// Khối giá + nút mua. Trạng thái riêng từng người lấy ở client vì trang được cache.
 export function BuyBox({ course }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,7 +32,7 @@ export function BuyBox({ course }: Props) {
   const coupon = preview && preview.code === code ? preview.data : null; // bỏ preview của mã cũ
   const [busy, setBusy] = useState(false);
   const [errorNonce, setErrorNonce] = useState(0);
-  // Key mới khi đổi coupon hoặc gặp lỗi nghiệp vụ; double-click / retry mạng dùng lại (spec §7).
+  // Key mới khi đổi coupon hoặc gặp lỗi nghiệp vụ; double-click / retry mạng dùng lại.
   const idemKey = useMemo(() => crypto.randomUUID(), [code, errorNonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

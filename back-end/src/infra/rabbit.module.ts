@@ -4,7 +4,7 @@ import type { Options } from 'amqplib';
 import { requireEnv } from '../env.js';
 
 // Arguments của queue là bất biến trên broker. Subscriber luôn assertQueue lại với queueOptions của nó
-// (không lấy từ forRoot.queues) → khác arguments là PRECONDITION_FAILED. Một nguồn cho cả hai (spec Q11).
+// (không lấy từ forRoot.queues) → khác arguments là PRECONDITION_FAILED. Một nguồn cho cả hai.
 export const MAIL_QUEUES = {
   'mail.send': { durable: true, deadLetterExchange: '', deadLetterRoutingKey: 'mail.dead' },
   'mail.retry': { durable: true, messageTtl: 60_000, deadLetterExchange: '', deadLetterRoutingKey: 'mail.send' },
@@ -12,7 +12,7 @@ export const MAIL_QUEUES = {
   'mail.dead': { durable: true, messageTtl: 3 * 24 * 3600_000 },
 } satisfies Record<string, Options.AssertQueue>;
 
-// Chấm bài code (spec coding-exercise §5): retry TTL 30 giây quay lại submission.grade; dead giữ 3 ngày.
+// Chấm bài code: retry TTL 30 giây quay lại submission.grade; dead giữ 3 ngày.
 export const SUBMISSION_QUEUES = {
   'submission.grade': { durable: true, deadLetterExchange: '', deadLetterRoutingKey: 'submission.dead' },
   'submission.retry': { durable: true, messageTtl: 30_000, deadLetterExchange: '', deadLetterRoutingKey: 'submission.grade' },

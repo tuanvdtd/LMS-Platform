@@ -35,7 +35,7 @@ const SUBTITLE_MAX = 120;
 const MIN_WORDS = 200; // gợi ý, khớp MIN_DESCRIPTION_WORDS ở BE
 const countWords = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 
-// Giới hạn khớp BE (spec §4.3). Select chỉ cho chọn giá trị hợp lệ nên enum không kiểm lại.
+// Giới hạn khớp BE. Select chỉ cho chọn giá trị hợp lệ nên enum không kiểm lại.
 const schema = z.object({
   title: z.string().trim().min(1, 'Nhập tiêu đề khoá học').max(TITLE_MAX, `Tối đa ${TITLE_MAX} ký tự`),
   subtitle: z.string().trim().max(SUBTITLE_MAX, `Tối đa ${SUBTITLE_MAX} ký tự`),

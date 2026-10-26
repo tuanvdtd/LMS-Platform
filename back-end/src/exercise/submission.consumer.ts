@@ -30,8 +30,6 @@ const SUBMISSION_SELECT = {
       id: true,
       courseId: true,
       itemId: true,
-      timeLimitMs: true,
-      memoryLimitKb: true,
       item: { select: { title: true, isPublished: true } },
       course: { select: { slug: true } },
       topics: { select: { topicId: true } },
@@ -41,7 +39,7 @@ const SUBMISSION_SELECT = {
 } as const;
 type Sub = NonNullable<Awaited<ReturnType<SubmissionConsumer['find']>>>;
 
-// Đọc submission.grade → Piston → ghi kết quả + mastery + hoàn thành mục + notification (spec coding-exercise §5).
+// Đọc submission.grade → Piston → ghi kết quả + mastery + hoàn thành mục + notification.
 // Piston/DB lỗi → submission.retry (tối đa 3 lần) → submission.dead + internal_error. Sentry không gửi source code.
 @Injectable()
 export class SubmissionConsumer implements OnApplicationBootstrap {
@@ -109,7 +107,6 @@ export class SubmissionConsumer implements OnApplicationBootstrap {
       sub.language as Language,
       sub.sourceCode,
       ex.testCases,
-      ex,
     );
     const summary =
       compileError === null

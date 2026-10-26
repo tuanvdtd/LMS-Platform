@@ -9,7 +9,7 @@ import { useCourse, useDirtySync } from './course-provider';
 import { applySaveError, PageHeader, SaveBar, submitToPromise } from './form-save';
 import { MAX_ITEM_LENGTH, MAX_ITEMS, StringListEditor } from './string-list-editor';
 
-// Giới hạn khớp BE (spec §4.3). Ô rỗng được phép trong form, bỏ đi khi gửi.
+// Giới hạn khớp BE. Ô rỗng được phép trong form, bỏ đi khi gửi.
 const row = z.object({ value: z.string().trim().max(MAX_ITEM_LENGTH, `Tối đa ${MAX_ITEM_LENGTH} ký tự`) });
 const list = z.array(row).max(MAX_ITEMS, `Tối đa ${MAX_ITEMS} mục`);
 const schema = z.object({ learningObjectives: list, requirements: list, targetAudience: list });

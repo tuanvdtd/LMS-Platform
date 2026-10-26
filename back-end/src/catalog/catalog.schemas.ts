@@ -2,7 +2,7 @@
 import { SkillLevel } from '@prisma/client';
 import { z } from 'zod';
 
-// GET /api/courses (spec public-catalog §3.1). Không .strict(): link ngoài có thể kèm utm_*.
+// GET /api/courses. Không .strict(): link ngoài có thể kèm utm_*.
 export const listCoursesQuery = z.object({
   q: z.string().trim().max(100).optional(),
   category: z.string().max(100).optional(),

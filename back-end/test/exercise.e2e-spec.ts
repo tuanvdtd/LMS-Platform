@@ -26,7 +26,7 @@ type TestCase = { id: string; position: number; input: string; expectedOutput: s
 type Verify = {
   passed: boolean;
   problems: string[];
-  languages: { language: string; compileError: string | null; tests: { status: string; stdout: string }[] }[];
+  languages: { language: string; compileError: string | null; tests: { status: string; stdout: string; slow: boolean }[] }[];
 };
 
 const PUBLIC_TEST = { input: '1 2', expectedOutput: '3', isPublic: true, points: 1 };
@@ -37,8 +37,6 @@ const starters = (js = 'SUM', cpp = 'SUM') => [
 ];
 const codeBody = (over: object = {}) => ({
   languages: ['javascript', 'cpp'],
-  timeLimitMs: 2000,
-  memoryLimitKb: 128000,
   starters: starters(),
   tests: [PUBLIC_TEST, HIDDEN_TEST],
   ...over,
@@ -181,7 +179,9 @@ describe('Giảng viên soạn bài code (e2e)', () => {
         [1, '2 3', false, 3],
       ]);
       expect(tests.every((t) => t.id)).toBe(true);
-      expect(body.exercise).toMatchObject({ languages: ['javascript', 'cpp'], timeLimitMs: 2000, memoryLimitKb: 128000 });
+      expect(body.exercise).toMatchObject({ languages: ['javascript', 'cpp'] });
+      expect(body.exercise).not.toHaveProperty('timeLimitMs');
+      expect(body.exercise).not.toHaveProperty('memoryLimitKb');
       expect(body.exercise.starters).toEqual([
         { language: 'cpp', code: 'S', solutionCode: 'SUM' },
         { language: 'javascript', code: 'S', solutionCode: 'SUM' },
@@ -214,6 +214,7 @@ describe('Giảng viên soạn bài code (e2e)', () => {
 
       await put(codeBody({ starters: [starters()[0]] })).expect(400); // thiếu starter cpp
       await put(codeBody({ tests: [{ id: randomUUID(), ...PUBLIC_TEST }] })).expect(400); // id test lạ
+      await put(codeBody({ timeLimitMs: 2000 })).expect(400); // mốc cố định, không nhận từ giảng viên
       await put(codeBody({ languages: ['ruby'], starters: [{ language: 'ruby', code: 'S', solutionCode: null }] })).expect(400);
     },
     SLOW,
@@ -243,9 +244,9 @@ describe('Giảng viên soạn bài code (e2e)', () => {
       expect(body.languages.map((l) => l.language).sort()).toEqual(['cpp', 'javascript']);
       for (const l of body.languages) {
         expect(l.compileError).toBeNull();
-        expect(l.tests.map((t) => [t.status, t.stdout])).toEqual([
-          ['accepted', '3\n'],
-          ['accepted', '5\n'],
+        expect(l.tests.map((t) => [t.status, t.stdout, t.slow])).toEqual([
+          ['accepted', '3\n', false],
+          ['accepted', '5\n', false],
         ]);
       }
       expect(await published()).toBe(true);
@@ -273,6 +274,38 @@ describe('Giảng viên soạn bài code (e2e)', () => {
       expect(cpp.tests.map((t) => t.status)).toEqual(['accepted', 'wrong_answer']);
       expect(cpp.tests[1].stdout).toBe('3\n');
       expect(await published()).toBe(false);
+    },
+    SLOW,
+  );
+
+  it(
+    'lời giải cpp chạy quá 70% mốc (1500 > 1400 ms) → passed=false, test slow, không xuất bản',
+    async () => {
+      await put(codeBody({ starters: starters('SUM', 'SLOW 1500') })).expect(200);
+      const { body } = (await verify().expect(200)) as { body: Verify };
+      expect(body.passed).toBe(false);
+      const cpp = body.languages.find((l) => l.language === 'cpp')!;
+      expect(cpp.tests.map((t) => [t.status, t.slow])).toEqual([
+        ['accepted', true],
+        ['accepted', true],
+      ]);
+      expect(body.languages.find((l) => l.language === 'javascript')!.tests.every((t) => !t.slow)).toBe(true);
+      expect(body.problems).toEqual([
+        'Lời giải C++ chạy quá sát giới hạn ở test 1, 2 (tối đa 1.400 ms) — giảm kích thước test hoặc tối ưu lời giải',
+      ]);
+      expect(await published()).toBe(false);
+    },
+    SLOW,
+  );
+
+  it(
+    'lời giải chạy đúng 70% mốc (1400 ms) → vẫn xuất bản',
+    async () => {
+      await put(codeBody({ starters: starters('SUM', 'SLOW 1400') })).expect(200);
+      const { body } = (await verify().expect(200)) as { body: Verify };
+      expect(body.passed).toBe(true);
+      expect(body.problems).toEqual([]);
+      expect(await published()).toBe(true);
     },
     SLOW,
   );

@@ -28,7 +28,7 @@ function BulletList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-// Trang duyệt khoá (spec pricing-submit-review §5.3): nội dung khoá bên trái, thao tác duyệt bên phải.
+// Trang duyệt khoá: nội dung khoá bên trái, thao tác duyệt bên phải.
 export function ApprovalDetail() {
   const { id } = useParams<{ id: string }>();
   const [detail, setDetail] = useState<AdminApprovalDetail | null>(null);

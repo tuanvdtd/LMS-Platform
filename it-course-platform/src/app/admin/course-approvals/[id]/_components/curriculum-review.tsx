@@ -24,7 +24,7 @@ const ICON: Record<ItemType, LucideIcon> = {
   coding_exercise: CodeIcon,
 };
 
-// Giáo trình để admin xem trước khi duyệt (spec pricing-submit-review §5.3). Asset lấy qua URL ký của admin.
+// Giáo trình để admin xem trước khi duyệt. Asset lấy qua URL ký của admin.
 export function CurriculumReview({
   approvalId,
   sections,

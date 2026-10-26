@@ -9,7 +9,7 @@ import { formatVnd } from '@/types/revenue';
 import type { EarningsSummary } from '@/types/revenue';
 import { PayoutHistory } from './payout-history';
 
-// Doanh thu thật (spec revenue-share-payout §5). Chưa có checkout → số liệu có thể đều 0.
+// Doanh thu thật. Chưa có checkout → số liệu có thể đều 0.
 export function RevenueView() {
   const [summary, setSummary] = useState<EarningsSummary | null>(null);
 

@@ -3,7 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import { CatalogCourseCard } from '@/components/shared/catalog-course-card';
 import { listCourses } from '@/lib/api/catalog';
 
-// Khối "Khoá nổi bật" (spec public-catalog §4.1). Bỏ tab track (track đã bỏ khỏi domain).
+// Khối "Khoá nổi bật". Bỏ tab track (track đã bỏ khỏi domain).
 export default async function FeaturedCourses() {
   const data = await listCourses({ sort: 'popular', page: 1, limit: 8 });
   if (!data?.items.length) return null;

@@ -1,4 +1,4 @@
-// Tên chủ TK như in trên app ngân hàng: bỏ dấu, IN HOA, gộp khoảng trắng (spec §4.1).
+// Tên chủ TK như in trên app ngân hàng: bỏ dấu, IN HOA, gộp khoảng trắng.
 export function normalizeAccountName(name: string): string {
   return name
     .normalize('NFD')
@@ -12,7 +12,7 @@ export function normalizeAccountName(name: string): string {
 
 type QrInput = { bankBin: string; bankAccountNo: string; bankAccountName: string; amount: number; period: string };
 
-// Ảnh QR VietQR công khai (spec §3.5, R8): admin quét bằng app ngân hàng, mọi trường đã điền sẵn.
+// Ảnh QR VietQR công khai: admin quét bằng app ngân hàng, mọi trường đã điền sẵn.
 export function vietQrUrl(p: QrInput): string {
   const qs = new URLSearchParams({
     amount: String(p.amount),

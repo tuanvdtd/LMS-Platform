@@ -40,7 +40,7 @@ const crumbLink = cn('rounded-sm transition-colors hover:text-foreground', focus
 
 type Scope = { base: string; params: CatalogParams; category?: string; topic?: string };
 
-// Khung trang danh sách dùng chung cho /courses (tìm kiếm), /courses/[l1](/[l2]), /topic/[slug] (spec public-catalog §4.2).
+// Khung trang danh sách dùng chung cho /courses (tìm kiếm), /courses/[l1](/[l2]), /topic/[slug].
 // Bố cục tham khảo Udemy: [nav danh mục con] → hero → [intro: khoá để bắt đầu, chủ đề] → "Tất cả khoá học".
 // Mỗi section là một dải nền riêng (trắng / xám) để tách biệt rõ. Tìm kiếm dùng ô search trên header site.
 // Chỉ khu kết quả nằm trong Suspense key theo params → đổi lọc/sort/trang chỉ tải lại khu này.
