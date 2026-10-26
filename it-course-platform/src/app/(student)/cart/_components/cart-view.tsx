@@ -8,7 +8,7 @@ import { Tag, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { notifyCartChanged } from '@/lib/cart-events';
+import { useCartCount } from '@/lib/cart-store';
 import { apiMessage, getCart, removeFromCart, startCheckout } from '@/lib/api/checkout';
 import type { Cart } from '@/types/checkout';
 import { formatVnd } from '@/types/revenue';
@@ -28,7 +28,7 @@ export default function CartView() {
   useEffect(() => {
     let cancelled = false; // bỏ qua phản hồi cũ khi đổi mã / tải lại liên tiếp
     getCart(applied || undefined).then(
-      (c) => { if (!cancelled) { setCart(c); setLoadError(false); notifyCartChanged(); } },
+      (c) => { if (!cancelled) { setCart(c); setLoadError(false); useCartCount.setState({ count: c.items.length }); } },
       () => { if (!cancelled) { setLoadError(true); toast.error('Không tải được giỏ hàng'); } },
     );
     return () => { cancelled = true; };

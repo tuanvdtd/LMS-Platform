@@ -3,8 +3,6 @@ import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PayoutDetail } from './_components/payout-detail';
 
-export const instant = false;
-
 export const metadata: Metadata = { title: 'Chi tiết thanh toán | SkillPath Admin' };
 
 export default function AdminPayoutPage() {

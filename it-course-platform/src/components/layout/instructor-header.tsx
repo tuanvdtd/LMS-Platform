@@ -39,7 +39,7 @@ export default function InstructorHeader() {
     <header className="sticky top-0 z-50 border-b bg-card">
       <div className="mx-auto flex h-14 max-w-screen-2xl items-center gap-2 px-4">
         <div className="lg:hidden">
-          {/* usePathname treo khi prerender (cacheComponents) → Suspense */}
+          {/* usePathname cần Suspense khi trang được prerender tĩnh */}
           <Suspense fallback={<Button variant="ghost" size="icon" disabled aria-label="Mở menu"><Menu /></Button>}>
             <InstructorMobileNav user={user} onSignOut={() => setSignOutOpen(true)} onToggleTheme={toggleTheme} />
           </Suspense>

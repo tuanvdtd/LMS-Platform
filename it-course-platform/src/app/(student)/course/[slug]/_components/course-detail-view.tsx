@@ -154,7 +154,7 @@ export default function CourseDetailView({ course, sections }: { course: CourseD
                 </div>
               )}
               <div className="flex flex-col gap-3 p-5">
-                {/* useSearchParams dưới cacheComponents phải nằm trong Suspense */}
+                {/* useSearchParams cần Suspense khi trang được prerender tĩnh */}
                 <Suspense fallback={<p className="text-3xl font-extrabold text-foreground">{formatPrice(course.priceAmount)}</p>}>
                   <BuyBox course={{ id: course.id, slug: course.slug, priceAmount: course.priceAmount }} />
                 </Suspense>

@@ -22,7 +22,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCart } from '@/lib/api/checkout';
-import { CART_CHANGED } from '@/lib/cart-events';
+import { useCartCount } from '@/lib/cart-store';
 import { accountLinks } from '@/components/layout/account-links';
 import { CourseSearch } from '@/components/layout/course-search';
 import { ExploreMenu } from '@/components/layout/explore-menu';
@@ -35,7 +35,7 @@ import type { CategoryNode } from '@/types';
 export default function Header({ categories }: { categories: CategoryNode[] }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
+  const cartCount = useCartCount((s) => s.count);
   const { resolvedTheme, setTheme } = useTheme();
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
@@ -43,21 +43,16 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
   // Tài khoản nghiệp vụ không mua/học/dạy (BE trả 403) → ẩn giỏ, link học viên, "Dạy học"; thay bằng "Khu quản trị".
   const staff = isStaff(user);
 
-  // Badge giỏ: chỉ gọi khi có session (khách không gọi → không dính interceptor 401). Lỗi → không badge.
+  // Badge giỏ: tải số ban đầu khi có session (khách không gọi → không dính interceptor 401). Lỗi → không badge.
+  // Sau đó trang giỏ / nút "Thêm vào giỏ" tự ghi số mới vào useCartCount, header không phải GET lại.
   useEffect(() => {
     if (!userId || staff) return;
     let cancelled = false;
-    const load = () =>
-      getCart().then(
-        (c) => { if (!cancelled) setCartCount(c.items.length); },
-        () => { if (!cancelled) setCartCount(0); },
-      );
-    load();
-    window.addEventListener(CART_CHANGED, load);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(CART_CHANGED, load);
-    };
+    getCart().then(
+      (c) => { if (!cancelled) useCartCount.setState({ count: c.items.length }); },
+      () => { if (!cancelled) useCartCount.setState({ count: 0 }); },
+    );
+    return () => { cancelled = true; };
   }, [userId, staff]);
 
   const iconLink = 'relative flex size-10 items-center justify-center rounded-full transition-colors hover:bg-muted';
