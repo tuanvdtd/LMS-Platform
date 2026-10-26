@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: 'Đăng nhập | SkillPath' };
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-// cacheComponents: đọc searchParams phải nằm trong Suspense để phần còn lại prerender được
+// useSearchParams cần Suspense khi trang được prerender tĩnh, để phần còn lại prerender được
 export default function LoginPage({ searchParams }: PageProps<'/login'>) {
   return (
     <Suspense fallback={<AuthFormSkeleton />}>

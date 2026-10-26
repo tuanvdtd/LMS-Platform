@@ -94,7 +94,8 @@ model User {
   couponsCreated        Coupon[]
   announcementsAuthored Announcement[]
   qaQuestions           CourseQuestion[]
-  qaAnswers             CourseAnswer[]
+  qaAnswers             CourseAnswer[]   @relation("qaAnswerAuthor")
+  qaRepliesReceived     CourseAnswer[]   @relation("qaAnswerReplyTo")
   moderatorCategories   ModeratorCategory[]
   notifications         Notification[]
 
@@ -1064,6 +1065,7 @@ model Notification {
 
 enum NotificationType {
   verdict
+  qa_answer
 }
 
 // ============================================================================
@@ -1241,7 +1243,7 @@ model Note {
   @@map("notes")
 }
 
-// Hỏi đáp, chỉ khi courses.qaEnabled (service). answerCount/instructorAnsweredAt cập nhật cùng
+// Hỏi đáp luôn bật (courses.qaEnabled chưa được dùng). answerCount/instructorAnsweredAt cập nhật cùng
 // transaction với insert course_answers. Partial index "chưa phản hồi" ở sql/05.
 // answerCount/instructorAnsweredAt là denormalized, worker/cron tính lại được.
 model CourseQuestion {
@@ -1249,8 +1251,7 @@ model CourseQuestion {
   courseId             String    @db.Uuid
   itemId               String?   @db.Uuid
   userId               String    @db.Uuid
-  title                String // ≤255 (service)
-  bodyHtml             String?
+  body                 String // Markdown ≤2000 (zod, qa.schemas.ts) — 1 ô duy nhất, kiểu bình luận
   answerCount          Int       @default(0)
   instructorAnsweredAt DateTime?
   createdAt            DateTime  @default(now())
@@ -1268,16 +1269,18 @@ model CourseQuestion {
 }
 
 model CourseAnswer {
-  id           String   @id @default(uuid(7)) @db.Uuid
-  questionId   String   @db.Uuid
-  userId       String   @db.Uuid
-  bodyHtml     String
-  isInstructor Boolean  @default(false) // chụp lúc trả lời
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(uuid(7)) @db.Uuid
+  questionId    String   @db.Uuid
+  userId        String   @db.Uuid
+  body          String // Markdown ≤2000 (zod)
+  isInstructor  Boolean  @default(false) // chụp lúc trả lời
+  replyToUserId String?  @db.Uuid // trả lời một câu trả lời khác → FE ghi "Trả lời <tên>"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   question CourseQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User           @relation("qaAnswerAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  replyTo  User?          @relation("qaAnswerReplyTo", fields: [replyToUserId], references: [id], onDelete: SetNull)
 
   @@index([questionId, createdAt])
   @@index([userId])

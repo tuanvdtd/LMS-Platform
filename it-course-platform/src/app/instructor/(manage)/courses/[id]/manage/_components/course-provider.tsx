@@ -99,7 +99,7 @@ export function ManageSkeleton() {
   );
 }
 
-// useParams suspend khi prerender route [id] (cacheComponents) → layout bọc <Suspense>.
+// useParams suspend khi prerender tĩnh route [id] → layout bọc <Suspense>.
 export function CourseProvider({ children }: { children: React.ReactNode }) {
   const { id } = useParams<{ id: string }>();
   const [course, setCourse] = useState<CourseDetail | null>(null);

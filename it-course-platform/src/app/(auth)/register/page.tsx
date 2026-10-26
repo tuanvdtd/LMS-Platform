@@ -5,7 +5,7 @@ import { RegisterForm } from './_components/register-form';
 
 export const metadata: Metadata = { title: 'Đăng ký | SkillPath' };
 
-// cacheComponents: đọc searchParams phải nằm trong Suspense (như trang login)
+// useSearchParams cần Suspense khi trang được prerender tĩnh (như trang login)
 export default function RegisterPage({ searchParams }: PageProps<'/register'>) {
   return (
     <Suspense fallback={<AuthFormSkeleton />}>

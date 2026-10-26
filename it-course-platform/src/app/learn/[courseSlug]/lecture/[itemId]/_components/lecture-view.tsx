@@ -16,6 +16,7 @@ import { itemHref, neighbors } from '../../../_components/learn-nav';
 import { useLearnShell, useSidebarMode } from '../../../_components/learn-shell';
 import { StateMessage } from '../../../_components/state-message';
 import { LectureNotes } from './lecture-notes';
+import { LectureQa } from './lecture-qa';
 import { LectureResources } from './lecture-resources';
 import { PdfViewer } from './pdf-viewer';
 import { VideoPlayer } from './video-player';
@@ -108,6 +109,7 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
             <TabsTrigger value="overview">Tổng quan</TabsTrigger>
             {lecture.resources.length > 0 && <TabsTrigger value="resources">Tài liệu ({lecture.resources.length})</TabsTrigger>}
             <TabsTrigger value="notes">Ghi chú</TabsTrigger>
+            <TabsTrigger value="qa">Hỏi đáp</TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="pt-4">
             {lecture.description ? (
@@ -123,6 +125,9 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
           )}
           <TabsContent value="notes" keepMounted className="pt-4">
             <LectureNotes courseSlug={courseSlug} itemId={itemId} videoRef={lecture.lectureKind === 'video' ? videoRef : null} />
+          </TabsContent>
+          <TabsContent value="qa" keepMounted className="pt-4">
+            <LectureQa courseSlug={courseSlug} itemId={itemId} />
           </TabsContent>
         </Tabs>
       </div>

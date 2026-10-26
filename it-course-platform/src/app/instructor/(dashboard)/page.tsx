@@ -5,9 +5,6 @@ import { StatCard } from '@/components/shared/product-ui';
 import { atRiskStudents } from '@/lib/mocks/data';
 import RevenueChart from '@/app/instructor/(dashboard)/_components/revenue-chart';
 
-// Gate client ở instructor/layout.tsx không render children khi prerender → tắt instant validation.
-export const instant = false;
-
 export const metadata: Metadata = { title: 'Tổng quan giảng viên | SkillPath' };
 
 export default function InstructorDashboardPage() {

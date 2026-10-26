@@ -3,9 +3,6 @@ import { Suspense } from 'react';
 import QuizView from './_components/quiz-view';
 import { QuizStartSkeleton } from './_components/quiz-start';
 
-// LearnShell (layout) đọc useParams trong Suspense → validate bỏ segment con → tắt instant validation.
-export const instant = false;
-
 export const metadata: Metadata = { title: 'Làm bài kiểm tra | SkillPath' };
 
 // QuizView đọc ?attempt bằng useSearchParams → bọc Suspense.

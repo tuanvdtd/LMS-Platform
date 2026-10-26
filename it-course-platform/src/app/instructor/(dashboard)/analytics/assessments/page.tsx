@@ -3,9 +3,6 @@ import { demoQuiz, skillHeatmapData } from '@/lib/mocks/data';
 import { Button } from '@/components/ui/button';
 import { ScoreDistributionChart, CodeVerdictPie } from './_components/assessment-charts';
 
-// Gate client ở instructor/layout.tsx không render children khi prerender → tắt instant validation.
-export const instant = false;
-
 export const metadata: Metadata = { title: 'Chất lượng Bài kiểm tra | SkillPath' };
 
 const CODE_VERDICT = [

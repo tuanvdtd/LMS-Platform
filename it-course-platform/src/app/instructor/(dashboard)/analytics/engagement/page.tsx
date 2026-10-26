@@ -5,9 +5,6 @@ import { Button } from '@/components/ui/button';
 import { videoRetentionData } from '@/lib/mocks/data';
 import { RetentionChart, LessonProgressChart } from './_components/engagement-charts';
 
-// Gate client ở instructor/layout.tsx không render children khi prerender → tắt instant validation.
-export const instant = false;
-
 export const metadata: Metadata = { title: 'Hành vi học | SkillPath' };
 
 export default function AnalyticsEngagementPage() {

@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 import type { CourseList } from '@/types/catalog';
 
-// Tách khỏi lib/api/catalog.ts: file đó có 'use cache'/cacheLife (chỉ server), không import được từ client.
+// Tách khỏi lib/api/catalog.ts: file đó chỉ chạy ở server (fetch next.revalidate, Sentry server).
 // Gọi từ client khi bấm "Xem thử" — URL ký sống 1 giờ, không cache.
 export async function getPreviewUrl(slug: string, itemId: string) {
   const { data } = await api.get<{ url: string }>(`/courses/${encodeURIComponent(slug)}/preview/${itemId}`);

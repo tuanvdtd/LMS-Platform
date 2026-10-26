@@ -33,9 +33,9 @@ export type LectureRow = Prisma.CurriculumItemGetPayload<{ select: typeof LECTUR
 
 export const notEnrolled = () =>
   new ForbiddenException({ statusCode: 403, code: 'NOT_ENROLLED', message: 'Bạn chưa ghi danh khoá học này' });
-const courseNotFound = () =>
+export const courseNotFound = () =>
   new NotFoundException({ statusCode: 404, code: 'COURSE_NOT_FOUND', message: 'Không tìm thấy khoá học' });
-const itemNotFound = () =>
+export const itemNotFound = () =>
   new NotFoundException({ statusCode: 404, code: 'ITEM_NOT_FOUND', message: 'Không tìm thấy bài học' });
 const lectureNotFound = () =>
   new NotFoundException({ statusCode: 404, code: 'LECTURE_NOT_FOUND', message: 'Không tìm thấy bài giảng' });
