@@ -5,8 +5,9 @@ import { CatalogListing } from '@/app/(student)/_components/catalog-listing';
 import {
   CatalogStarter,
   CatalogStarterSkeleton,
-  RelatedTopics,
+  LinkTiles,
   starterArgs,
+  topicLinks,
 } from '@/app/(student)/_components/catalog-sections';
 import { CatalogListingSkeleton } from '@/components/skeletons/catalog-listing-skeleton';
 import { listCourses } from '@/lib/api/catalog';
@@ -59,11 +60,14 @@ async function Body({ params, searchParams }: PageProps<'/topic/[slug]'>) {
           : []),
         { label: name, href: topicHref(slug) },
       ]}
-      headerExtra={<RelatedTopics topics={sub?.topics.filter((t) => t.slug !== slug) ?? []} />}
       intro={
-        <Suspense fallback={<CatalogStarterSkeleton />}>
-          <CatalogStarter topic={slug} />
-        </Suspense>
+        <>
+          <Suspense fallback={<CatalogStarterSkeleton />}>
+            <CatalogStarter topic={slug} />
+          </Suspense>
+          {/* Dải nền xám tách khối "bắt đầu" với "Tất cả khoá học", giống thứ tự của trang danh mục. */}
+          <LinkTiles title="Chủ đề liên quan" links={topicLinks(sub?.topics.filter((t) => t.slug !== slug) ?? [])} />
+        </>
       }
       resultsTitle={`Tất cả khoá học ${name}`}
     />

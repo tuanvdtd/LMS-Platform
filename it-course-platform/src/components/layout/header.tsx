@@ -21,8 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getCart } from '@/lib/api/checkout';
-import { CART_CHANGED } from '@/lib/cart-events';
+import { useCartStore } from '@/lib/cart-store';
 import { accountLinks } from '@/components/layout/account-links';
 import { CourseSearch } from '@/components/layout/course-search';
 import { ExploreMenu } from '@/components/layout/explore-menu';
@@ -35,7 +34,6 @@ import type { CategoryNode } from '@/types';
 export default function Header({ categories }: { categories: CategoryNode[] }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
   const { resolvedTheme, setTheme } = useTheme();
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
@@ -43,21 +41,13 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
   // Tài khoản nghiệp vụ không mua/học/dạy (BE trả 403) → ẩn giỏ, link học viên, "Dạy học"; thay bằng "Khu quản trị".
   const staff = isStaff(user);
 
-  // Badge giỏ: chỉ gọi khi có session (khách không gọi → không dính interceptor 401). Lỗi → không badge.
+  const cartCount = useCartStore((s) => s.cart?.items.length ?? 0);
+
+  // Badge giỏ: chỉ tải khi có session (khách không gọi → không dính interceptor 401). Đăng xuất/đổi tài khoản → xoá giỏ cũ.
   useEffect(() => {
     if (!userId || staff) return;
-    let cancelled = false;
-    const load = () =>
-      getCart().then(
-        (c) => { if (!cancelled) setCartCount(c.items.length); },
-        () => { if (!cancelled) setCartCount(0); },
-      );
-    load();
-    window.addEventListener(CART_CHANGED, load);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(CART_CHANGED, load);
-    };
+    useCartStore.getState().load().catch(() => {});
+    return () => useCartStore.getState().reset();
   }, [userId, staff]);
 
   const iconLink = 'relative flex size-10 items-center justify-center rounded-full transition-colors hover:bg-muted';

@@ -1,8 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, Clock, Users } from 'lucide-react';
+import { ArrowRight, BarChart3, BookOpen, Clock, Users } from 'lucide-react';
 import { RatingStars } from '@/components/shared/product-ui';
-import { Badge } from '@/components/ui/badge';
 import { formatHoursMinutes, type CourseCard } from '@/types/catalog';
 import { formatPrice, SKILL_LEVEL_LABEL } from '@/types/instructor-course';
 
@@ -12,27 +11,26 @@ export function CatalogCourseCard({ course }: { course: CourseCard }) {
   return (
     <Link
       href={`/course/${course.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-xs outline-none transition-[translate,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border bg-card outline-none transition-[translate,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
-      <div className="relative aspect-video overflow-hidden bg-muted">
-        <Image
-          src={course.thumbnailUrl}
-          alt={course.title}
-          fill
-          unoptimized
-          sizes="(min-width:1280px) 30vw, (min-width:768px) 50vw, 100vw"
-          className="object-cover transition-transform duration-500 ease-out group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-        />
-        {course.priceAmount === 0 && <Badge className="absolute top-3 left-3 shadow-sm">Miễn phí</Badge>}
+      <div className="relative flex aspect-video items-center justify-center overflow-hidden bg-foreground/5">
+        {/* Khoá chưa có ảnh bìa: BE trả chuỗi rỗng → không render <img src=""> (ảnh vỡ + tải lại trang). */}
+        {course.thumbnailUrl ? (
+          <Image
+            src={course.thumbnailUrl}
+            alt={course.title}
+            fill
+            unoptimized
+            sizes="(min-width:1280px) 30vw, (min-width:768px) 50vw, 100vw"
+            className="object-cover"
+          />
+        ) : (
+          <BookOpen className="size-8 text-muted-foreground" aria-hidden />
+        )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-5">
+      <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex flex-col gap-1.5">
-          {course.level && (
-            <span className="text-xs font-semibold tracking-wide text-primary uppercase">
-              {SKILL_LEVEL_LABEL[course.level]}
-            </span>
-          )}
           <h3 className="line-clamp-2 text-base leading-snug font-bold text-foreground transition-colors group-hover:text-primary">
             {course.title}
           </h3>
@@ -52,6 +50,12 @@ export function CatalogCourseCard({ course }: { course: CourseCard }) {
         )}
 
         <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {course.level && (
+            <li className="flex items-center gap-1">
+              <BarChart3 className="size-3.5" aria-hidden />
+              {SKILL_LEVEL_LABEL[course.level]}
+            </li>
+          )}
           <li className="flex items-center gap-1">
             <BookOpen className="size-3.5" aria-hidden />
             {course.lectureCount} bài
@@ -69,7 +73,7 @@ export function CatalogCourseCard({ course }: { course: CourseCard }) {
           )}
         </ul>
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t pt-4">
+        <div className="mt-auto flex items-center justify-between gap-3 border-t pt-3">
           <span className="text-lg font-extrabold text-foreground tabular-nums">{formatPrice(course.priceAmount)}</span>
           <span className="flex items-center gap-1 text-sm font-semibold text-primary">
             Xem chi tiết

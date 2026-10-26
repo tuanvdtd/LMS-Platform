@@ -8,9 +8,9 @@ import { toast } from 'sonner';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
 import { isStaff } from '@/lib/instructor-role';
-import { notifyCartChanged } from '@/lib/cart-events';
+import { useCartStore } from '@/lib/cart-store';
 import { loginUrlFor, parseAction, withoutAction, type ResumeAction } from '@/lib/resume-action';
-import { addToCart, apiMessage, enroll, getBuyStatus, previewCoupon, startCheckout } from '@/lib/api/checkout';
+import { apiMessage, enroll, getBuyStatus, previewCoupon, startCheckout } from '@/lib/api/checkout';
 import type { CouponPreview, CourseBuyStatus } from '@/types/checkout';
 import { formatPrice } from '@/types/instructor-course';
 import { formatVnd } from '@/types/revenue';
@@ -81,9 +81,8 @@ export function BuyBox({ course }: Props) {
 
   const doAddToCart = () =>
     run('add-to-cart', async () => {
-      await addToCart(course.id);
+      await useCartStore.getState().add(course.id);
       setStatus((s) => ({ enrolled: false, isOwner: false, ...s, inCart: true }));
-      notifyCartChanged();
       toast.success('Đã thêm vào giỏ');
     });
 

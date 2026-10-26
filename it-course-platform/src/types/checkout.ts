@@ -3,6 +3,14 @@ export interface CartCourse { id: string; slug: string; title: string; thumbnail
 export interface CartItem { course: CartCourse; listPrice: number; finalPrice: number; couponApplied: boolean }
 export interface Cart { items: CartItem[]; summary: { subtotal: number; discount: number; total: number }; couponError?: string }
 
+// BE tính summary bằng tổng giá các dòng → bỏ một dòng thì tự tính lại được, khỏi gọi /cart.
+export function withoutCourse(cart: Cart, courseId: string): Cart {
+  const items = cart.items.filter((i) => i.course.id !== courseId);
+  const subtotal = items.reduce((s, i) => s + i.listPrice, 0);
+  const total = items.reduce((s, i) => s + i.finalPrice, 0);
+  return { ...cart, items, summary: { subtotal, discount: subtotal - total, total } };
+}
+
 export interface CourseBuyStatus { inCart: boolean; enrolled: boolean; isOwner: boolean }
 export interface CouponPreview { type: 'fixed_price' | 'free'; priceAmount: number | null }
 

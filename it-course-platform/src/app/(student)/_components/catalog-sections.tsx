@@ -67,9 +67,9 @@ export function SectionHeading({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-extrabold tracking-tight text-balance text-foreground md:text-3xl">{title}</h2>
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-bold tracking-tight text-balance text-foreground md:text-2xl">{title}</h2>
         {description && <p className="max-w-2xl text-pretty text-muted-foreground">{description}</p>}
       </div>
       {action}
@@ -85,7 +85,7 @@ export async function CatalogStarter({ category, topic }: { category?: string; t
   const toCards = (items: typeof popular.items) => items.map((c) => <CatalogCourseCard key={c.id} course={c} />);
 
   return (
-    <section className="bg-background py-12 md:py-16">
+    <section className="border-b bg-background py-8 md:py-10">
       <div className="mx-auto max-w-screen-xl px-4">
         <SectionHeading
           title="Khoá học để bạn bắt đầu"
@@ -104,9 +104,9 @@ export async function CatalogStarter({ category, topic }: { category?: string; t
 
 export function CatalogStarterSkeleton() {
   return (
-    <div className="mx-auto max-w-screen-xl px-4 py-12 md:py-16" aria-hidden>
-      <Skeleton className="h-9 w-80 max-w-full" />
-      <Skeleton className="mt-2 h-4 w-96 max-w-full" />
+    <div className="mx-auto max-w-screen-xl px-4 py-8 md:py-10" aria-hidden>
+      <Skeleton className="h-7 w-72 max-w-full md:h-8" />
+      <Skeleton className="mt-1 h-5 w-96 max-w-full" />
       <div className="mt-6 flex gap-4 border-b pb-3">
         <Skeleton className="h-6 w-28" />
         <Skeleton className="h-6 w-20" />
@@ -134,16 +134,16 @@ export function LinkTiles({
 }) {
   if (!links.length) return null;
   return (
-    <section className="border-y bg-secondary/60 py-12 md:py-16">
+    <section className="border-b bg-secondary/60 py-8 md:py-10">
       <div className="mx-auto max-w-screen-xl px-4">
         <SectionHeading title={title} description={description} />
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <ul className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {links.slice(0, 10).map((l) => (
             <li key={l.id}>
               <Link
                 href={l.href}
                 className={cn(
-                  'group flex min-h-16 items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs transition-[translate,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0',
+                  'group flex min-h-14 items-center justify-between gap-2 rounded-xl border bg-card px-3 py-3 sm:min-h-16 sm:px-4 transition-[translate,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0',
                   focusRing,
                 )}
               >
@@ -165,25 +165,3 @@ export function LinkTiles({
 }
 
 export const topicLinks = (topics: TopicLink[]) => topics.map((t) => ({ id: t.id, name: t.name, href: topicHref(t.slug) }));
-
-// Chip "Liên quan" cho hero trang chủ đề (các chủ đề cùng danh mục con).
-export function RelatedTopics({ topics }: { topics: TopicLink[] }) {
-  if (!topics.length) return null;
-  return (
-    <div className="mt-8 flex flex-wrap items-center gap-2">
-      <span className="mr-1 text-sm font-semibold text-foreground">Liên quan:</span>
-      {topics.slice(0, 8).map((t) => (
-        <Link
-          key={t.id}
-          href={topicHref(t.slug)}
-          className={cn(
-            'inline-flex min-h-9 items-center rounded-full border bg-card/80 px-3.5 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-primary/40 hover:text-primary',
-            focusRing,
-          )}
-        >
-          {t.name}
-        </Link>
-      ))}
-    </div>
-  );
-}
