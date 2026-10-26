@@ -1,4 +1,4 @@
-import { LANGUAGES, RunnerUnavailableError, toRunResult } from './code-runner.js';
+import { LANGUAGES, MEMORY_LIMIT_KB, pistonRequest, RunnerUnavailableError, toRunResult } from './code-runner.js';
 
 const stage = (over: object = {}) => ({
   stdout: '', stderr: '', output: '', code: 0, signal: null, status: null, message: null,
@@ -30,8 +30,11 @@ describe('toRunResult', () => {
     const r = toRunResult({ compile: stage({ code: null, signal: 'SIGKILL', stderr: 'out of time' }) });
     expect(r.verdict).toBe('compile_error');
   });
-  it('status TO → time_limit_exceeded', () => {
-    expect(toRunResult({ run: stage({ status: 'TO', signal: 'SIGKILL', code: null }) }).verdict).toBe('time_limit_exceeded');
+  it('status TO → time_limit_exceeded, timeMs null (CPU lúc bị kill không có nghĩa)', () => {
+    expect(toRunResult({ run: stage({ status: 'TO', signal: 'SIGKILL', code: null }) })).toMatchObject({
+      verdict: 'time_limit_exceeded',
+      timeMs: null,
+    });
   });
   it('OL / EL → runtime_error, stderr chỉ còn ghi chú; time/memory null vẫn giữ null', () => {
     const noisy = 'Sandbox keeper received fatal signal 6\nUGH: Lost track of the process';
@@ -67,5 +70,27 @@ describe('toRunResult', () => {
 describe('LANGUAGES', () => {
   it('C++ không đuôi file: Piston tự thêm .cpp, thông báo lỗi là main.cpp:L:C', () => {
     expect(LANGUAGES.cpp.file).toBe('main');
+  });
+});
+
+describe('pistonRequest', () => {
+  it.each([
+    ['cpp', 2000],
+    ['javascript', 4000],
+    ['python', 6000],
+  ] as const)('%s: CPU %i ms, wall gấp đôi, bộ nhớ 256 MiB', (language, cpu) => {
+    expect(pistonRequest(language, 'code', '1 2')).toEqual({
+      language: LANGUAGES[language].runtime,
+      version: LANGUAGES[language].version,
+      files: [{ name: LANGUAGES[language].file, content: 'code' }],
+      stdin: '1 2',
+      compile_timeout: 10_000,
+      run_cpu_time: cpu,
+      run_timeout: cpu * 2,
+      run_memory_limit: 268_435_456,
+    });
+  });
+  it('MEMORY_LIMIT_KB = 256 MiB tính theo 1024', () => {
+    expect(MEMORY_LIMIT_KB).toBe(262_144);
   });
 });

@@ -2,7 +2,7 @@ import { api } from '@/lib/api/client';
 import type { Ref } from '@/types/instructor-course';
 import type { Occupation, Preferences, UpdatePreferencesPayload } from '@/types/preferences';
 
-// Onboarding cá nhân hoá (spec 2026-10-02-personalize-occupation §4). Chỉ gọi từ client component.
+// Onboarding cá nhân hoá. Chỉ gọi từ client component.
 export const getPreferences = () => api.get<Preferences>('/me/preferences').then((r) => r.data);
 
 export const updatePreferences = (body: UpdatePreferencesPayload) =>

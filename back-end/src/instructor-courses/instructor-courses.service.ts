@@ -32,7 +32,7 @@ export const COURSE_SELECT = {
     select: { isPrimary: true, topic: REF },
     orderBy: [{ isPrimary: 'desc' }, { topic: { name: 'asc' } }],
   },
-  // Lần gửi duyệt gần nhất: FE hiện lý do bị từ chối (spec pricing-submit-review §4.2).
+  // Lần gửi duyệt gần nhất: FE hiện lý do bị từ chối.
   approvals: {
     orderBy: { createdAt: 'desc' },
     take: 1,
@@ -63,7 +63,7 @@ export class InstructorCoursesService {
     private readonly storage: StorageService,
   ) {}
 
-  // Trùng slug (P2002) → sinh hậu tố mới, thử 1 lần nữa (spec §4.1). Khoá mới không đụng
+  // Trùng slug (P2002) → sinh hậu tố mới, thử 1 lần nữa. Khoá mới không đụng
   // unique nào khác nên P2002 ở đây chỉ có thể là slug.
   async create(instructorId: string, title: string): Promise<{ id: string }> {
     try {
@@ -135,7 +135,7 @@ export class InstructorCoursesService {
         if (topics === undefined) return;
         // Thay cả bộ: xoá hết rồi tạo lại nên không lúc nào có 2 dòng isPrimary (uq_course_primary_topic).
         await tx.courseTopic.deleteMany({ where: { courseId: id } });
-        // Quiz chỉ gắn topic của khoá (spec quiz-authoring Q1): bỏ topic không còn thuộc khoá.
+        // Quiz chỉ gắn topic của khoá: bỏ topic không còn thuộc khoá.
         await tx.quizTopic.deleteMany({
           where: { quiz: { courseId: id }, topicId: { notIn: topics.map((t) => t.id) } },
         });
@@ -172,8 +172,8 @@ export class InstructorCoursesService {
     );
   }
 
-  // Không phải chủ khoá cũng trả 404 để không lộ khoá của người khác (spec course-create-basics §4.1).
-  // Module curriculum dùng lại (spec curriculum-upload §4.1).
+  // Không phải chủ khoá cũng trả 404 để không lộ khoá của người khác.
+  // Module curriculum dùng lại.
   async assertOwned(id: string, instructorId: string): Promise<CourseRow> {
     const course = isGuid(id)
       ? await this.prisma.course.findFirst({ where: { id, instructorId }, select: COURSE_SELECT })
@@ -189,7 +189,7 @@ export class InstructorCoursesService {
     return course;
   }
 
-  // Đặt giá (spec pricing-submit-review §3.1): luật nằm ở priceChangeProblem().
+  // Đặt giá: luật nằm ở priceChangeProblem().
   async setPrice(id: string, instructorId: string, priceAmount: number) {
     const course = await this.assertOwned(id, instructorId);
     const profile = await this.prisma.instructorProfile.findUnique({
@@ -218,7 +218,7 @@ export class InstructorCoursesService {
     return this.detail(id, instructorId);
   }
 
-  // Ảnh bìa (spec curriculum-upload §4.3): key do POST /instructor/assets/uploads sinh, ảnh đã nằm trên R2 public.
+  // Ảnh bìa: key do POST /instructor/assets/uploads sinh, ảnh đã nằm trên R2 public.
   async setThumbnail(id: string, instructorId: string, key: string) {
     const course = await this.assertEditable(id, instructorId);
     const ext = new RegExp(`^thumbnails/${instructorId}/[0-9a-f-]{36}\\.(jpg|png|webp)$`).exec(key)?.[1];
@@ -236,7 +236,7 @@ export class InstructorCoursesService {
     return this.detail(id, instructorId);
   }
 
-  // Video giới thiệu (spec video-upload §4.4): như ảnh bìa, file đã nằm trên R2 public, không vào assets.
+  // Video giới thiệu: như ảnh bìa, file đã nằm trên R2 public, không vào assets.
   async setPromoVideo(id: string, instructorId: string, key: string) {
     const course = await this.assertEditable(id, instructorId);
     if (!new RegExp(`^promos/${instructorId}/[0-9a-f-]{36}\\.mp4$`).test(key)) {

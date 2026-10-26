@@ -131,7 +131,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     void load();
   }, [load]);
 
-  // Đóng tab / tải lại khi còn thay đổi chưa lưu (spec §5.3). Link nội bộ do GuardedLink lo.
+  // Đóng tab / tải lại khi còn thay đổi chưa lưu. Link nội bộ do GuardedLink lo.
   useEffect(() => {
     if (!dirty) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();

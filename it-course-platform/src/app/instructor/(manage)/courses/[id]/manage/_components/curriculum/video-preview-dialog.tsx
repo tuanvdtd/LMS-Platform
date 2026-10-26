@@ -9,8 +9,8 @@ import { PausingVideo } from '@/components/shared/pausing-video';
 
 type LoadUrl = (assetId: string) => Promise<{ url: string }>;
 
-// Giảng viên xem lại video đã gắn (spec video-upload V8, §5.2): <video> gốc, URL ký hạn 1 giờ.
-// loadUrl: admin duyệt khoá truyền loader riêng (spec pricing-submit-review §5.3); mặc định API giảng viên.
+// Giảng viên xem lại video đã gắn: <video> gốc, URL ký hạn 1 giờ.
+// loadUrl: admin duyệt khoá truyền loader riêng; mặc định API giảng viên.
 export function VideoPreviewDialog({
   asset,
   onClose,

@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import type { CategoryNode } from '@/types';
 
 // Menu "Khám phá" kiểu Udemy: 3 cột liền nhau (cấp 1 → cấp 2 → chủ đề phổ biến).
-// shadcn không có cascading panel nên cột tự dựng bằng Tailwind (spec E6).
+// shadcn không có cascading panel nên cột tự dựng bằng Tailwind.
 // Chuột: hover mở cột kế. Bàn phím: Tab đi trong cột, → mở cột kế và focus dòng đầu,
 // ← quay về dòng cha. Không mở cột theo onFocus: Base UI focus dòng đầu khi mở bằng
 // click/Enter, và Tab qua cả cột 1 sẽ liên tục đổi cột 2.

@@ -43,7 +43,7 @@ import { VerifyReportView } from './verify-report';
 type Lecture = { id: string; title: string };
 type Tab = 'statement' | 'code';
 
-// Trang soạn bài code (spec 2026-10-19-coding-exercise §8). Tải bài + danh sách bài giảng (cho ô "Bài giảng liên quan").
+// Trang soạn bài code. Tải bài + danh sách bài giảng (cho ô "Bài giảng liên quan").
 export function ExerciseEditor({ courseId, itemId }: { courseId: string; itemId: string }) {
   const [exercise, setExercise] = useState<ExerciseDetail | null>(null);
   const [error, setError] = useState<'not_found' | 'failed' | null>(null);

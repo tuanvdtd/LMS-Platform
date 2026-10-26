@@ -1,6 +1,6 @@
 import type { QuestionType } from '@/types/curriculum';
 
-// Học viên làm quiz (spec 2026-10-17-quiz-taking §3).
+// Học viên làm quiz.
 export interface QuizOverview {
   itemId: string;
   title: string;

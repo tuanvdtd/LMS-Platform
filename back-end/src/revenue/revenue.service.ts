@@ -7,10 +7,10 @@ import { vietQrUrl } from './bank.js';
 import { isPeriodEnded, periodEnd } from './period.js';
 import type { AdminPayoutsQuery, MarkPaidInput, PayoutAccountInput, PremiumInput } from './revenue.schemas.js';
 
-export const PAYOUT_MIN_VND = 200_000; // R7: dưới ngưỡng cộng dồn kỳ sau
+export const PAYOUT_MIN_VND = 200_000; // Dưới ngưỡng cộng dồn kỳ sau
 const SHARE_KEY = 'revenue_share_pct';
 const PAGE_SIZE = 20;
-// Chỉ riêng chốt kỳ dùng Serializable (spec §3.3). KHÔNG sửa TX_OPTIONS dùng chung.
+// Chỉ riêng chốt kỳ dùng Serializable. KHÔNG sửa TX_OPTIONS dùng chung.
 // ~6 query/tx, DB dev ~1-2s/query → timeout 30s như curriculum.service (15s không đủ).
 // ponytail: ~3-4 query/giảng viên trong 1 tx 30s → chốt được ~5-7 giảng viên trên DB dev chậm; nhiều hơn thì gom insert/update theo lô hoặc nâng timeout (P2028 hiện ra 500).
 const CLOSE_TX = { ...TX_OPTIONS, timeout: 30_000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable };
@@ -28,9 +28,9 @@ const BANK = { bankBin: true, bankAccountNo: true, bankAccountName: true } as co
 export class RevenueService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // ---- Tỷ lệ chia (R2) ----
+  // ---- Tỷ lệ chia ----
 
-  // Seed migration bảo đảm luôn có; sai dạng là lỗi hệ thống → 500 + Sentry (spec §6).
+  // Seed migration bảo đảm luôn có; sai dạng là lỗi hệ thống → 500 + Sentry.
   async getSharePct() {
     const row = await this.prisma.platformSetting.findUniqueOrThrow({ where: { key: SHARE_KEY } });
     const pct = row.value;
@@ -56,7 +56,7 @@ export class RevenueService {
     return { verified: !!p, account: p?.bankBin ? p : null };
   }
 
-  // Không có DELETE (R10): khoá trả phí luôn cần TK.
+  // Không có DELETE: khoá trả phí luôn cần TK.
   async setPayoutAccount(userId: string, input: PayoutAccountInput) {
     const res = await this.prisma.instructorProfile.updateMany({ where: { userId }, data: input });
     if (res.count === 0) {
@@ -65,7 +65,7 @@ export class RevenueService {
     return this.getPayoutAccount(userId);
   }
 
-  // Đăng ký giảng viên cao cấp (spec pricing-submit-review D2): tự động, không cần admin duyệt hồ sơ.
+  // Đăng ký giảng viên cao cấp: tự động, không cần admin duyệt hồ sơ.
   async becomePremium(userId: string, input: PremiumInput) {
     try {
       await this.prisma.instructorProfile.create({
@@ -180,7 +180,7 @@ export class RevenueService {
     return this.adminPayout(id);
   }
 
-  // ---- Admin: chốt kỳ (spec §3.3) ----
+  // ---- Admin: chốt kỳ ----
 
   async closePeriod(period: string) {
     if (!isPeriodEnded(period)) {
@@ -231,7 +231,7 @@ export class RevenueService {
       } else {
         const bank = await tx.instructorProfile.findUnique({ where: { userId: g.instructorId }, select: BANK });
         if (!bank?.bankBin || !bank.bankAccountNo || !bank.bankAccountName) {
-          result.skippedNoBank++; // R10 chặn từ lúc đặt giá; chỉ gặp với dữ liệu cũ/seed tay
+          result.skippedNoBank++; // Đặt giá khoá trả phí đã bắt buộc có TK; chỉ gặp với dữ liệu cũ/seed tay
           continue;
         }
         const created = await tx.payout.create({

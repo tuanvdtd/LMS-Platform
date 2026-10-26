@@ -1,5 +1,5 @@
 -- ============================================================================
---  Bổ sung cho migration udemy_curriculum (spec 2026-09-30-udemy-curriculum-schema §5).
+--  Bổ sung cho migration udemy_curriculum.
 --  Cách áp dụng: dán vào cuối migration.sql do `migrate dev --create-only` sinh ra.
 --  ĐẦU migration.sql phải có (thêm tay, trước mọi lệnh Prisma sinh):
 --    DROP MATERIALIZED VIEW IF EXISTS mv_lesson_dropoff;   -- phụ thuộc bảng lessons
@@ -21,7 +21,7 @@
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
---  1. Unique DEFERRABLE — kéo thả đổi chỗ trong một transaction (spec D5)
+--  1. Unique DEFERRABLE — kéo thả đổi chỗ trong một transaction
 -- ---------------------------------------------------------------------------
 ALTER TABLE sections ADD CONSTRAINT uq_sections_position
   UNIQUE ("courseId", position) DEFERRABLE INITIALLY DEFERRED;
@@ -91,7 +91,7 @@ CREATE INDEX idx_qa_unanswered ON course_questions ("courseId", "createdAt")
   WHERE "instructorAnsweredAt" IS NULL;
 
 -- ---------------------------------------------------------------------------
---  4. Materialized view — thay mv_lesson_dropoff (§3.5b: bài nào nhiều người bỏ dở)
+--  4. Materialized view — thay mv_lesson_dropoff (bài nào nhiều người bỏ dở)
 -- ---------------------------------------------------------------------------
 CREATE MATERIALIZED VIEW mv_item_dropoff AS
 SELECT

@@ -1,4 +1,4 @@
-// Trang cần đăng nhập (spec guest-ui §4.1). Dùng chung cho proxy.ts (chặn khách) và useSignOut (trang đích).
+// Trang cần đăng nhập. Dùng chung cho proxy.ts (chặn khách) và useSignOut (trang đích).
 // File thuần, không import alias → test bằng node:test.
 export const PRIVATE_PREFIXES = [
   '/my-learning', '/cart', '/orders', '/settings', '/skills', '/certificates', '/notifications',

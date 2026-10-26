@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getPayoutAccount, savePayoutAccount } from '@/lib/api/revenue';
 import type { BankAccount, PayoutAccountState } from '@/types/revenue';
 
-// Thông tin nhận tiền (spec revenue-share-payout §5). Lưu bằng nút, không autosave; không có nút xoá (R10).
+// Thông tin nhận tiền. Lưu bằng nút, không autosave; không có nút xoá.
 export function PayoutAccountCard() {
   const [state, setState] = useState<PayoutAccountState | null>(null);
   const [form, setForm] = useState<BankAccount>(EMPTY_BANK);

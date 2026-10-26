@@ -16,7 +16,7 @@ const canPreview = (i: {
   videoAsset: { status: string } | null;
 }) => i.isPreview && i.type === 'lecture' && i.lectureKind === 'video' && i.videoAsset?.status === 'ready';
 
-// Card khoá public (spec public-catalog §3.1). Chỉ liệt kê trường được phép lộ ra ngoài.
+// Card khoá public. Chỉ liệt kê trường được phép lộ ra ngoài.
 export const CARD_SELECT = {
   id: true,
   slug: true,
@@ -87,7 +87,7 @@ export class CatalogService {
     return { items: await this.toCards(rows), total, page: q.page, limit: q.limit, topic };
   }
 
-  // lectureCount/totalDurationSec trên bảng courses chưa ai ghi → tính lúc đọc (spec D3).
+  // lectureCount/totalDurationSec trên bảng courses chưa ai ghi → tính lúc đọc.
   async toCards(rows: CardRow[]): Promise<CourseCard[]> {
     if (!rows.length) return [];
     const stats = await this.prisma.curriculumItem.groupBy({
@@ -105,7 +105,7 @@ export class CatalogService {
     }));
   }
 
-  // Tìm không dấu trên title/subtitle (spec public-catalog D2). unaccent bật ở migration 20261013090000_catalog_unaccent.
+  // Tìm không dấu trên title/subtitle. unaccent bật ở migration 20261013090000_catalog_unaccent.
   // Chưa có index → seq scan trên khoá published; đủ cho quy mô đồ án, quá chậm thì chuyển Elasticsearch.
   private async searchIds(q: string): Promise<string[]> {
     const pattern = `%${q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
@@ -193,7 +193,7 @@ export class CatalogService {
     };
   }
 
-  // Xem thử không cần mua (spec public-catalog §3.4). Video S3 private → presigned GET như admin xem lúc duyệt.
+  // Xem thử không cần mua. Video S3 private → presigned GET như admin xem lúc duyệt.
   async preview(slug: string, itemId: string) {
     const item = isGuid(itemId)
       ? await this.prisma.curriculumItem.findFirst({
@@ -218,7 +218,7 @@ export class CatalogService {
     const notFound = () =>
       new NotFoundException({ statusCode: 404, code: 'INSTRUCTOR_NOT_FOUND', message: 'Không tìm thấy giảng viên' });
     if (!isGuid(id)) throw notFound();
-    // role dạng "student,instructor". Select liệt kê trường: KHÔNG lấy bank*/email (spec §3.5).
+    // role dạng "student,instructor". Select liệt kê trường: KHÔNG lấy bank*/email.
     const u = await this.prisma.user.findFirst({
       where: { id, role: { contains: 'instructor' } },
       select: {
@@ -247,7 +247,7 @@ export class CatalogService {
     };
   }
 
-  // Trang chi tiết đọc ?couponCode= từ client (spec stripe-checkout §6) — không nhét vào detail vì detail được cache theo slug.
+  // Trang chi tiết đọc ?couponCode= từ client — không nhét vào detail vì detail được cache theo slug.
   async coupon(slug: string, code: string) {
     const course = await this.prisma.course.findFirst({ where: { slug, status: 'published' }, select: { id: true } });
     if (!course) throw courseNotFound();

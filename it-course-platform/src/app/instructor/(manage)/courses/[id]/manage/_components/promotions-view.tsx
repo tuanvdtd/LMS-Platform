@@ -18,7 +18,7 @@ import { PageHeader } from './form-save';
 const DAY = 86_400_000;
 const toLocalInput = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 
-// Coupon giảng viên (spec stripe-checkout §9): 2 loại, tối đa 3/tháng, fixed ≤31 ngày, free ≤5 ngày.
+// Coupon giảng viên: 2 loại, tối đa 3/tháng, fixed ≤31 ngày, free ≤5 ngày.
 export function PromotionsView() {
   const { course } = useCourse();
   const [data, setData] = useState<CouponList | null>(null);

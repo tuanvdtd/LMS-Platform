@@ -41,7 +41,7 @@ export type AdminPayoutsQuery = z.output<typeof adminPayoutsQuery>;
 
 const optionalUrl = z.url('Link không hợp lệ').max(200, 'Tối đa 200 ký tự').optional();
 
-// POST /instructor/premium (spec pricing-submit-review §3.1): tạo instructor_profiles kèm tài khoản nhận tiền.
+// POST /instructor/premium: tạo instructor_profiles kèm tài khoản nhận tiền.
 export const premiumSchema = z
   .object({
     headline: z.string().trim().min(1, 'Nhập chuyên môn').max(60, 'Tối đa 60 ký tự'),

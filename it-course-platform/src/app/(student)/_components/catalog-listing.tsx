@@ -40,7 +40,7 @@ const crumbLink = cn('rounded-sm transition-colors hover:text-foreground', focus
 
 type Scope = { base: string; params: CatalogParams; category?: string; topic?: string };
 
-// Khung trang danh sách dùng chung cho /courses (tìm kiếm), /courses/[l1](/[l2]), /topic/[slug] (spec public-catalog §4.2).
+// Khung trang danh sách dùng chung cho /courses (tìm kiếm), /courses/[l1](/[l2]), /topic/[slug].
 // Bố cục tham khảo Udemy: [nav danh mục con] → hero → [intro: khoá để bắt đầu, chủ đề] → "Tất cả khoá học".
 // Mỗi section là một dải nền riêng (trắng / xám) để tách biệt rõ. Tìm kiếm dùng ô search trên header site.
 // Chỉ khu kết quả nằm trong Suspense key theo params → đổi lọc/sort/trang chỉ tải lại khu này.
@@ -54,7 +54,6 @@ export function CatalogListing({
   breadcrumb,
   stats,
   nav,
-  headerExtra,
   intro,
   resultsTitle,
 }: Scope & {
@@ -63,7 +62,6 @@ export function CatalogListing({
   breadcrumb?: { label: string; href: string }[];
   stats?: { label: string; value: string }[];
   nav?: React.ReactNode;
-  headerExtra?: React.ReactNode;
   intro?: React.ReactNode;
   resultsTitle: string;
 }) {
@@ -72,16 +70,9 @@ export function CatalogListing({
   return (
     <>
       {nav}
-      <section className="relative isolate overflow-hidden border-b bg-gradient-to-br from-primary/10 via-background to-brand-accent/10">
-        {/* Hoạ tiết chấm + quầng sáng: trang trí, mờ dần xuống dưới. */}
-        <div
-          aria-hidden
-          className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_1px_1px,var(--border)_1px,transparent_0)] [mask-image:linear-gradient(to_bottom,black,transparent)] bg-size-[22px_22px]"
-        />
-        <div aria-hidden className="absolute -top-32 -right-24 -z-10 size-96 rounded-full bg-primary/15 blur-3xl" />
-        <div aria-hidden className="absolute -bottom-40 left-1/3 -z-10 size-80 rounded-full bg-brand-accent/10 blur-3xl" />
-
-        <div className="mx-auto max-w-screen-xl px-4 py-10 md:py-14">
+      {/* Dải đầu trang phẳng, tint nhạt của màu brand: tách khỏi header site mà không cần gradient hay hoạ tiết. */}
+      <section className="border-b bg-(--primary-light)/60">
+        <div className="mx-auto max-w-screen-xl px-4 pt-6 pb-8 md:pt-8 md:pb-10">
           <nav aria-label="Breadcrumb">
             <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
               <li>
@@ -106,30 +97,27 @@ export function CatalogListing({
             </ol>
           </nav>
 
-          <h1 className="mt-6 max-w-3xl text-4xl font-extrabold tracking-tight break-words text-balance text-foreground md:text-5xl">
+          <h1 className="mt-4 max-w-3xl text-2xl font-bold tracking-tight break-words text-balance text-foreground md:text-[2rem]">
             {title}
           </h1>
-          {description && (
-            <p className="mt-4 max-w-2xl text-base text-pretty text-muted-foreground md:text-lg">{description}</p>
-          )}
+          {description && <p className="mt-2 max-w-2xl text-base text-pretty text-muted-foreground">{description}</p>}
 
+          {/* Số liệu là một dòng chữ dưới tiêu đề, không phải ô thẻ: vài con số không đáng chiếm một hàng tile. */}
           {shownStats && shownStats.length > 0 && (
-            <dl className="mt-8 flex flex-wrap gap-3">
+            <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
               {shownStats.map((s) => (
-                <div key={s.label} className="min-w-32 rounded-xl border bg-card/80 px-4 py-3 shadow-xs backdrop-blur">
-                  <dt className="text-xs font-medium text-muted-foreground">{s.label}</dt>
-                  <dd className="mt-0.5 text-2xl font-extrabold text-foreground tabular-nums">{s.value}</dd>
-                </div>
+                <li key={s.label}>
+                  <span className="font-semibold text-foreground tabular-nums">{s.value}</span> {s.label.toLowerCase()}
+                </li>
               ))}
-            </dl>
+            </ul>
           )}
-          {headerExtra}
         </div>
       </section>
 
       {intro}
 
-      <section id={RESULTS_ID} className="scroll-mt-20 bg-background py-12 md:py-16">
+      <section id={RESULTS_ID} className="scroll-mt-20 bg-background py-8 md:py-10">
         <div className="mx-auto max-w-screen-xl px-4">
           <SectionHeading title={resultsTitle} />
           <Suspense key={JSON.stringify(params)} fallback={<CatalogResultsSkeleton />}>
@@ -194,7 +182,7 @@ async function CatalogResults({ base, params, category, topic }: Scope) {
           </CatalogFilterSheet>
           {data && (
             <p className="order-last w-full text-sm text-muted-foreground lg:order-none lg:w-auto">
-              <span className="font-semibold text-foreground tabular-nums">{data.total.toLocaleString('vi-VN')}</span> kết quả
+              <span className="font-semibold text-foreground tabular-nums">{data.total.toLocaleString('vi-VN')}</span> khoá học
             </p>
           )}
           <div className="ml-auto">
@@ -242,7 +230,7 @@ async function CatalogResults({ base, params, category, topic }: Scope) {
         {showControls && (
           <aside
             aria-label="Bộ lọc"
-            className="hidden w-64 shrink-0 self-start rounded-2xl border bg-card p-5 shadow-xs lg:sticky lg:top-24 lg:block"
+            className="hidden w-56 shrink-0 self-start lg:sticky lg:top-24 lg:block"
           >
             {filters}
           </aside>
@@ -306,7 +294,7 @@ function FilterGroup({ label, options }: { label: string; options: { label: stri
     <details open className="group/filter border-t py-4 first:border-t-0 first:pt-0">
       <summary
         className={cn(
-          'flex min-h-10 cursor-pointer list-none items-center justify-between rounded-md text-base font-bold text-foreground [&::-webkit-details-marker]:hidden',
+          'flex min-h-10 cursor-pointer list-none items-center justify-between rounded-md text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden',
           focusRing,
         )}
       >
@@ -316,15 +304,18 @@ function FilterGroup({ label, options }: { label: string; options: { label: stri
           aria-hidden
         />
       </summary>
-      <ul className="mt-2 flex flex-col gap-0.5">
+      <ul className="mt-1 flex flex-col gap-0.5">
         {options.map((o) => (
           <li key={o.label}>
             <Link
               href={o.href}
               aria-current={o.active ? 'true' : undefined}
               className={cn(
-                'group/opt flex min-h-10 items-center gap-3 rounded-lg px-2 text-sm transition-colors',
-                o.active ? 'font-semibold text-foreground' : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                'group/opt flex min-h-10 items-center gap-3 rounded-lg px-2.5 text-sm transition-colors',
+                // Mục đang chọn: nền tint của màu brand + chữ đậm; màu đậm chỉ nằm ở chấm radio.
+                o.active
+                  ? 'bg-(--primary-light) font-semibold text-foreground'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
                 focusRing,
               )}
             >

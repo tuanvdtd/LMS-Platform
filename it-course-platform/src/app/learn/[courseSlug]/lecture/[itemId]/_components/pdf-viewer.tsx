@@ -13,7 +13,7 @@ const ZOOM_MAX = 2;
 const ZOOM_STEP = 0.25;
 const THRESHOLDS = Array.from({ length: 11 }, (_, i) => i / 10);
 
-// PDF.js tự vẽ ra canvas thay viewer của trình duyệt: không lộ tiêu đề metadata file, không nút tải/in (spec §7.3).
+// PDF.js tự vẽ ra canvas thay viewer của trình duyệt: không lộ tiêu đề metadata file, không nút tải/in.
 export function PdfViewer({ lecture, onRefreshUrl }: { lecture: Lecture; onRefreshUrl: () => Promise<string | null> }) {
   // Giữ link riêng như VideoPlayer; n tăng mỗi lần "Thử lại" → key mới → tải lại từ đầu.
   const [src, setSrc] = useState({ url: lecture.mediaUrl, n: 0 });

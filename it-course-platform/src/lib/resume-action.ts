@@ -1,4 +1,4 @@
-// Hành động khách bấm dở ở trang khoá học, chạy lại sau khi đăng nhập (spec guest-ui §4.5).
+// Hành động khách bấm dở ở trang khoá học, chạy lại sau khi đăng nhập.
 // File thuần, không import alias → test bằng node:test.
 export type ResumeAction = 'add-to-cart' | 'enroll' | 'buy-now';
 const ACTIONS: readonly string[] = ['add-to-cart', 'enroll', 'buy-now'];

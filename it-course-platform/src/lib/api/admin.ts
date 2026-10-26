@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 import type { AdminPayoutDetail, AdminPayoutRow, ClosePeriodResult, Paged, PayoutStatus } from '@/types/revenue';
 
-// API admin (spec 2026-10-05-revenue-share-payout §4.2). Chỉ gọi từ client component.
+// API admin. Chỉ gọi từ client component.
 export const getRevenueShare = () =>
   api.get<{ sharePct: number; updatedAt: string }>('/admin/settings/revenue-share').then((r) => r.data);
 

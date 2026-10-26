@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 import type { ExerciseDetail, ExerciseMutation, UpdateCodePayload, UpdateExercisePayload, VerifyReport } from '@/types/exercise';
 
-// API soạn bài code (spec 2026-10-19-coding-exercise §6).
+// API soạn bài code.
 const base = (courseId: string, itemId: string) => `/instructor/courses/${courseId}/items/${itemId}/exercise`;
 const data = <T>(req: Promise<{ data: T }>) => req.then((r) => r.data);
 

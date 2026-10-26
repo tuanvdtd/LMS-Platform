@@ -12,7 +12,7 @@ export class MeController {
     return user;
   }
 
-  // Học viên tự bật vai trò giảng viên (spec course-create-basics C6). Phải ghi qua
+  // Học viên tự bật vai trò giảng viên. Phải ghi qua
   // internalAdapter: nó refresh cache {session, user} trong Redis (secondaryStorage).
   // Ghi thẳng prisma.user thì guard vẫn đọc role cũ → 403. admin.setRole đòi quyền admin.
   @Post('become-instructor')

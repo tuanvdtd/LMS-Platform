@@ -7,7 +7,7 @@ import { GuestFeatured } from './guest-featured';
 import { GuestHero } from './guest-hero';
 import { PillarsSection, SignupSection, StepsSection, TeachSection } from './guest-sections';
 
-// Trang chủ khách (spec guest-ui §4.3, wireframe A + hero "Tối", không E). Số khối theo wireframe.
+// Trang chủ khách, hero nền tối.
 export async function GuestHome() {
   const categories = await getCategoryTree();
   return (

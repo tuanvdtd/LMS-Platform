@@ -11,7 +11,7 @@ import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js'
 import type { ProgressInput } from './learn.schemas.js';
 import { BUCKET_SEC, bucketCount, isWatched, mergeBuckets, popcount, watchBudget } from './watch-bitmap.js';
 
-const MEDIA_TTL = 3600; // hết hạn giữa chừng → FE gọi lại GET bài giảng (spec §6)
+const MEDIA_TTL = 3600; // hết hạn giữa chừng → FE gọi lại GET bài giảng
 const RESOURCE_TTL = 300;
 
 const LECTURE_SELECT = {
@@ -50,11 +50,11 @@ const notTracked = () =>
 const autoOnly = () =>
   new ConflictException({ statusCode: 409, code: 'AUTO_COMPLETE_ONLY', message: 'Bài này tự hoàn thành khi xem đủ 90%' });
 
-// PDF, hoặc video không có thời lượng (upload báo 0) → không tính được 90%, đánh dấu tay (spec §4.3).
+// PDF, hoặc video không có thời lượng (upload báo 0) → không tính được 90%, đánh dấu tay.
 export const isManual = (item: { lectureKind: LectureKind | null; durationSec: number }) =>
   item.lectureKind === 'document' || item.durationSec === 0;
 
-// Học viên học bài giảng (spec 2026-10-20-lecture-player §6). Không @Roles, kiểm ghi danh ở đây.
+// Học viên học bài giảng. Không @Roles, kiểm ghi danh ở đây.
 // Lọc khoá bằng slug (không lọc published) như quiz/code: đã ghi danh thì vẫn học khi khoá bị gỡ.
 @Injectable()
 export class LearnService {
@@ -95,7 +95,7 @@ export class LearnService {
       .filter((s) => s.items.length)
       .map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, completed: completed.has(i.id) })) }));
     const items = visible.flatMap((s) => s.items);
-    // "Tiếp tục học" (spec §5): bài mở gần nhất → bài đầu chưa xong → bài đầu.
+    // "Tiếp tục học": bài mở gần nhất → bài đầu chưa xong → bài đầu.
     const resume = items.find((i) => i.id === enrollment.lastItemId) ?? items.find((i) => !i.completed) ?? items[0];
     return {
       course,
@@ -186,9 +186,9 @@ export class LearnService {
     return { item, enrollment };
   }
 
-  // Heartbeat video (spec §4.2). Khoá dòng item_progress: 2 tab cùng xem không ghi đè bitmap của nhau.
-  // ponytail: ghi DB mỗi heartbeat (~2 lần/phút/người đang xem); DB nặng → đệm Redis, flush định kỳ (spec L3).
-  // Mất mạng lâu rồi gửi dồn thì phần vượt trần L5 bị bỏ, học viên xem lại đoạn đó.
+  // Heartbeat video. Khoá dòng item_progress: 2 tab cùng xem không ghi đè bitmap của nhau.
+  // ponytail: ghi DB mỗi heartbeat (~2 lần/phút/người đang xem); DB nặng → đệm Redis, flush định kỳ.
+  // Mất mạng lâu rồi gửi dồn thì phần vượt trần chống gian lận (không xem nhanh hơn thời gian thực) bị bỏ, học viên xem lại đoạn đó.
   async progress(slug: string, userId: string, itemId: string, body: ProgressInput) {
     if (!(await rateLimit(this.redis, `rl:learn-progress:${userId}`, 30, 60))) throw tooManyRequests();
     const { item, enrollment } = await this.loadLecture(slug, userId, itemId);
@@ -223,7 +223,7 @@ export class LearnService {
     }, PROGRESS_TX);
   }
 
-  // PDF / video không rõ thời lượng (spec §4.3). completeItem giữ mốc hoàn thành đầu tiên → gọi lại vẫn 200.
+  // PDF / video không rõ thời lượng. completeItem giữ mốc hoàn thành đầu tiên → gọi lại vẫn 200.
   async complete(slug: string, userId: string, itemId: string) {
     const { item, enrollment } = await this.loadLecture(slug, userId, itemId);
     if (!isManual(item)) throw autoOnly();

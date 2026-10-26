@@ -108,7 +108,7 @@ describe('Auth (e2e)', () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    // Không có endpoint tự nâng quyền (spec §9) → nâng admin thẳng qua DB.
+    // Không có endpoint tự nâng quyền → nâng admin thẳng qua DB.
     const adminEmail = randomEmail();
     await signUp(adminEmail).expect(200);
     await prisma.user.update({

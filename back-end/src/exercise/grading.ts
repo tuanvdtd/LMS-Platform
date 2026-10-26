@@ -1,7 +1,7 @@
 import type { SubmissionStatus } from '@prisma/client';
-import type { Language, Limits } from './code-runner.js';
+import type { Language } from './code-runner.js';
 
-// Chấm bài code (spec coding-exercise §4). Hàm thuần, không I/O — runner truyền vào.
+// Chấm bài code. Hàm thuần, không I/O — runner truyền vào.
 export type RunResult = {
   verdict: 'ok' | 'compile_error' | 'runtime_error' | 'time_limit_exceeded';
   stdout: string;
@@ -10,7 +10,7 @@ export type RunResult = {
   timeMs: number | null;
   memoryKb: number | null;
 };
-export type RunFn = (language: Language, code: string, stdin: string, limits: Limits) => Promise<RunResult>;
+export type RunFn = (language: Language, code: string, stdin: string) => Promise<RunResult>;
 export type TestRun = { testCaseId: string; status: SubmissionStatus; run: RunResult };
 
 const EXCERPT = 2048;
@@ -35,11 +35,10 @@ export async function runTests(
   language: Language,
   code: string,
   tests: { id: string; input: string; expectedOutput: string }[],
-  limits: Limits,
 ): Promise<{ compileError: string | null; results: TestRun[] }> {
   const results: TestRun[] = [];
   for (const t of tests) {
-    const r = await run(language, code, t.input, limits);
+    const r = await run(language, code, t.input);
     if (r.verdict === 'compile_error') return { compileError: r.compileOutput ?? '', results: [] };
     results.push({ testCaseId: t.id, status: judge(r, t.expectedOutput), run: r });
   }
@@ -51,7 +50,7 @@ const maxOf = (xs: (number | null)[]) => {
   return v.length ? Math.max(...v) : null;
 };
 
-// E11: điểm = % điểm test đạt; trạng thái = test sai đầu tiên theo position (kiểu LeetCode).
+// Điểm = % điểm test đạt; trạng thái = test sai đầu tiên theo position (kiểu LeetCode).
 export function summarize(tests: { id: string; position: number; points: number }[], results: TestRun[]) {
   if (!tests.length) {
     return { status: 'internal_error' as SubmissionStatus, score: 0, passedTests: 0, maxTimeMs: null, maxMemoryKb: null };

@@ -1,18 +1,18 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { CourseCardSkeleton } from '@/components/skeletons/course-card-skeleton';
 
-// Khớp khu kết quả của CatalogListing: thanh công cụ dạng thẻ (lọc · sắp xếp | tổng số), thẻ bộ lọc (lg), lưới 1/2/3 cột.
+// Khớp khu kết quả của CatalogListing: thanh công cụ (lọc · tổng số | sắp xếp), cột bộ lọc (lg), lưới 1/2/3 cột.
 export function CatalogResultsSkeleton() {
   return (
     <div role="status" aria-busy="true" aria-label="Đang tải khoá học">
-      <div className="flex items-center gap-2 rounded-2xl border bg-card p-2">
+      <div className="flex items-center gap-2">
         <Skeleton className="h-11 w-24 lg:hidden" />
-        <Skeleton className="h-11 w-40" />
-        <Skeleton className="mr-3 ml-auto h-4 w-20" />
+        <Skeleton className="hidden h-5 w-24 lg:block" />
+        <Skeleton className="ml-auto h-11 w-48" />
       </div>
 
       <div className="mt-6 flex gap-8">
-        <div className="hidden w-64 shrink-0 flex-col self-start rounded-2xl border bg-card p-5 lg:flex">
+        <div className="hidden w-56 shrink-0 flex-col self-start lg:flex">
           {[5, 3].map((rows, g) => (
             <div key={g} className="flex flex-col gap-2 border-t py-4 first:border-t-0 first:pt-0">
               <Skeleton className="h-5 w-24" />
@@ -33,24 +33,19 @@ export function CatalogResultsSkeleton() {
   );
 }
 
-// Fallback cả trang: hero (breadcrumb, nhãn, tiêu đề, mô tả, số liệu) + tiêu đề section + khu kết quả.
+// Fallback cả trang: dải đầu (breadcrumb, tiêu đề, dòng số liệu) + tiêu đề section + khu kết quả.
 export function CatalogListingSkeleton() {
   return (
     <div>
-      <div className="border-b bg-muted/60">
-        <div className="mx-auto max-w-screen-xl px-4 py-10 md:py-14">
-          <Skeleton className="h-4 w-48" />
-          <Skeleton className="mt-6 h-10 w-96 max-w-full md:h-12" />
-          <Skeleton className="mt-4 h-5 w-full max-w-xl" />
-          <div className="mt-8 flex gap-3">
-            {Array.from({ length: 3 }, (_, i) => (
-              <Skeleton key={i} className="h-16 w-32 rounded-xl" />
-            ))}
-          </div>
+      <div className="border-b bg-(--primary-light)/60">
+        <div className="mx-auto max-w-screen-xl px-4 pt-6 pb-8 md:pt-8 md:pb-10">
+          <Skeleton className="h-5 w-64 max-w-full" />
+          <Skeleton className="mt-4 h-8 w-80 max-w-full md:h-10" />
+          <Skeleton className="mt-3 h-5 w-40" />
         </div>
       </div>
-      <div className="mx-auto max-w-screen-xl px-4 py-12 md:py-16">
-        <Skeleton className="mb-6 h-9 w-72" />
+      <div className="mx-auto max-w-screen-xl px-4 py-8 md:py-10">
+        <Skeleton className="mb-5 h-7 w-72 max-w-full md:h-8" />
         <CatalogResultsSkeleton />
       </div>
     </div>

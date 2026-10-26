@@ -3,7 +3,7 @@ import type { AdminApprovalDetail, AdminApprovalRow } from '@/types/course-appro
 import type { ApprovalStatus } from '@/types/instructor-course';
 import type { Paged } from '@/types/revenue';
 
-// API admin duyệt khoá (spec pricing-submit-review §5.1). Chỉ gọi từ client component.
+// API admin duyệt khoá. Chỉ gọi từ client component.
 const base = '/admin/course-approvals';
 
 export const listApprovals = (params: { status: ApprovalStatus; page: number }) =>

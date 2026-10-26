@@ -65,7 +65,7 @@ function shuffleOptions<Q extends { id: string; options: O[] }, O>(questions: Q[
   return shuffle ? questions.map((q) => ({ ...q, options: seededShuffle(q.options, attemptId + q.id) })) : questions;
 }
 
-// Học viên làm quiz (spec 2026-10-17-quiz-taking §3). Không @Roles, kiểm ghi danh ở đây.
+// Học viên làm quiz. Không @Roles, kiểm ghi danh ở đây.
 @Injectable()
 export class LearnQuizService {
   constructor(private readonly prisma: PrismaService) {}

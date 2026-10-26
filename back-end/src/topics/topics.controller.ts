@@ -12,7 +12,7 @@ const searchQuery = z.object({
 
 const popularQuery = z.object({ occupation: z.enum(Occupation) });
 
-// Ô "Chủ đề chính" ở trang tổng quan (spec course-create-basics §4.1). ILIKE dùng được
+// Ô "Chủ đề chính" ở trang tổng quan. ILIKE dùng được
 // index idx_topics_name_trgm (gin_trgm_ops).
 @Public()
 @Controller('topics')
@@ -29,7 +29,7 @@ export class TopicsController {
     });
   }
 
-  // Chip "Phổ biến với học viên như bạn" ở bước 2 onboarding (spec personalize-occupation §4).
+  // Chip "Phổ biến với học viên như bạn" ở bước 2 onboarding.
   @Get('popular')
   async popular(@Query(new ZodValidationPipe(popularQuery)) { occupation }: z.output<typeof popularQuery>) {
     const rows = await this.prisma.occupationTopic.findMany({

@@ -26,7 +26,7 @@ import { APPROVAL_STATUS_LABEL, formatPrice } from '@/types/instructor-course';
 const REASON_MAX = 1000;
 const fmt = (d: string) => new Date(d).toLocaleString('vi-VN');
 
-// Cột phải trang duyệt (spec pricing-submit-review §5.3): giá, cam kết, lịch sử, Duyệt / Từ chối.
+// Cột phải trang duyệt: giá, cam kết, lịch sử, Duyệt / Từ chối.
 export function ReviewActions({
   detail,
   onChange,

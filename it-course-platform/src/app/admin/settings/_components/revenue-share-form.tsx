@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getRevenueShare, setRevenueShare } from '@/lib/api/admin';
 
-// Tỷ lệ chia chung (R2). Chỉ áp cho đơn mới; đơn cũ đã snapshot số tiền.
+// Tỷ lệ chia chung. Chỉ áp cho đơn mới; đơn cũ đã snapshot số tiền.
 export function RevenueShareForm() {
   const [saved, setSaved] = useState<number | null>(null);
   const [value, setValue] = useState('');

@@ -37,7 +37,7 @@ export function toDetail({ topics, questions, ...quiz }: Prisma.QuizGetPayload<{
   };
 }
 
-// Soạn quiz (spec 2026-10-08-quiz-authoring §4). Ghi qua CurriculumService.mutate → trả { quiz, curriculum }.
+// Soạn quiz. Ghi qua CurriculumService.mutate → trả { quiz, curriculum }.
 @Injectable()
 export class QuizService {
   constructor(
@@ -200,7 +200,7 @@ export class QuizService {
     if (!ok) throw validationError([{ path: ['relatedItemId'], message: 'Bài giảng liên quan không hợp lệ' }]);
   }
 
-  // spec §4.4: quiz có ≥ 1 câu (chưa archive) mới xuất bản.
+  // Quiz có ≥ 1 câu (chưa archive) mới xuất bản.
   private async syncPublished(tx: Prisma.TransactionClient, quizId: string, itemId: string) {
     const count = await tx.question.count({ where: { quizId, archivedAt: null } });
     await tx.curriculumItem.update({ where: { id: itemId }, data: { isPublished: count > 0 } });

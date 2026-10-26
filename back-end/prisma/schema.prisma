@@ -34,7 +34,7 @@ datasource db {
 //    import { v7 as uuidv7 } from 'uuid';
 //    betterAuth({
 //      advanced: { database: { generateId: () => uuidv7() } },
-//      secondaryStorage: redisStore,        // §4.4: đọc session từ Redis
+//      secondaryStorage: redisStore,        // đọc session từ Redis
 //      session: { storeSessionInDatabase: true }, // bảng session vẫn là nguồn chính
 //      user: { additionalFields: {
 //        occupation: { type: 'string', required: false, input: false },
@@ -60,7 +60,7 @@ model User {
   banReason  String?
   banExpires DateTime?
 
-  // additionalFields — chọn ở onboarding (PATCH /me/preferences), nuôi recommendation tầng 1 (§3.4)
+  // additionalFields — chọn ở onboarding (PATCH /me/preferences), nuôi recommendation tầng 1
   occupation Occupation?
   level      SkillLevel?
 
@@ -159,7 +159,7 @@ model Verification {
 }
 
 // ============================================================================
-//  2. XÁC MINH GIẢNG VIÊN & KIỂM DUYỆT (§3.2)
+//  2. XÁC MINH GIẢNG VIÊN & KIỂM DUYỆT
 // ============================================================================
 
 model InstructorApplication {
@@ -190,7 +190,7 @@ model InstructorProfile {
   bio        String?
   website    String?
   socials    Json     @default("{}")
-  // Thông tin nhận tiền (spec 2026-10-05-revenue-share-payout R8/R10). Cả 3 cùng null hoặc cùng có (CHECK sql/07).
+  // Thông tin nhận tiền để chi trả doanh thu. Cả 3 cùng null hoặc cùng có (CHECK sql/07).
   bankBin         String? // mã BIN VietQR, 6 số
   bankAccountNo   String?
   bankAccountName String? // IN HOA không dấu
@@ -207,7 +207,7 @@ model CourseApproval {
   courseId      String         @db.Uuid
   submittedById String         @db.Uuid
   status        ApprovalStatus @default(pending)
-  copyrightNote String? // cam kết bản quyền tại thời điểm gửi duyệt (§3.2)
+  copyrightNote String? // cam kết bản quyền tại thời điểm gửi duyệt
   reviewedById  String?        @db.Uuid
   reviewedAt    DateTime?
   reason        String?
@@ -279,9 +279,8 @@ model Course {
   promoVideoUrl String?
 
   // categoryId — chủ đề khoá nói về cái gì. Dùng để duyệt/lọc/breadcrumb (kiểu Udemy).
-  // Khoá KHÔNG gắn nghề: nghề → topic qua occupation_topics, topic → khoá qua course_topics
-  // (spec 2026-10-02-personalize-occupation P1).
-  // Nháp được để trống (spec 2026-09-30-course-create-basics C2); checklist gửi duyệt bắt buộc đủ.
+  // Khoá KHÔNG gắn nghề: nghề → topic qua occupation_topics, topic → khoá qua course_topics.
+  // Nháp được để trống; checklist gửi duyệt bắt buộc đủ.
   categoryId           String?      @db.Uuid
   level                SkillLevel?
   language             String       @default("vi")
@@ -292,7 +291,7 @@ model Course {
   copyrightConfirmedAt DateTime?
 
   // Trang "Học viên mục tiêu" của Udemy. Độ dài/số mục kiểm lúc gửi duyệt (service).
-  // Bỏ trang "Tin nhắn khoá học" → không có welcomeMessage/congratsMessage (spec course-create-basics C7).
+  // Bỏ trang "Tin nhắn khoá học" → không có welcomeMessage/congratsMessage.
   learningObjectives String[] @default([]) // ≥4 mục, ≤160 ký tự/mục
   requirements       String[] @default([]) // ≥1
   targetAudience     String[] @default([]) // ≥1
@@ -306,7 +305,7 @@ model Course {
   lectureCount     Int     @default(0) // lecture đã xuất bản
 
   // Prisma không có kiểu vector → khai Unsupported, thao tác bằng $queryRaw.
-  // embedding ghi bởi worker khi nhận event `course.approved` (§4.5).
+  // embedding ghi bởi worker khi nhận event `course.approved`.
   // Tìm kiếm khoá học dùng Elasticsearch, không lưu tsvector trong DB.
   embedding Unsupported("vector(1536)")?
 
@@ -472,7 +471,7 @@ model Enrollment {
   progressPct    Decimal   @default(0) @db.Decimal(5, 2)
   completedAt    DateTime?
   lastAccessedAt DateTime?
-  lastItemId     String?   @db.Uuid // bài mở gần nhất → "Tiếp tục học" (spec lecture-player §5)
+  lastItemId     String?   @db.Uuid // bài mở gần nhất → "Tiếp tục học"
   createdAt      DateTime  @default(now())
 
   user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -483,7 +482,7 @@ model Enrollment {
   progress ItemProgress[]
   notes    Note[]
 
-  @@unique([userId, courseId]) // idempotency cho Stripe webhook (§4.5)
+  @@unique([userId, courseId]) // idempotency cho Stripe webhook
   @@index([courseId])
   @@index([userId, lastAccessedAt]) // điểm rủi ro bỏ học
   @@index([couponId])
@@ -491,7 +490,7 @@ model Enrollment {
   @@map("enrollments")
 }
 
-// Heartbeat video (30s) ghi thẳng vào đây (spec lecture-player L3); đoạn đã xem là bitmap 10s/bit.
+// Heartbeat video (30s) ghi thẳng vào đây; đoạn đã xem là bitmap 10s/bit.
 model ItemProgress {
   enrollmentId    String    @db.Uuid
   itemId          String    @db.Uuid
@@ -499,7 +498,7 @@ model ItemProgress {
   lastPositionSec Int       @default(0)
   watchedBuckets  Bytes? // bit i = giây [10i, 10i+10) đã phát thật (src/learn/watch-bitmap.ts)
   completedAt     DateTime?
-  createdAt       DateTime  @default(now()) // mốc bắt đầu xem → trần chống gian lận L5
+  createdAt       DateTime  @default(now()) // mốc bắt đầu xem → trần chống gian lận
   updatedAt       DateTime  @updatedAt
 
   enrollment Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
@@ -538,7 +537,7 @@ model Order {
   provider                PaymentProvider @default(stripe)
   providerSessionId       String?         @unique // idempotency checkout
   providerPaymentIntentId String?         @unique
-  idempotencyKey          String?         @db.Uuid // FE sinh, chống bấm checkout 2 lần (spec stripe-checkout P11)
+  idempotencyKey          String?         @db.Uuid // FE sinh, chống bấm checkout 2 lần
   paidAt                  DateTime?
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
@@ -566,7 +565,7 @@ model OrderItem {
   platformFeeAmount    Int
   instructorEarnAmount Int
   refundedAt           DateTime?
-  payoutId             String?   @db.Uuid // null = chưa chốt kỳ (spec revenue-share-payout R6)
+  payoutId             String?   @db.Uuid // null = chưa chốt kỳ
 
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   course     Course   @relation(fields: [courseId], references: [id])
@@ -616,7 +615,7 @@ model PaymentEvent {
 }
 
 // Coupon giảng viên tạo cho 1 khoá (Udemy rút gọn). Luật tháng/thời hạn/bậc giá kiểm ở service;
-// CHECK hình dạng dữ liệu ở prisma/sql/05. Trừ lượt bằng 1 câu UPDATE ... RETURNING (spec §3.5).
+// CHECK hình dạng dữ liệu ở prisma/sql/05. Trừ lượt bằng 1 câu UPDATE ... RETURNING.
 model Coupon {
   id             String     @id @default(uuid(7)) @db.Uuid
   courseId       String     @db.Uuid
@@ -642,7 +641,7 @@ model Coupon {
   @@map("coupons")
 }
 
-// Cài đặt toàn sàn dạng key–value (spec 2026-10-05-revenue-share-payout §3.1). Hiện chỉ có revenue_share_pct.
+// Cài đặt toàn sàn dạng key–value. Hiện chỉ có revenue_share_pct.
 model PlatformSetting {
   key         String   @id
   value       Json
@@ -655,7 +654,7 @@ model PlatformSetting {
 }
 
 // Một lần trả tiền cho giảng viên theo tháng. Item thuộc payout qua order_items.payoutId.
-// Ngân hàng là snapshot lúc chốt kỳ (R9). CHECK ở prisma/sql/07.
+// Ngân hàng là snapshot lúc chốt kỳ. CHECK ở prisma/sql/07.
 model Payout {
   id              String       @id @default(uuid(7)) @db.Uuid
   instructorId    String       @db.Uuid
@@ -680,7 +679,7 @@ model Payout {
 }
 
 // ============================================================================
-//  6. TOPIC — taxonomy kiểu Udemy + lõi hồ sơ năng lực (§3.3), gợi ý tầng 2 (§3.4)
+//  6. TOPIC — taxonomy kiểu Udemy + lõi hồ sơ năng lực, gợi ý tầng 2
 // ============================================================================
 
 // Topic kiểu Udemy ("react", "docker", slug theo udemy.com/topic/<slug>).
@@ -694,7 +693,7 @@ model Topic {
   name        String
   description String?
 
-  // Đồ thị tiên quyết: JavaScript → React → Next.js. Duyệt bằng WITH RECURSIVE (§4.6).
+  // Đồ thị tiên quyết: JavaScript → React → Next.js. Duyệt bằng WITH RECURSIVE.
   prerequisites Topic[] @relation("TopicPrereq")
   requiredBy    Topic[] @relation("TopicPrereq")
 
@@ -711,8 +710,8 @@ model Topic {
   @@map("topics")
 }
 
-// "Các chủ đề phổ biến" trong menu Khám phá: danh sách curated theo category cấp 2
-// (spec 2026-09-30-explore-menu E1, thay D4 của spec taxonomy). Chỉ seed ghi bảng này;
+// "Các chủ đề phổ biến" trong menu Khám phá: danh sách curated theo category cấp 2.
+// Chỉ seed ghi bảng này;
 // "chỉ gắn vào cấp 2" do seed đảm bảo, khi có admin sửa thì kiểm ở service.
 model CategoryTopic {
   categoryId String @db.Uuid
@@ -755,7 +754,7 @@ model CourseTopic {
   @@map("course_topics")
 }
 
-// Mastery tính lại sau mỗi lần nộp quiz (spec 2026-10-17-quiz-taking C1): trung bình điểm cao nhất của từng
+// Mastery tính lại sau mỗi lần nộp quiz: trung bình điểm cao nhất của từng
 // quiz gắn topic, trọng số = số câu. attemptsCount = tổng lượt đã nộp của các quiz đó.
 model UserTopicMastery {
   userId          String   @db.Uuid
@@ -793,7 +792,7 @@ model UserTargetTopic {
 }
 
 // Nghề → topic phổ biến (curated, seed ở prisma/sql/06). Nuôi chip "Phổ biến với học viên
-// như bạn" ở bước 2 onboarding và recommendation tầng 1 (spec 2026-10-02-personalize-occupation §3).
+// như bạn" ở bước 2 onboarding và recommendation tầng 1.
 model OccupationTopic {
   occupation Occupation
   topicId    String     @db.Uuid
@@ -807,7 +806,7 @@ model OccupationTopic {
 }
 
 // ============================================================================
-//  7. TRẮC NGHIỆM (§3.3)
+//  7. TRẮC NGHIỆM
 // ============================================================================
 
 // Câu hỏi THUỘC quiz (bỏ ngân hàng câu hỏi, giống Udemy). Unique (quizId, position) DEFERRABLE ở sql/05.
@@ -816,7 +815,7 @@ model Question {
   quizId        String       @db.Uuid
   position      Int
   type          QuestionType
-  stem          String // Markdown (spec 2026-10-08-quiz-authoring)
+  stem          String // Markdown
   relatedItemId String?      @db.Uuid // bài giảng liên quan, cùng khoá (service)
   points        Int          @default(1)
   archivedAt    DateTime? // thay vì xoá — attempt cũ vẫn tham chiếu
@@ -908,7 +907,7 @@ model QuizAttempt {
   @@map("quiz_attempts")
 }
 
-// selectedOptionIds là mảng UUID thay vì bảng nối: phân tích đáp án nhiễu (§3.5c)
+// selectedOptionIds là mảng UUID thay vì bảng nối: phân tích đáp án nhiễu
 // làm bằng unnest(), không cần thêm một bảng nữa.
 model QuizAnswer {
   id                String   @id @default(uuid(7)) @db.Uuid
@@ -928,12 +927,12 @@ model QuizAnswer {
 }
 
 // ============================================================================
-//  8. BÀI TẬP LẬP TRÌNH (§3.3, §4.5)
+//  8. BÀI TẬP LẬP TRÌNH
 // ============================================================================
 
-// Nhiều ngôn ngữ: test stdin/stdout của Piston không phụ thuộc ngôn ngữ (spec coding-exercise E1–E4).
+// Nhiều ngôn ngữ: test stdin/stdout của Piston không phụ thuộc ngôn ngữ.
 // Mỗi ngôn ngữ trong languages có đúng 1 dòng exercise_starter_codes (service). isPublished của item =
-// lời giải mẫu đã pass bộ test hiện tại (E12).
+// lời giải mẫu đã pass bộ test hiện tại.
 model Exercise {
   id                  String     @id @default(uuid(7)) @db.Uuid
   itemId              String     @unique @db.Uuid
@@ -944,8 +943,6 @@ model Exercise {
   solutionExplanation String?
   relatedItemId       String?    @db.Uuid
   difficulty          Difficulty @default(medium)
-  timeLimitMs         Int        @default(2000)
-  memoryLimitKb       Int        @default(128000)
   languages           String[] // 'javascript' | 'python' | 'cpp' (LANGUAGES ở code-runner.ts), ≥1 (chk_exercise_languages)
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
@@ -1011,7 +1008,7 @@ model Submission {
   language     String
   sourceCode   String
   status       SubmissionStatus @default(pending)
-  score        Int              @default(0) // 0–100 = % điểm test đạt (E11)
+  score        Int              @default(0) // 0–100 = % điểm test đạt
   passedTests  Int              @default(0)
   totalTests   Int              @default(0)
   maxTimeMs    Int?
@@ -1029,7 +1026,7 @@ model Submission {
   @@map("submissions")
 }
 
-// Unique (submissionId, testCaseId) → consumer ghi lại khi message giao lại không nhân đôi (spec coding-exercise §5).
+// Unique (submissionId, testCaseId) → consumer ghi lại khi message giao lại không nhân đôi.
 model SubmissionResult {
   id            String           @id @default(uuid(7)) @db.Uuid
   submissionId  String           @db.Uuid
@@ -1072,7 +1069,7 @@ enum NotificationType {
 }
 
 // ============================================================================
-//  9. CHỨNG CHỈ (§3.3)
+//  9. CHỨNG CHỈ
 // ============================================================================
 
 model Certificate {
@@ -1093,16 +1090,16 @@ model Certificate {
 }
 
 // ============================================================================
-//  10. BẢNG TỔNG HỢP CHO DASHBOARD (§3.5)
+//  10. BẢNG TỔNG HỢP CHO DASHBOARD
 //  Worker Kafka ghi theo batch, cron hằng đêm tính lại chỉ số nặng.
-//  Không bảng nào lưu heartbeat thô — giới hạn 500MB của Supabase free (§4.5).
+//  Không bảng nào lưu heartbeat thô — giới hạn 500MB của Supabase free.
 // ============================================================================
 
 model StatCourseDaily {
   courseId String   @db.Uuid
   date     DateTime @db.Date
 
-  // phễu chuyển đổi (§3.5a)
+  // phễu chuyển đổi
   views            Int @default(0)
   cartAdds         Int @default(0)
   checkoutsStarted Int @default(0)
@@ -1114,7 +1111,7 @@ model StatCourseDaily {
   refundAmount      Int @default(0)
   refundCount       Int @default(0)
 
-  // hành vi học (§3.5b)
+  // hành vi học
   newEnrollments Int @default(0)
   activeLearners Int @default(0)
   watchTimeSec   Int @default(0)
@@ -1170,7 +1167,7 @@ model StatExercise {
   @@map("stat_exercises")
 }
 
-// Cron hằng đêm (§4.5). notifiedAt để không spam email nhắc nhở.
+// Cron hằng đêm. notifiedAt để không spam email nhắc nhở.
 model StatStudentRisk {
   userId   String @db.Uuid
   courseId String @db.Uuid
@@ -1208,7 +1205,7 @@ model EmailLog {
 }
 
 // ============================================================================
-//  11. TƯƠNG TÁC — thông báo, ghi chú, hỏi đáp (spec 2026-09-30-udemy-curriculum §3.6)
+//  11. TƯƠNG TÁC — thông báo, ghi chú, hỏi đáp
 // ============================================================================
 
 model Announcement {
@@ -1330,7 +1327,7 @@ enum ApprovalStatus {
   rejected
 }
 
-// Chuyển trạng thái: spec §3.4. unpublished → published luôn phải qua in_review.
+// Chuyển trạng thái: unpublished → published luôn phải qua in_review.
 enum CourseStatus {
   draft
   in_review

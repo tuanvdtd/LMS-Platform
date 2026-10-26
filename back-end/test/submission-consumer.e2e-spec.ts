@@ -131,8 +131,6 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
     }));
     await as('put', `/items/${item}/exercise/code`, {
       languages: ['javascript'],
-      timeLimitMs: 2000,
-      memoryLimitKb: 128000,
       starters: [{ language: 'javascript', code: '// starter', solutionCode: 'SUM' }],
       tests: [
         { input: '1 2', expectedOutput: '3', isPublic: true, points: 1 },

@@ -10,7 +10,7 @@ const rehypePlugins = [rehypeHighlight];
 // (dòng "#include <iostream>" gõ ngoài khối code không biến thành chữ to).
 const USER_CONTENT_BLOCKED = ['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
-// Nội dung quiz (spec 2026-10-08-quiz-authoring Q6). Không bật rehype-raw: HTML trong nội dung bị escape (chống XSS).
+// Nội dung quiz. Không bật rehype-raw: HTML trong nội dung bị escape (chống XSS).
 // remark-breaks: xuống dòng 1 lần = xuống dòng thật, giảng viên không biết Markdown vẫn hiện đúng.
 export function Markdown({ children, className, userContent }: { children: string; className?: string; userContent?: boolean }) {
   return (

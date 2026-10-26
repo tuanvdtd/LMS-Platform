@@ -12,7 +12,7 @@ import type { SessionOrder } from '@/types/checkout';
 const MAX_TRIES = 10;
 const INTERVAL_MS = 2_000;
 
-// Webhook có thể tới sau khi Stripe redirect về → gọi lại tối đa ~20s (spec §10). BE tự hỏi Stripe nên thường xong ngay.
+// Webhook có thể tới sau khi Stripe redirect về → gọi lại tối đa ~20s. BE tự hỏi Stripe nên thường xong ngay.
 export function SuccessView() {
   const sessionId = useSearchParams().get('session_id');
   const [order, setOrder] = useState<SessionOrder | null>(null);

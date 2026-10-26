@@ -11,7 +11,7 @@ import { becomeInstructor } from '@/lib/api/instructor-courses';
 import { authClient } from '@/lib/auth-client';
 import { isInstructor, isStaff } from '@/lib/instructor-role';
 
-// CTA landing /teach (spec teach-landing §4.2): khách → đăng ký, học viên → bật vai trò rồi vào dashboard,
+// CTA landing /teach: khách → đăng ký, học viên → bật vai trò rồi vào dashboard,
 // giảng viên → vào dashboard. Hai chỗ dùng (khối 2, khối 8) đọc chung một session.
 export function TeachCta() {
   const { data, isPending, refetch } = authClient.useSession();
@@ -66,7 +66,7 @@ export function TeachCta() {
       setEnabling(false);
       return;
     }
-    // refetch lỗi vẫn đi tiếp: layout /instructor đọc lại session (spec §5). Endpoint idempotent nên bấm lại an toàn.
+    // refetch lỗi vẫn đi tiếp: layout /instructor đọc lại session. Endpoint idempotent nên bấm lại an toàn.
     await refetch().catch(() => undefined);
     router.push('/instructor');
   }

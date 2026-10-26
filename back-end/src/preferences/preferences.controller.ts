@@ -6,7 +6,7 @@ import { updatePreferencesSchema } from './preferences.schemas.js';
 import type { UpdatePreferencesInput } from './preferences.schemas.js';
 import { PreferencesService } from './preferences.service.js';
 
-// Onboarding cá nhân hoá (spec 2026-10-02-personalize-occupation §4). Field nào cũng optional
+// Onboarding cá nhân hoá. Field nào cũng optional
 // để "Lưu rồi thoát" lưu được giữa chừng.
 @Controller('me/preferences')
 export class PreferencesController {

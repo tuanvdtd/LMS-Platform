@@ -3,7 +3,7 @@ import type { CatalogParams, CourseDetail, CourseList, CurriculumSection, Public
 
 const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
-// Data cache của Next chỉ giữ response 200 → 404/lỗi không bị cache, lần sau gọi lại BE (spec E10).
+// Data cache của Next chỉ giữ response 200 → 404/lỗi không bị cache, lần sau gọi lại BE.
 // 404 → null (trang gọi notFound()); lỗi khác → Sentry + null.
 // ponytail: trang tĩnh dựng đúng lúc BE lỗi giữ null/[] tới lần revalidate route (≤ 60s); cần hơn thì gắn tag + revalidateTag.
 async function fetchJson<T>(path: string): Promise<T | null> {

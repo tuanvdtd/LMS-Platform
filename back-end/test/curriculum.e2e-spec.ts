@@ -545,7 +545,7 @@ describe('Assets + ảnh bìa + khung chương trình (e2e)', () => {
           const res = await as('put', `/items/${lecture.id}/content`, { assetId }).expect(400);
           expect(res.body.errors[0].path).toEqual(['assetId']);
         }
-        // Video gắn làm nội dung được (spec video-upload §4.5), nhưng không làm tài nguyên đính kèm.
+        // Video gắn làm nội dung được, nhưng không làm tài nguyên đính kèm.
         await as('post', `/items/${lecture.id}/resources`, { assetId: video.id }).expect(400);
         const mine = await readyAsset(alice.id);
         await as('put', `/items/${quiz.id}/content`, { assetId: mine.id }).expect(400);

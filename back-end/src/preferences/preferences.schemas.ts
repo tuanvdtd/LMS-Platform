@@ -1,7 +1,7 @@
 import { Occupation } from '@prisma/client';
 import { z } from 'zod';
 
-// all_levels là thuộc tính khoá ("hợp mọi trình độ"), học viên chỉ chọn 3 mức (spec §4, §6).
+// all_levels là thuộc tính khoá ("hợp mọi trình độ"), học viên chỉ chọn 3 mức.
 const LEARNER_LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
 
 export const updatePreferencesSchema = z

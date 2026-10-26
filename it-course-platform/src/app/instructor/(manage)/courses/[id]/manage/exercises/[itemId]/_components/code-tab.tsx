@@ -21,12 +21,10 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel,
   FieldLegend,
   FieldSet,
   FieldTitle,
 } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { STARTER_TEMPLATES } from '@/lib/code-templates';
@@ -39,9 +37,10 @@ import {
   MAX_CODE_BYTES,
   MAX_IO_BYTES,
   MAX_TESTS,
+  CPU_LIMIT_MS,
   MEMORY_LIMIT_KB,
-  TIME_LIMIT_MS,
   type UpdateCodePayload,
+  VERIFY_BUDGET_PCT,
 } from '@/types/exercise';
 import { TestList } from './test-list';
 
@@ -55,20 +54,10 @@ const n = (v: number) => v.toLocaleString('vi-VN');
 const code = z.string().max(MAX_CODE_BYTES, `Tối đa ${n(MAX_CODE_BYTES)} ký tự`);
 const io = z.string().max(MAX_IO_BYTES, `Tối đa ${n(MAX_IO_BYTES)} ký tự`);
 const starter = z.object({ code, solutionCode: code });
-const MB = { min: MEMORY_LIMIT_KB.min / 1000, max: MEMORY_LIMIT_KB.max / 1000 };
 
 export const codeSchema = z.object({
   languages: z.array(z.enum(LANGUAGE_IDS as [Language, ...Language[]])).min(1, 'Chọn ít nhất 1 ngôn ngữ'),
   starters: z.object({ javascript: starter, python: starter, cpp: starter }),
-  timeLimitMs: z
-    .number({ error: 'Nhập số' })
-    .int('Nhập số nguyên')
-    .min(TIME_LIMIT_MS.min, `Từ ${n(TIME_LIMIT_MS.min)} đến ${n(TIME_LIMIT_MS.max)} ms`)
-    .max(TIME_LIMIT_MS.max, `Từ ${n(TIME_LIMIT_MS.min)} đến ${n(TIME_LIMIT_MS.max)} ms`),
-  memoryLimitMb: z
-    .number({ error: 'Nhập số' })
-    .min(MB.min, `Từ ${MB.min} đến ${MB.max} MB`)
-    .max(MB.max, `Từ ${MB.min} đến ${MB.max} MB`),
   tests: z
     .array(
       z.object({
@@ -95,8 +84,6 @@ export function toCodeValues(ex: ExerciseDetail): CodeValues {
   return {
     languages: ex.languages,
     starters: { javascript: starterOf('javascript'), python: starterOf('python'), cpp: starterOf('cpp') },
-    timeLimitMs: ex.timeLimitMs,
-    memoryLimitMb: ex.memoryLimitKb / 1000,
     tests: ex.tests.map((t) => ({
       testId: t.id,
       input: t.input,
@@ -109,8 +96,6 @@ export function toCodeValues(ex: ExerciseDetail): CodeValues {
 
 export const toCodePayload = (v: CodeValues): UpdateCodePayload => ({
   languages: v.languages,
-  timeLimitMs: v.timeLimitMs,
-  memoryLimitKb: Math.round(v.memoryLimitMb * 1000),
   starters: v.languages.map((language) => {
     const s = v.starters[language];
     return { language, code: s.code, solutionCode: s.solutionCode.trim() ? s.solutionCode : null };
@@ -123,7 +108,6 @@ export function codeField(path: string[], languages: Language[]): string | null 
   const [head, index, key] = path;
   if (head === 'starters') return index && key ? `starters.${languages[Number(index)]}.${key}` : null;
   if (head === 'tests' && key === 'id') return null;
-  if (head === 'memoryLimitKb') return 'memoryLimitMb';
   return path.join('.') || null;
 }
 
@@ -131,7 +115,6 @@ export function codeField(path: string[], languages: Language[]): string | null 
 export function CodeTab({ form, locked }: { form: UseFormReturn<CodeValues>; locked: boolean }) {
   const {
     control,
-    register,
     setValue,
     getValues,
     formState: { errors },
@@ -220,47 +203,10 @@ export function CodeTab({ form, locked }: { form: UseFormReturn<CodeValues>; loc
       )}
       <p className="-mt-2 text-xs text-muted-foreground">Trong ô code, nhấn Esc rồi Tab để rời khỏi ô.</p>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field data-invalid={!!errors.timeLimitMs}>
-          <FieldLabel htmlFor="exercise-time">Giới hạn thời gian mỗi test (ms)</FieldLabel>
-          <Suffixed suffix="ms">
-            <Input
-              id="exercise-time"
-              type="number"
-              inputMode="numeric"
-              min={TIME_LIMIT_MS.min}
-              max={TIME_LIMIT_MS.max}
-              step={100}
-              className="pr-12"
-              aria-invalid={!!errors.timeLimitMs}
-              {...register('timeLimitMs', { valueAsNumber: true })}
-            />
-          </Suffixed>
-          <FieldDescription>
-            Từ {n(TIME_LIMIT_MS.min)} đến {n(TIME_LIMIT_MS.max)} ms.
-          </FieldDescription>
-          <FieldError errors={[errors.timeLimitMs]} />
-        </Field>
-        <Field data-invalid={!!errors.memoryLimitMb}>
-          <FieldLabel htmlFor="exercise-memory">Giới hạn bộ nhớ (MB)</FieldLabel>
-          <Suffixed suffix="MB">
-            <Input
-              id="exercise-memory"
-              type="number"
-              inputMode="numeric"
-              min={MB.min}
-              max={MB.max}
-              className="pr-12"
-              aria-invalid={!!errors.memoryLimitMb}
-              {...register('memoryLimitMb', { valueAsNumber: true })}
-            />
-          </Suffixed>
-          <FieldDescription>
-            Từ {MB.min} đến {MB.max} MB.
-          </FieldDescription>
-          <FieldError errors={[errors.memoryLimitMb]} />
-        </Field>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Giới hạn mỗi test: {LANGUAGE_IDS.map((l) => `${LANGUAGES[l]} ${n(CPU_LIMIT_MS[l] / 1000)} s`).join(' · ')} CPU ·{' '}
+        {n(MEMORY_LIMIT_KB / 1024)} MB. Lời giải mẫu phải chạy ≤ {VERIFY_BUDGET_PCT}% thời gian.
+      </p>
 
       <TestList form={form} locked={locked} />
 
@@ -326,16 +272,5 @@ function CodeField({
         </Field>
       )}
     />
-  );
-}
-
-function Suffixed({ suffix, children }: { suffix: string; children: React.ReactNode }) {
-  return (
-    <div className="relative">
-      {children}
-      <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 font-mono text-sm text-muted-foreground" aria-hidden>
-        {suffix}
-      </span>
-    </div>
   );
 }

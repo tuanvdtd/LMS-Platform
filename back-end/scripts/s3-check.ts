@@ -1,4 +1,4 @@
-// pnpm s3:check — kiểm env, quyền IAM và đường presigned PUT của bucket video S3 thật (spec video-upload §7).
+// pnpm s3:check — kiểm env, quyền IAM và đường presigned PUT của bucket video S3 thật.
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   DeleteObjectCommand,

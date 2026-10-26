@@ -1,5 +1,5 @@
 -- ============================================================================
---  Seed taxonomy kiểu Udemy (spec 2026-09-29-udemy-taxonomy-topics §6).
+--  Seed taxonomy kiểu Udemy.
 --  Nguồn: menu "Khám phá" của udemy.com (vi) ngày 2026-09-29.
 --  Idempotent: chạy lại (prisma db execute --file) không sinh dòng trùng.
 -- ============================================================================

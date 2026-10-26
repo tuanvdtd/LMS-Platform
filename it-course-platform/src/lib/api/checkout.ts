@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 import type { Cart, CouponPreview, CourseBuyStatus, MyEnrollment, MyOrder, SessionOrder } from '@/types/checkout';
 
-// API thanh toán (spec stripe-checkout §6). Chỉ gọi từ client component.
+// API thanh toán. Chỉ gọi từ client component.
 export const getCart = (couponCode?: string) =>
   api.get<Cart>('/cart', { params: couponCode ? { couponCode } : {} }).then((r) => r.data);
 export const addToCart = (courseId: string) => api.post(`/cart/${courseId}`);

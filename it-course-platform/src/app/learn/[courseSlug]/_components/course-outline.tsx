@@ -19,7 +19,7 @@ function kindOf(it: LearnItem): { icon: LucideIcon; label: string } {
   return { icon: ListChecks, label: 'Sắp có' };
 }
 
-// Mục lục khoá trong khung học (spec 2026-10-20-lecture-player §7.2). onNavigate: đóng ngăn trượt khi chọn bài.
+// Mục lục khoá trong khung học. onNavigate: đóng ngăn trượt khi chọn bài.
 export function CourseOutline({
   outline,
   currentId,

@@ -5,8 +5,9 @@ import { CatalogListing } from '@/app/(student)/_components/catalog-listing';
 import {
   CatalogStarter,
   CatalogStarterSkeleton,
-  RelatedTopics,
+  LinkTiles,
   starterArgs,
+  topicLinks,
 } from '@/app/(student)/_components/catalog-sections';
 import { CatalogListingSkeleton } from '@/components/skeletons/catalog-listing-skeleton';
 import { listCourses } from '@/lib/api/catalog';
@@ -32,7 +33,7 @@ export default function Page(props: PageProps<'/topic/[slug]'>) {
 
 async function Body({ params, searchParams }: PageProps<'/topic/[slug]'>) {
   const [{ slug }, sp, tree] = await Promise.all([params, searchParams, getCategoryTree()]);
-  // Lấy tên topic từ response.topic (spec §3.1); null = slug không tồn tại.
+  // Lấy tên topic từ response.topic; null = slug không tồn tại.
   const p = parseCatalogParams(sp);
   const head = await listCourses({ ...p, topic: slug, limit: 20 });
   if (head && !head.topic) notFound();
@@ -59,11 +60,14 @@ async function Body({ params, searchParams }: PageProps<'/topic/[slug]'>) {
           : []),
         { label: name, href: topicHref(slug) },
       ]}
-      headerExtra={<RelatedTopics topics={sub?.topics.filter((t) => t.slug !== slug) ?? []} />}
       intro={
-        <Suspense fallback={<CatalogStarterSkeleton />}>
-          <CatalogStarter topic={slug} />
-        </Suspense>
+        <>
+          <Suspense fallback={<CatalogStarterSkeleton />}>
+            <CatalogStarter topic={slug} />
+          </Suspense>
+          {/* Dải nền xám tách khối "bắt đầu" với "Tất cả khoá học", giống thứ tự của trang danh mục. */}
+          <LinkTiles title="Chủ đề liên quan" links={topicLinks(sub?.topics.filter((t) => t.slug !== slug) ?? [])} />
+        </>
       }
       resultsTitle={`Tất cả khoá học ${name}`}
     />

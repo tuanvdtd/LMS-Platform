@@ -3,7 +3,7 @@ import type { CourseTopic, Ref } from '@/types/instructor-course';
 
 export const MAX_TOPICS = 3;
 
-// Topic đầu tiên tự là chủ đề chính (spec 2026-10-06 D3). Trùng hoặc đủ 3 → trả nguyên list.
+// Topic đầu tiên tự là chủ đề chính. Trùng hoặc đủ 3 → trả nguyên list.
 export function addTopic(list: CourseTopic[], t: Ref): CourseTopic[] {
   if (list.length >= MAX_TOPICS || list.some((x) => x.id === t.id)) return list;
   return [...list, { ...t, isPrimary: list.length === 0 }];

@@ -1,6 +1,6 @@
 import { formatVnd } from './revenue';
 
-// Khớp API back-end/src/instructor-courses (spec 2026-09-30-course-create-basics §4.2).
+// Khớp API back-end/src/instructor-courses.
 // Khoá của map nhãn = giá trị enum trong DB.
 export const COURSE_STATUS_LABEL = {
   draft: 'Bản nháp',
@@ -10,7 +10,7 @@ export const COURSE_STATUS_LABEL = {
 } as const;
 export type CourseStatus = keyof typeof COURSE_STATUS_LABEL;
 
-// Bậc giá khớp BE revenue/price-guard.ts (spec pricing-submit-review D1).
+// Bậc giá khớp BE revenue/price-guard.ts.
 export const PRICE_TIERS = [0, 99_000, 199_000, 299_000, 499_000, 799_000, 999_000, 1_499_000, 1_999_000] as const;
 export const formatPrice = (n: number) => (n === 0 ? 'Miễn phí' : formatVnd(n));
 

@@ -8,16 +8,16 @@ import { toast } from 'sonner';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
 import { isStaff } from '@/lib/instructor-role';
-import { useCartCount } from '@/lib/cart-store';
+import { useCartStore } from '@/lib/cart-store';
 import { loginUrlFor, parseAction, withoutAction, type ResumeAction } from '@/lib/resume-action';
-import { addToCart, apiMessage, enroll, getBuyStatus, previewCoupon, startCheckout } from '@/lib/api/checkout';
+import { apiMessage, enroll, getBuyStatus, previewCoupon, startCheckout } from '@/lib/api/checkout';
 import type { CouponPreview, CourseBuyStatus } from '@/types/checkout';
 import { formatPrice } from '@/types/instructor-course';
 import { formatVnd } from '@/types/revenue';
 
 type Props = { course: { id: string; slug: string; priceAmount: number } };
 
-// Khối giá + nút mua (spec stripe-checkout §10). Trạng thái riêng từng người lấy ở client vì trang được cache.
+// Khối giá + nút mua. Trạng thái riêng từng người lấy ở client vì trang được cache.
 export function BuyBox({ course }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,7 +32,7 @@ export function BuyBox({ course }: Props) {
   const coupon = preview && preview.code === code ? preview.data : null; // bỏ preview của mã cũ
   const [busy, setBusy] = useState(false);
   const [errorNonce, setErrorNonce] = useState(0);
-  // Key mới khi đổi coupon hoặc gặp lỗi nghiệp vụ; double-click / retry mạng dùng lại (spec §7).
+  // Key mới khi đổi coupon hoặc gặp lỗi nghiệp vụ; double-click / retry mạng dùng lại.
   const idemKey = useMemo(() => crypto.randomUUID(), [code, errorNonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -81,9 +81,8 @@ export function BuyBox({ course }: Props) {
 
   const doAddToCart = () =>
     run('add-to-cart', async () => {
-      await addToCart(course.id);
+      await useCartStore.getState().add(course.id);
       setStatus((s) => ({ enrolled: false, isOwner: false, ...s, inCart: true }));
-      useCartCount.setState((s) => ({ count: s.count + 1 })); // BE trả 409 nếu khoá đã có trong giỏ → tới đây là thêm mới thật
       toast.success('Đã thêm vào giỏ');
     });
 

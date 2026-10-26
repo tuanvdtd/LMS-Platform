@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { CourseTopic, Ref } from '@/types/instructor-course';
 import { addTopic, MAX_TOPICS, removeTopic, setPrimary } from './course-topics';
 
-// "Khoá học dạy những gì?" — tối đa 3 topic, đúng 1 chủ đề chính (spec 2026-10-06 D2, D3).
+// "Khoá học dạy những gì?" — tối đa 3 topic, đúng 1 chủ đề chính.
 // Ô tìm là combobox dùng chung với onboarding; topic đã chọn nằm trong một danh sách,
 // mỗi dòng: radio chọn chủ đề chính + nút bỏ.
 export function TopicPicker({

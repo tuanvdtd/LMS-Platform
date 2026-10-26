@@ -9,7 +9,7 @@ import { authClient } from '@/lib/auth-client';
 import { isAdmin, isStaff } from '@/lib/instructor-role';
 import { AdminNav } from './_components/admin-nav';
 
-// Khu admin tối giản (spec revenue-share-payout §5). Gate ở client như instructor/layout.tsx.
+// Khu admin tối giản. Gate ở client như instructor/layout.tsx.
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { data, isPending, error, refetch } = authClient.useSession();
   const router = useRouter();

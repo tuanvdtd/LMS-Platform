@@ -10,7 +10,7 @@ import { closePeriod, listPayouts } from '@/lib/api/admin';
 import { formatPeriod, formatVnd, PAYOUT_STATUS_LABEL } from '@/types/revenue';
 import type { AdminPayoutRow, Paged, PayoutStatus } from '@/types/revenue';
 
-// 12 tháng đã kết thúc gần nhất theo giờ VN (chỉ chốt được tháng đã kết thúc — spec §3.3).
+// 12 tháng đã kết thúc gần nhất theo giờ VN (chỉ chốt được tháng đã kết thúc).
 function endedPeriods(): string[] {
   const vn = new Date(Date.now() + 7 * 3600_000);
   return Array.from({ length: 12 }, (_, i) => {

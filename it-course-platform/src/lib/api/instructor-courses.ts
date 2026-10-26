@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 import type { CourseDetail, CourseListItem, Ref, UpdateCoursePayload } from '@/types/instructor-course';
 
-// API giảng viên (spec 2026-09-30-course-create-basics §4). Chỉ gọi từ client component:
+// API giảng viên. Chỉ gọi từ client component:
 // cần cookie session (api có withCredentials, 401 → interceptor chuyển /login).
 export const createCourse = (title: string) =>
   api.post<{ id: string }>('/instructor/courses', { title }).then((r) => r.data);

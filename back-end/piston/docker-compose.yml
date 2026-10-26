@@ -1,4 +1,4 @@
-# Piston chạy code học viên (spec coding-exercise §10). Dev: docker compose -f piston/docker-compose.yml up -d
+# Piston chạy code học viên. Dev: docker compose -f piston/docker-compose.yml up -d
 # - API chạy TRONG Docker cùng network với Piston: bỏ `ports`, gọi http://piston:2000. Không mở cổng 2000 ra ngoài.
 # - API chạy trên host (pnpm start:dev): giữ `127.0.0.1:2000:2000` (không bao giờ `0.0.0.0`), PISTON_URL=http://127.0.0.1:2000.
 services:
@@ -17,9 +17,10 @@ services:
     memswap_limit: 1g
     pids_limit: 512
     environment:
-      # 2 job × tối đa 512 MB ≈ trần 1 GB của container; bài thường dùng ít hơn nhiều.
+      # 2 job × 256 MB (mốc bộ nhớ cố định ở code-runner.ts) ≈ nửa trần 1 GB của container.
       PISTON_MAX_CONCURRENT_JOBS: 2
-      PISTON_RUN_TIMEOUT: 10000
+      # ≥ wall lớn nhất API gửi: Python 6000 ms CPU × 2. Thấp hơn → Piston trả 400 "run_timeout cannot exceed…".
+      PISTON_RUN_TIMEOUT: 12000
       PISTON_RUN_CPU_TIME: 10000
       PISTON_OUTPUT_MAX_SIZE: 65536
       PISTON_DISABLE_NETWORKING: 'true'

@@ -21,7 +21,7 @@ import type { AttemptSheet, SubmitPayload } from '@/types/learn-quiz';
 
 type Saved = { answers: Record<string, string[]>; flagged: string[]; current: number };
 
-// Spec B3: đáp án giữ ở client theo attemptId, nộp một lần.
+// Đáp án giữ ở client theo attemptId, nộp một lần.
 const storageKey = (attemptId: string) => `quiz-attempt:${attemptId}`;
 
 export function clearSavedAttempt(attemptId: string) {

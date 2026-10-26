@@ -1,7 +1,7 @@
 import { ApprovalStatus } from '@prisma/client';
 import { z } from 'zod';
 
-// spec pricing-submit-review §4.1, §5.1.
+// Body gửi duyệt khoá (giảng viên) và quyết định duyệt (admin).
 export const submitSchema = z
   .object({
     copyrightConfirmed: z.literal(true, 'Cần xác nhận cam kết bản quyền'),

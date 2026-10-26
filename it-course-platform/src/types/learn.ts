@@ -1,4 +1,4 @@
-// API khung học + bài giảng (spec 2026-10-20-lecture-player §6).
+// API khung học + bài giảng.
 export type LearnItemType = 'lecture' | 'quiz' | 'practice_test' | 'coding_exercise';
 export type LectureKind = 'video' | 'document';
 

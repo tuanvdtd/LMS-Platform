@@ -1,4 +1,4 @@
-// Buffer tối thiểu đủ để isPdf / image-size nhận dạng (spec curriculum-upload §7). Không phải file mở được.
+// Buffer tối thiểu đủ để isPdf / image-size nhận dạng. Không phải file mở được.
 const u16 = (n: number) => [n >> 8, n & 255];
 const u32 = (n: number) => [n >>> 24, (n >> 16) & 255, (n >> 8) & 255, n & 255];
 const u32le = (n: number) => u32(n).reverse();
@@ -28,7 +28,7 @@ export const webp = (w: number, h: number) => {
   return Buffer.from([...ascii('RIFF'), ...u32le(body.length), ...body]);
 };
 
-// MP4 tối thiểu cho mp4Duration (spec video-upload §4.2): ftyp + moov(mvhd) + mdat, không phát được.
+// MP4 tối thiểu cho mp4Duration: ftyp + moov(mvhd) + mdat, không phát được.
 const u64 = (n: number) => [...u32(Math.floor(n / 2 ** 32)), ...u32(n >>> 0)];
 export const box = (type: string, payload: number[] | Buffer) => {
   const body = [...payload];

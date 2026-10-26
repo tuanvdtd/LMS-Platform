@@ -1,6 +1,6 @@
 import { imageSize } from 'image-size';
 
-// Giới hạn upload (spec curriculum-upload §4.3, video-upload V4). FE dùng cùng số.
+// Giới hạn upload. FE dùng cùng số.
 export const PDF_MAX_BYTES = 1024 ** 3;
 export const THUMBNAIL_MAX_BYTES = 5 * 1024 ** 2;
 export const VIDEO_MAX_BYTES = 1024 ** 3;
@@ -15,7 +15,7 @@ export type ImageExt = (typeof IMAGE_EXT)[keyof typeof IMAGE_EXT];
 
 const EXTS: readonly string[] = Object.values(IMAGE_EXT);
 
-// Magic bytes: đổi đuôi .exe → .pdf vẫn bị chặn (spec K4).
+// Magic bytes: đổi đuôi .exe → .pdf vẫn bị chặn.
 export function isPdf(buf: Uint8Array): boolean {
   return Buffer.from(buf.subarray(0, 5)).toString('latin1') === '%PDF-';
 }
@@ -38,7 +38,7 @@ const MAX_BOXES = 20; // file độc hại không bắt server đọc mãi
 const MOOV_SCAN = 64 * 1024; // mvhd thường là con đầu của moov
 const MAX_DURATION_SEC = 24 * 3600; // video bài giảng ≤1 GB, hơn 24 giờ là khai sai
 
-// Thời lượng (giây) từ moov/mvhd, moov ở đầu hay sau mdat đều được (spec video-upload §4.2).
+// Thời lượng (giây) từ moov/mvhd, moov ở đầu hay sau mdat đều được.
 // Box đầu không phải ftyp, hỏng, cắt cụt → null. Chỉ đọc vài header box, không tải cả file.
 export async function mp4Duration(
   readAt: ReadAt,
@@ -78,7 +78,7 @@ export async function mp4Duration(
   return null;
 }
 
-// Offset tính từ đầu payload mvhd (byte 0 = version). fMP4 có duration 0 → trả 0 (spec §4.2). Version lạ, timescale 0, quá 24 giờ → null.
+// Offset tính từ đầu payload mvhd (byte 0 = version). fMP4 có duration 0 → trả 0. Version lạ, timescale 0, quá 24 giờ → null.
 function mvhdSeconds(moov: Buffer): number | null {
   for (let p = 0; p + 8 <= moov.length;) {
     const size = moov.readUInt32BE(p);

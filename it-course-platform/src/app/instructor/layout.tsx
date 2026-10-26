@@ -7,10 +7,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { authClient } from '@/lib/auth-client';
 import { isInstructor } from '@/lib/instructor-role';
 
-// Chặn quyền cho mọi trang /instructor (spec course-create-basics §5.4). Chạy ở client: session
+// Chặn quyền cho mọi trang /instructor. Chạy ở client: session
 // nằm ở back-end, proxy.ts chỉ kiểm có cookie. Không đọc usePathname/useParams → không cần Suspense;
-// URL hiện tại lấy từ window trong effect. Chưa là giảng viên → về landing /teach, cửa duy nhất bật vai trò
-// (spec teach-landing §3.3).
+// URL hiện tại lấy từ window trong effect. Chưa là giảng viên → về landing /teach, cửa duy nhất bật vai trò.
 export default function InstructorLayout({ children }: { children: React.ReactNode }) {
   const { data, isPending, error, refetch } = authClient.useSession();
   const router = useRouter();

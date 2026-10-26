@@ -21,8 +21,6 @@ const LEARN_SELECT = {
   instructions: true,
   difficulty: true,
   learningObjective: true,
-  timeLimitMs: true,
-  memoryLimitKb: true,
   languages: true,
   hints: true,
   solutionExplanation: true,
@@ -50,7 +48,7 @@ const exerciseNotFound = () =>
 const submissionNotFound = () =>
   new NotFoundException({ statusCode: 404, code: 'SUBMISSION_NOT_FOUND', message: 'Không tìm thấy bài nộp' });
 
-// Học viên làm bài code (spec 2026-10-19-coding-exercise §7). Không @Roles, kiểm ghi danh ở đây.
+// Học viên làm bài code. Không @Roles, kiểm ghi danh ở đây.
 @Injectable()
 export class LearnExerciseService {
   constructor(
@@ -72,8 +70,6 @@ export class LearnExerciseService {
       instructions: ex.instructions,
       difficulty: ex.difficulty,
       learningObjective: ex.learningObjective,
-      timeLimitMs: ex.timeLimitMs,
-      memoryLimitKb: ex.memoryLimitKb,
       topics: ex.topics.map((t) => t.topic),
       relatedItem: ex.relatedItem?.isPublished ? { id: ex.relatedItem.id, title: ex.relatedItem.title } : null,
       languages: ex.languages as Language[],
@@ -83,7 +79,7 @@ export class LearnExerciseService {
       hints: ex.hints,
       completed: accepted > 0,
       bestScore: best._max.score,
-      // E5: lời giải chỉ hiện khi đã accepted.
+      // Lời giải chỉ hiện khi đã accepted.
       solution: accepted
         ? {
             codes: Object.fromEntries(ex.starters.flatMap((s) => (s.solutionCode ? [[s.language, s.solutionCode]] : []))),
@@ -100,7 +96,7 @@ export class LearnExerciseService {
     const tests = ex.testCases.filter((t) => t.isPublic);
     try {
       const { compileError, results } = await withRunLock(this.redis, userId, () =>
-        runTests(this.runner.run.bind(this.runner), body.language, body.sourceCode, tests, ex),
+        runTests(this.runner.run.bind(this.runner), body.language, body.sourceCode, tests),
       );
       return {
         compileError: compileError === null ? null : excerpt(compileError),
@@ -126,7 +122,7 @@ export class LearnExerciseService {
     let id: string;
     try {
       id = await this.prisma.$transaction(async (tx) => {
-        // E13: bài kẹt quá 5 phút của chính mình → nhả suất đang chấm.
+        // Bài kẹt quá 5 phút của chính mình → nhả suất đang chấm.
         await tx.$executeRaw`
           UPDATE submissions SET status = 'internal_error', "gradedAt" = now()
           WHERE "userId" = ${userId}::uuid AND status IN ('pending', 'running')
@@ -204,7 +200,7 @@ export class LearnExerciseService {
     const { results, ...rest } = s;
     return {
       ...rest,
-      // BR3: test ẩn không trả input/output/stdout — kể cả stderr (thông báo lỗi có thể lộ input).
+      // Test ẩn không trả input/output/stdout — kể cả stderr (thông báo lỗi có thể lộ input).
       results: results.map(({ testCase: t, stdoutExcerpt, stderrExcerpt, ...r }) =>
         t.isPublic
           ? { ...r, position: t.position, isPublic: true, input: t.input, expectedOutput: t.expectedOutput, stdout: stdoutExcerpt ?? '', stderr: stderrExcerpt ?? '' }

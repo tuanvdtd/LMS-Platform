@@ -33,7 +33,7 @@ export function useLearnShell() {
   return ctx;
 }
 
-// Trang con khai báo chế độ mục lục (L1): bài giảng / màn quiz thường = docked; đang làm quiz, bài code = drawer.
+// Trang con khai báo chế độ mục lục: bài giảng / màn quiz thường = docked; đang làm quiz, bài code = drawer.
 export function useSidebarMode(mode: SidebarMode) {
   const { setSidebarMode } = useLearnShell();
   useEffect(() => setSidebarMode(mode), [mode, setSidebarMode]);
@@ -48,7 +48,7 @@ function readDocked() {
   }
 }
 
-// Khung học chung (spec 2026-10-20-lecture-player §7.2): tải mục lục một lần, giữ khi chuyển bài.
+// Khung học chung: tải mục lục một lần, giữ khi chuyển bài.
 export function LearnShell({ children }: { children: React.ReactNode }) {
   const params = useParams<{ courseSlug: string; itemId: string }>();
   const courseSlug = params.courseSlug;
@@ -69,7 +69,7 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [courseSlug, nonce]);
 
-  // Ghi bài đang học cho "Tiếp tục học" (spec §5); lỗi bỏ qua.
+  // Ghi bài đang học cho "Tiếp tục học"; lỗi bỏ qua.
   const ready = outline !== null;
   useEffect(() => {
     if (ready && itemId) setLastItem(courseSlug, itemId).catch(() => undefined);

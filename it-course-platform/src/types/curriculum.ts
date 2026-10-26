@@ -1,6 +1,6 @@
 import type { ChecklistItem } from './instructor-course';
 
-// Khớp API back-end/src/curriculum + assets (spec curriculum-upload §4, video-upload §4). Giới hạn giống BE.
+// Khớp API back-end/src/curriculum + assets. Giới hạn giống BE.
 export const ITEM_TYPE_LABEL = {
   lecture: 'Bài giảng',
   quiz: 'Trắc nghiệm',
@@ -87,7 +87,7 @@ export function formatDuration(sec: number): string {
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
-// Quiz (spec 2026-10-08-quiz-authoring §4). Giới hạn giống BE quiz.schemas.ts.
+// Quiz. Giới hạn giống BE quiz.schemas.ts.
 export const QUIZ_LIMITS = {
   description: 1000,
   stem: 5000,

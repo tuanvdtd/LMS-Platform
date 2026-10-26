@@ -7,8 +7,8 @@ import { TeachCta } from './_components/teach-cta';
 
 export const metadata: Metadata = { title: 'Trở thành giảng viên | SkillPath' };
 
-// Landing tuyển giảng viên (spec teach-landing §4, wireframe A). Số khối theo wireframe.
-// Số thật: 70% = mặc định revenue_share_pct; ví dụ chia lấy từ spec revenue-share.
+// Landing tuyển giảng viên.
+// Số thật: 70% = mặc định revenue_share_pct; ví dụ chia theo luật chia doanh thu (splitRevenue ở BE).
 const FACTS = [
   { label: 'Doanh thu', value: '70%' },
   { label: 'Phí bắt đầu', value: '0đ' },

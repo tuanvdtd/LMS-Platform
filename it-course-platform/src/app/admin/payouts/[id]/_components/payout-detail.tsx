@@ -15,7 +15,7 @@ import { getPayout, markPayoutPaid } from '@/lib/api/admin';
 import { formatPeriod, formatVnd, PAYOUT_STATUS_LABEL } from '@/types/revenue';
 import type { AdminPayoutDetail } from '@/types/revenue';
 
-// Trả tiền bằng QR VietQR (R8): quét bằng app ngân hàng → chuyển khoản → nhập mã GD → "Đã trả".
+// Trả tiền bằng QR VietQR: quét bằng app ngân hàng → chuyển khoản → nhập mã GD → "Đã trả".
 export function PayoutDetail() {
   const { id } = useParams<{ id: string }>();
   const [payout, setPayout] = useState<AdminPayoutDetail | null>(null);

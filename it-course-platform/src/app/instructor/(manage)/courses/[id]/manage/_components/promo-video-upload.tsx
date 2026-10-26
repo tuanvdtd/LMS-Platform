@@ -21,7 +21,7 @@ import { PROMO_MAX_BYTES } from '@/types/curriculum';
 import { useCourse } from './course-provider';
 import { PausingVideo } from '@/components/shared/pausing-video';
 
-// Video giới thiệu (spec video-upload §5.3): cùng khuôn ảnh bìa, ghi ngay khi xong, không làm form basics dirty.
+// Video giới thiệu: cùng khuôn ảnh bìa, ghi ngay khi xong, không làm form basics dirty.
 export function PromoVideoUpload({ disabled }: { disabled: boolean }) {
   const { course, setCourse, patchCourse } = useCourse();
   const [phase, setPhase] = useState<'checking' | 'uploading' | null>(null);
