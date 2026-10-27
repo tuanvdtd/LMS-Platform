@@ -1,3 +1,4 @@
+import { createPrivateKey } from 'node:crypto';
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -6,16 +7,38 @@ import {
   S3Client,
   S3ServiceException,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl as signCloudFrontUrl } from '@aws-sdk/cloudfront-signer';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { BadGatewayException, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import { requireEnv } from '../env.js';
+import { optionalEnv, requireEnv } from '../env.js';
 
 export type Bucket = 'public' | 'private' | 'video';
 export type ByteRange = { offset: number; length: number };
 
+type Cdn = { domain: string; keyPairId: string; privateKey: string };
+
+// CloudFront trước bucket video là tuỳ chọn: bỏ trống cả 3 biến → null (presign S3).
+// Đặt thiếu hoặc khoá hỏng → lỗi lúc khởi động, không lặng lẽ rơi về S3 hay đợi học viên bấm xem mới lộ.
+function cdnFromEnv(): Cdn | null {
+  const names = ['CLOUDFRONT_DOMAIN', 'CLOUDFRONT_KEY_PAIR_ID', 'CLOUDFRONT_PRIVATE_KEY_BASE64'] as const;
+  const [domain, keyPairId, keyBase64] = names.map((name) => optionalEnv(name));
+  if (!domain && !keyPairId && !keyBase64) return null;
+  if (!domain || !keyPairId || !keyBase64) {
+    throw new Error(`Thiếu biến môi trường ${names.filter((name) => !optionalEnv(name)).join(', ')}`);
+  }
+  const privateKey = Buffer.from(keyBase64, 'base64').toString('utf8');
+  try {
+    createPrivateKey(privateKey);
+  } catch {
+    throw new Error('CLOUDFRONT_PRIVATE_KEY_BASE64 không phải private key PEM hợp lệ');
+  }
+  return { domain: domain.replace(/^https?:\/\//, '').replace(/\/+$/, ''), keyPairId, privateKey };
+}
+
 // R2 cho ảnh bìa, PDF, video giới thiệu; AWS S3 cho video bài giảng
-// Cả hai qua S3 SDK, chọn client theo bucket.
+// Cả hai qua S3 SDK, chọn client theo bucket. Video phát qua CloudFront nếu có cấu hình (cache ở edge, egress rẻ);
+// upload/kiểm tra/xoá video vẫn gọi thẳng S3.
 @Injectable()
 export class StorageService {
   // Mặc định SDK gắn x-amz-checksum-crc32 vào URL ký PUT; trình duyệt không gửi header đó → bị từ chối.
@@ -46,6 +69,7 @@ export class StorageService {
     video: requireEnv('S3_VIDEO_BUCKET'),
   };
   private readonly publicBase = requireEnv('R2_PUBLIC_URL').replace(/\/+$/, '');
+  private readonly cdn = cdnFromEnv();
 
   private clientOf(bucket: Bucket) {
     return bucket === 'video' ? this.s3 : this.r2;
@@ -69,6 +93,18 @@ export class StorageService {
 
   // download: tải về với tên gốc (tên có dấu → filename* RFC 5987); bỏ trống = xem inline như cũ.
   presignGet(bucket: Bucket, key: string, ttlSec: number, download?: { fileName: string }): Promise<string> {
+    // Canned URL CloudFront không đặt được Content-Disposition → video tải về (chưa có nơi nào dùng) đi S3.
+    if (bucket === 'video' && this.cdn && !download) {
+      const { domain, keyPairId, privateKey } = this.cdn;
+      return this.call(async () =>
+        signCloudFrontUrl({
+          url: `https://${domain}/${key}`,
+          keyPairId,
+          privateKey,
+          dateLessThan: new Date(Date.now() + ttlSec * 1000),
+        }),
+      );
+    }
     const command = new GetObjectCommand({
       Bucket: this.buckets[bucket],
       Key: key,
