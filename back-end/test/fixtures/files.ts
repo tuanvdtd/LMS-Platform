@@ -28,7 +28,7 @@ export const webp = (w: number, h: number) => {
   return Buffer.from([...ascii('RIFF'), ...u32le(body.length), ...body]);
 };
 
-// MP4 tối thiểu cho mp4Duration: ftyp + moov(mvhd) + mdat, không phát được.
+// MP4 tối thiểu cho mp4Duration / mp4Size: ftyp + moov(mvhd + trak) + mdat, không phát được.
 const u64 = (n: number) => [...u32(Math.floor(n / 2 ** 32)), ...u32(n >>> 0)];
 export const box = (type: string, payload: number[] | Buffer) => {
   const body = [...payload];
@@ -43,9 +43,46 @@ export const mvhd = (seconds: number, { timescale = 1000, version = 0 } = {}) =>
       : [0, 0, 0, 0, ...u32(0), ...u32(0), ...u32(timescale), ...u32(duration)];
   return box('mvhd', [...head, ...Array.from({ length: 80 }, () => 0)]);
 };
-type Mp4Options = { timescale?: number; version?: number; moovLast?: boolean; largeMdat?: boolean };
-export const mp4 = (seconds: number, { moovLast = false, largeMdat = false, ...mv }: Mp4Options = {}) => {
-  const moov = box('moov', mvhd(seconds, mv));
+// tkhd v0: 84 byte payload; matrix 9 × int32 ở offset 40, width/height 16.16 ở offset 76/80. Video volume 0, audio 0x0100.
+const tkhd = (width: number, height: number, rotate: 0 | 90 | 270 = 0) => {
+  const matrix =
+    rotate === 90 ? [0, 0x10000, 0, -0x10000, 0, 0, 0, 0, 0x40000000]
+    : rotate === 270 ? [0, -0x10000, 0, 0x10000, 0, 0, 0, 0, 0x40000000]
+    : [0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000];
+  return box('tkhd', [
+    0, 0, 0, 3, ...u32(0), ...u32(0), ...u32(1), ...u32(0), ...u32(0),
+    ...Array.from({ length: 8 }, () => 0), 0, 0, 0, 0, ...(width ? [0, 0] : [1, 0]), 0, 0,
+    ...matrix.flatMap(u32), ...u32(width * 65536), ...u32(height * 65536),
+  ]);
+};
+type Handler = 'vide' | 'soun' | 'text';
+const hdlr = (handler: Handler) =>
+  box('hdlr', [0, 0, 0, 0, ...u32(0), ...ascii(handler), ...Array.from({ length: 13 }, () => 0)]);
+// minf giả cỡ tuỳ ý: mô phỏng stbl lớn đẩy track sau ra ngoài 64 KB đầu của moov.
+const trak = (head: Buffer, handler: Handler, minfBytes = 8) =>
+  box('trak', Buffer.concat([head, box('mdia', Buffer.concat([hdlr(handler), box('minf', Buffer.alloc(minfBytes))]))]));
+
+type Dims = { width: number; height: number; rotate?: 0 | 90 | 270 };
+type Mp4Options = {
+  timescale?: number;
+  version?: number;
+  moovLast?: boolean;
+  largeMdat?: boolean;
+  video?: Dims | null; // null = không có track hình
+  audio?: boolean;
+  textFirst?: boolean; // track phụ đề (tkhd 640×480 khác 0) đứng trước track hình
+  audioFirst?: boolean;
+  bigAudio?: boolean; // track audio > 64 KB đứng trước track video
+};
+export const mp4 = (
+  seconds: number,
+  { moovLast = false, largeMdat = false, video = { width: 1920, height: 1080 }, audio = true, textFirst = false, audioFirst = false, bigAudio = false, ...mv }: Mp4Options = {},
+) => {
+  const v = video ? [trak(tkhd(video.width, video.height, video.rotate), 'vide')] : [];
+  const a = audio ? [trak(tkhd(0, 0), 'soun', bigAudio ? 70_000 : 8)] : [];
+  const t = textFirst ? [trak(tkhd(640, 480), 'text')] : [];
+  const traks = t.concat(audioFirst || bigAudio ? [...a, ...v] : [...v, ...a]);
+  const moov = box('moov', Buffer.concat([mvhd(seconds, mv), ...traks]));
   const data = Array.from({ length: 64 }, () => 7);
   const mdat = largeMdat
     ? Buffer.from([...u32(1), ...ascii('mdat'), ...u64(16 + data.length), ...data])

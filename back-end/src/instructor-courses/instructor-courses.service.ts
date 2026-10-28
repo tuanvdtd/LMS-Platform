@@ -40,7 +40,7 @@ export const COURSE_SELECT = {
   },
 } satisfies Prisma.CourseSelect;
 export type CourseRow = Prisma.CourseGetPayload<{ select: typeof COURSE_SELECT }>;
-export type LectureStats = { published: number; videoSeconds: number };
+export type LectureStats = { published: number; videoSeconds: number; processingVideos: number; failedVideos: number };
 
 // 409 COURSE_LOCKED: khoá đang chờ duyệt / không ở trạng thái cho phép thao tác.
 export const courseLocked = (message = 'Khoá học đang chờ duyệt, không sửa được') =>
@@ -276,20 +276,35 @@ export class InstructorCoursesService {
     if (shared === 0) await this.storage.delete('public', oldKey).catch(() => undefined);
   }
 
-  // Lecture đã xuất bản + tổng giây video của chúng, một query cho nhiều khoá.
+  // groupBy không group theo videoAsset.status được → đếm video đang xử lý / lỗi bằng query riêng.
   private async lectureStats(courseIds: string[]): Promise<Map<string, LectureStats>> {
-    const rows = await this.prisma.curriculumItem.groupBy({
-      by: ['courseId', 'lectureKind'],
-      where: { courseId: { in: courseIds }, type: 'lecture', isPublished: true },
-      _count: { _all: true },
-      _sum: { durationSec: true },
-    });
+    const published = { courseId: { in: courseIds }, type: 'lecture' as const, isPublished: true };
+    const [rows, pending] = await Promise.all([
+      this.prisma.curriculumItem.groupBy({
+        by: ['courseId', 'lectureKind'],
+        where: published,
+        _count: { _all: true },
+        _sum: { durationSec: true },
+      }),
+      this.prisma.curriculumItem.findMany({
+        where: { ...published, lectureKind: 'video', videoAsset: { status: { in: ['processing', 'failed'] } } },
+        select: { courseId: true, videoAsset: { select: { status: true } } },
+      }),
+    ]);
     const stats = new Map<string, LectureStats>();
+    const of = (courseId: string) => {
+      const s = stats.get(courseId) ?? { published: 0, videoSeconds: 0, processingVideos: 0, failedVideos: 0 };
+      stats.set(courseId, s);
+      return s;
+    };
     for (const r of rows) {
-      const s = stats.get(r.courseId) ?? { published: 0, videoSeconds: 0 };
+      const s = of(r.courseId);
       s.published += r._count._all;
       if (r.lectureKind === 'video') s.videoSeconds += r._sum.durationSec ?? 0;
-      stats.set(r.courseId, s);
+    }
+    for (const p of pending) {
+      if (p.videoAsset?.status === 'processing') of(p.courseId).processingVideos++;
+      else of(p.courseId).failedVideos++;
     }
     return stats;
   }
@@ -301,6 +316,8 @@ export class InstructorCoursesService {
       categoryDepth: c.category ? (c.category.parent ? 2 : 1) : null,
       publishedLectureCount: s?.published ?? 0,
       videoSeconds: s?.videoSeconds ?? 0,
+      processingVideos: s?.processingVideos ?? 0,
+      failedVideos: s?.failedVideos ?? 0,
     });
   }
 

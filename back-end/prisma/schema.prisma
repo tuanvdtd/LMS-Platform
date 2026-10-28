@@ -408,6 +408,7 @@ model Asset {
   sizeBytes   BigInt // video ≤1GB, PDF ≤1GB — kiểm ở service upload
   storageKey  String      @unique // key trên S3
   hlsKey      String? // video sau khi transcode
+  hlsJobId    String?     @unique // job MediaConvert đang chạy/đã xong; null khi chưa gửi hoặc job lỗi
   status      AssetStatus @default(uploading)
   durationSec Int?
   createdAt   DateTime    @default(now())

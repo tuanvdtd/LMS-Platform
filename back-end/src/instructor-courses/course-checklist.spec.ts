@@ -17,6 +17,8 @@ const complete: ChecklistInput = {
   categoryDepth: 2,
   publishedLectureCount: 5,
   videoSeconds: 30 * 60,
+  processingVideos: 0,
+  failedVideos: 0,
 };
 
 const empty: ChecklistInput = {
@@ -32,6 +34,8 @@ const empty: ChecklistInput = {
   categoryDepth: null,
   publishedLectureCount: 0,
   videoSeconds: 0,
+  processingVideos: 0,
+  failedVideos: 0,
 };
 
 const byKey = (input: ChecklistInput) =>
@@ -100,6 +104,15 @@ describe('buildChecklist', () => {
     expect(c.curriculum.missing).toEqual([
       { message: 'Cần thêm 1 bài giảng đã xuất bản', anchor: 'curriculum' },
       { message: 'Cần thêm 1 phút video', anchor: 'curriculum' },
+    ]);
+  });
+
+  it('còn video đang xử lý / xử lý lỗi → curriculum thiếu, nêu số video', () => {
+    const c = byKey({ ...complete, processingVideos: 2, failedVideos: 1 }).curriculum;
+    expect(c.done).toBe(false);
+    expect(c.missing.map((m) => m.message)).toEqual([
+      'Còn 2 video đang xử lý, đợi xử lý xong rồi gửi duyệt',
+      '1 video xử lý thất bại, hãy thay video khác',
     ]);
   });
 

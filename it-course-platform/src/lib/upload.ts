@@ -55,6 +55,7 @@ export function checkVideo(
   file: File,
   maxBytes: number,
   maxLabel: string,
+  lecture = false,
 ): Promise<{ problem: string | null; durationSec: number }> {
   if (file.type !== 'video/mp4') return Promise.resolve({ problem: 'Chỉ nhận video MP4', durationSec: 0 });
   if (file.size > maxBytes) return Promise.resolve({ problem: `Video tối đa ${maxLabel}`, durationSec: 0 });
@@ -72,7 +73,18 @@ export function checkVideo(
     const timer = setTimeout(() => done(UNPLAYABLE), 10_000);
     video.preload = 'metadata';
     // videoWidth 0 = có tiếng mà không giải mã được hình (vd HEVC trên trình duyệt không hỗ trợ).
-    video.onloadedmetadata = () => done(video.videoWidth ? null : UNPLAYABLE, video.duration);
+    // Video bài giảng: chỉ ngang, cao ≥ 720 (BE kiểm lại, đây chỉ để báo sớm). Video giới thiệu không chặn.
+    video.onloadedmetadata = () => {
+      const { videoWidth: w, videoHeight: h } = video;
+      const problem = !w
+        ? UNPLAYABLE
+        : lecture && w < h
+          ? 'Chỉ nhận video ngang'
+          : lecture && h < 720
+            ? 'Video phải từ 720p trở lên'
+            : null;
+      done(problem, video.duration);
+    };
     video.onerror = () => done(UNPLAYABLE);
     video.src = url;
   });

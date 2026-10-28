@@ -1,6 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { LectureKind, Prisma } from '@prisma/client';
-import { bucketOf } from '../assets/assets.service.js';
+import { bucketOf, videoUrl } from '../assets/assets.service.js';
 import { isGuid } from '../common/zod.pipe.js';
 import { completeItem } from '../curriculum/progress.js';
 import { tooManyRequests } from '../exercise/exercise.service.js';
@@ -22,7 +22,7 @@ const LECTURE_SELECT = {
   lectureKind: true,
   durationSec: true,
   isDownloadable: true,
-  videoAsset: { select: { kind: true, storageKey: true, status: true } },
+  videoAsset: { select: { id: true, kind: true, storageKey: true, status: true, hlsKey: true } },
   documentAsset: { select: { kind: true, storageKey: true, status: true, fileName: true } },
   resources: {
     orderBy: { position: 'asc' },
@@ -128,7 +128,11 @@ export class LearnService {
         where: { enrollmentId_itemId: { enrollmentId: enrollment.id, itemId } },
         select: { lastPositionSec: true, watchedSec: true, completedAt: true },
       }),
-      asset?.status === 'ready' ? this.storage.presignGet(bucketOf(asset.kind), asset.storageKey, MEDIA_TTL) : null,
+      asset?.status !== 'ready'
+        ? null
+        : item.lectureKind === 'video' && item.videoAsset
+          ? videoUrl(this.storage, item.videoAsset)
+          : this.storage.presignGet(bucketOf(asset.kind), asset.storageKey, MEDIA_TTL),
       item.lectureKind === 'document' && item.isDownloadable && doc?.status === 'ready'
         ? this.storage.presignGet(bucketOf(doc.kind), doc.storageKey, MEDIA_TTL, { fileName: doc.fileName })
         : null,

@@ -71,6 +71,10 @@ export class StorageService {
   private readonly publicBase = requireEnv('R2_PUBLIC_URL').replace(/\/+$/, '');
   private readonly cdn = cdnFromEnv();
 
+  get hasCdn(): boolean {
+    return this.cdn !== null;
+  }
+
   private clientOf(bucket: Bucket) {
     return bucket === 'video' ? this.s3 : this.r2;
   }
@@ -113,6 +117,24 @@ export class StorageService {
         : 'inline',
     });
     return this.call(() => getSignedUrl(this.clientOf(bucket), command, { expiresIn: ttlSec }));
+  }
+
+  // HLS gồm playlist con + hàng trăm segment: ký một lần cho cả thư mục (custom policy, Resource wildcard),
+  // player gắn cùng bộ query chữ ký vào mọi request trong thư mục.
+  signVideoPrefix(prefix: string, key: string, ttlSec: number): Promise<string> {
+    return this.call(async () => {
+      if (!this.cdn) throw new Error('Chưa cấu hình CloudFront');
+      const { domain, keyPairId, privateKey } = this.cdn;
+      const policy = JSON.stringify({
+        Statement: [
+          {
+            Resource: `https://${domain}/${prefix}*`,
+            Condition: { DateLessThan: { 'AWS:EpochTime': Math.floor(Date.now() / 1000) + ttlSec } },
+          },
+        ],
+      });
+      return signCloudFrontUrl({ url: `https://${domain}/${key}`, keyPairId, privateKey, policy });
+    });
   }
 
   // Không có object → null (chưa upload xong / key sai), lỗi khác → 502.
