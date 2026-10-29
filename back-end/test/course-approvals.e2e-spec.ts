@@ -153,24 +153,13 @@ describe('Định giá, gửi duyệt & duyệt khoá (e2e)', () => {
   });
 
   describe('giảng viên cao cấp', () => {
-    const body = { headline: 'Senior Backend', bank: BANK, agreeTerms: true };
-
-    it('thiếu đồng ý điều khoản → 400', () =>
-      call('post', '/api/instructor/premium', teacher.cookie).send({ ...body, agreeTerms: false }).expect(400));
-
-    it('đăng ký → 201 verified + account', async () => {
-      const res = await call('post', '/api/instructor/premium', teacher.cookie)
-        .send({ ...body, socials: { github: 'https://github.com/e2e' } })
-        .expect(201);
-      expect(res.body).toEqual({ verified: true, account: BANK });
+    // Đơn đăng ký có e2e riêng (instructor-applications); ở đây chỉ cần trạng thái "đã duyệt".
+    beforeAll(async () => {
+      await prisma.instructorProfile.create({ data: { userId: teacher.id, headline: 'Senior Backend', ...BANK } });
     });
 
-    it('đăng ký lần 2 → 409 ALREADY_PREMIUM', async () => {
-      const res = await call('post', '/api/instructor/premium', teacher.cookie).send(body).expect(409);
-      expect(res.body.code).toBe('ALREADY_PREMIUM');
-    });
-
-    it('học viên → 403', () => call('post', '/api/instructor/premium', student.cookie).send(body).expect(403));
+    it('route cũ POST /instructor/premium đã bỏ → 404', () =>
+      call('post', '/api/instructor/premium', teacher.cookie).send({}).expect(404));
 
     it('sau khi cao cấp: đặt 199k được', async () => {
       const res = await call('put', `/api/instructor/courses/${ready.courseId}/price`, teacher.cookie)

@@ -35,6 +35,11 @@ export async function uploadThumbnail(file: File, options: Options = {}): Promis
   return (await putToStorage(file, 'thumbnail', options)).key;
 }
 
+// Ảnh hồ sơ lên R2 public; trả key để lưu bằng saveAvatar (BE kiểm ảnh ở bước đó).
+export async function uploadAvatar(file: File, options: Options = {}): Promise<string> {
+  return (await putToStorage(file, 'avatar', options)).key;
+}
+
 // Video bài giảng lên S3; thời lượng FE đo gửi kèm, complete = BE kiểm cỡ + cấu trúc MP4.
 export async function uploadVideo(file: File, durationSec: number, options: Options = {}): Promise<LibraryAsset> {
   const ticket = await putToStorage(file, 'video', options, { durationSec });

@@ -1,212 +1,232 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import axios from 'axios';
-import { Check, ChevronLeft, ChevronRight, ShieldCheck } from 'lucide-react';
-import { toast } from 'sonner';
-import { BankFields, type BankFieldErrors, EMPTY_BANK } from '@/components/shared/bank-fields';
+import { Check, Clock, ShieldCheck } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
-import { becomePremium, getPayoutAccount } from '@/lib/api/revenue';
-import type { BankAccount, PayoutAccountState } from '@/types/revenue';
+import { getApplication } from '@/lib/api/instructor-application';
+import { cn } from '@/lib/utils';
+import { type ApplicationStep, type ApplicationView, STEP_LABEL, STEPS } from '@/types/instructor-application';
+import { AvatarStep } from './avatar-step';
+import { InfoStep } from './info-step';
+import { PayoutStep } from './payout-step';
+import { ReviewStep } from './review-step';
+import type { StepSave } from './step-shared';
+import { TermsStep } from './terms-step';
 
-type Info = { headline: string; bio: string; linkedin: string; github: string };
-type ApiError = { path: string[]; message: string };
+type Screen = ApplicationStep | 'review';
+const SCREENS = { info: InfoStep, avatar: AvatarStep, terms: TermsStep, payout: PayoutStep, review: ReviewStep };
 
-const STEPS = ['Hồ sơ giảng viên', 'Tài khoản nhận tiền'];
+const GRID = 'grid items-start gap-6 md:grid-cols-[220px_minmax(0,1fr)]';
 
-// Đăng ký giảng viên cao cấp: tự động, không cần admin duyệt hồ sơ.
+// Bước đầu tiên còn thiếu; đủ hết → màn tóm tắt.
+const firstScreen = (v: ApplicationView): Screen => v.missing[0]?.step ?? 'review';
+
+// Đơn giảng viên cao cấp kiểu Udemy: 4 bước, mỗi bước lưu lên server, admin duyệt.
 export function PremiumFlow() {
-  const [state, setState] = useState<PayoutAccountState | null>(null);
-  const [step, setStep] = useState<1 | 2>(1);
-  const [info, setInfo] = useState<Info>({ headline: '', bio: '', linkedin: '', github: '' });
-  const [bank, setBank] = useState<BankAccount>(EMPTY_BANK);
-  const [agree, setAgree] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    getPayoutAccount().then(setState, () => toast.error('Không tải được trạng thái giảng viên'));
+  const [view, setView] = useState<ApplicationView | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [screen, setScreen] = useState<Screen>('info');
+  // Ref, không phải state: chỉ đọc lúc bấm stepper, không cần render lại.
+  // pendingSave: hàm lưu của bước đang có thay đổi chưa lưu. target: bước sẽ sang sau khi lưu xong.
+  const pendingSave = useRef<StepSave | null>(null);
+  const target = useRef<Screen | null>(null);
+  const registerSave = useCallback((save: StepSave | null) => {
+    pendingSave.current = save;
   }, []);
+  // Đổi bước → đưa tiêu điểm lên tiêu đề bước: trình đọc màn hình đọc tên bước mới, màn hẹp về đầu form.
+  // Không làm ở lần mở trang đầu để khỏi giật tiêu điểm khi người dùng chưa thao tác.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const moved = useRef(false);
+  useEffect(() => {
+    if (moved.current) heading.current?.focus();
+  }, [screen]);
 
-  async function submit() {
-    setSaving(true);
-    setErrors({});
-    try {
-      setState(
-        await becomePremium({
-          headline: info.headline.trim(),
-          bio: info.bio.trim() || undefined,
-          socials: { linkedin: info.linkedin.trim() || undefined, github: info.github.trim() || undefined },
-          bank: { ...bank, bankAccountName: bank.bankAccountName.trim() },
-          agreeTerms: true,
-        }),
-      );
-      toast.success('Bạn đã là giảng viên cao cấp');
-    } catch (e) {
-      const res = axios.isAxiosError(e) ? e.response : undefined;
-      const list = res?.status === 400 ? (res.data?.errors as ApiError[] | undefined) : undefined;
-      if (list?.length) {
-        // path: ['headline'] | ['socials','github'] | ['bank','bankBin'] → key = phần tử cuối.
-        setErrors(Object.fromEntries(list.map((x) => [x.path.at(-1) ?? '', x.message])));
-        if (list.some((x) => x.path[0] !== 'bank' && x.path[0] !== 'agreeTerms')) setStep(1);
-      } else if (res?.status === 409) {
-        getPayoutAccount().then(setState, () => undefined);
-      } else {
-        toast.error('Không gửi được, thử lại');
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (state === null) return <Skeleton className="h-64 w-full max-w-2xl" />;
-
-  if (state.verified) {
-    return (
-      <div className="flex max-w-2xl flex-col items-center gap-4 rounded-2xl border bg-card p-8 text-center">
-        <div className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <ShieldCheck className="size-8" />
-        </div>
-        <h1 className="text-2xl font-extrabold">Bạn là giảng viên cao cấp</h1>
-        <p className="text-sm text-muted-foreground">
-          Bạn có thể đặt giá trả phí cho khoá học. Thông tin nhận tiền sửa ở trang Hồ sơ.
-        </p>
-        <div className="flex flex-wrap justify-center gap-2">
-          <Link href="/instructor/courses" className={buttonVariants()}>
-            Về khoá học của tôi
-          </Link>
-          <Link href="/instructor/profile" className={buttonVariants({ variant: 'outline' })}>
-            Sửa thông tin nhận tiền
-          </Link>
-        </div>
-      </div>
+  // Chỉ setState trong callback (lint react-hooks/set-state-in-effect); reset lỗi ở onClick "Thử lại".
+  const load = useCallback(() => {
+    getApplication().then(
+      (v) => {
+        setView(v);
+        setScreen(firstScreen(v));
+      },
+      () => setLoadFailed(true),
     );
-  }
+  }, []);
+  useEffect(() => load(), [load]);
+
+  // Màn đang mở, đọc trong saved(): lần lưu kết thúc sau khi người dùng đã sang bước khác thì không kéo họ về.
+  const screenRef = useRef(screen);
+  useEffect(() => {
+    screenRef.current = screen;
+  });
+
+  if (view?.displayStatus === 'approved') return <Approved />;
+  if (view?.displayStatus === 'pending') return <Pending submittedAt={view.submittedAt} />;
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold">Giảng viên cao cấp</h1>
+    <div className="flex max-w-4xl flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-extrabold">Đăng ký giảng viên cao cấp</h1>
         <p className="text-sm text-muted-foreground">
-          Đăng ký để đặt giá trả phí cho khoá học và nhận doanh thu hằng tháng. Hoàn tất ngay, không cần chờ duyệt.
+          Giảng viên cao cấp được đặt giá trả phí cho khoá học và nhận doanh thu hằng tháng. Khoá miễn phí không cần đăng ký.
         </p>
       </div>
+      {loadFailed ? (
+        <Alert variant="destructive">
+          <AlertTitle>Không tải được đơn đăng ký</AlertTitle>
+          <AlertDescription className="flex flex-col items-start gap-3">
+            Kiểm tra kết nối rồi thử lại.
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setLoadFailed(false);
+                load();
+              }}
+            >
+              Thử lại
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : view ? (
+        renderWizard(view)
+      ) : (
+        <div className={GRID}>
+          <div className="flex flex-col gap-1">
+            {STEPS.map((s) => (
+              <Skeleton key={s} className="h-11 w-full rounded-lg" />
+            ))}
+            <Skeleton className="h-11 w-full rounded-lg" />
+          </div>
+          <Skeleton className="h-80 w-full rounded-2xl" />
+        </div>
+      )}
+    </div>
+  );
 
-      <ol className="flex items-center gap-3" aria-label="Các bước đăng ký">
-        {STEPS.map((label, i) => {
-          const n = i + 1;
-          const done = step > n;
-          const active = step === n;
-          return (
-            <li key={label} className="flex items-center gap-2" aria-current={active ? 'step' : undefined}>
-              <span
-                className={`flex size-8 items-center justify-center rounded-full border-2 text-sm font-bold ${
-                  done || active ? 'border-primary bg-primary text-primary-foreground' : 'text-muted-foreground'
-                }`}
-              >
-                {done ? <Check className="size-4" /> : n}
-              </span>
-              <span className={`text-sm ${active ? 'font-semibold' : 'text-muted-foreground'}`}>{label}</span>
-              {n < STEPS.length && <span className="mx-1 h-0.5 w-8 bg-border sm:w-12" />}
-            </li>
-          );
-        })}
-      </ol>
+  function renderWizard(view: ApplicationView) {
+    const missing = new Set(view.missing.map((m) => m.step));
+    // Lưu bằng nút "Lưu và tiếp tục" → sang bước còn thiếu; lưu do bấm stepper → sang đúng bước vừa bấm.
+    // Chỉ chuyển màn khi người dùng còn đứng ở bước vừa lưu (hoặc đang chờ sang bước đã bấm).
+    const saved = (v: ApplicationView) => {
+      setView(v);
+      if (!target.current && screenRef.current !== screen) return;
+      moved.current = true;
+      setScreen(target.current ?? firstScreen(v));
+    };
+    // Bấm sang bước khác: bước hiện tại còn thay đổi thì tự lưu trước; lưu lỗi → ở lại, lỗi hiện dưới ô.
+    const go = async (s: Screen) => {
+      if (s === screen || target.current) return;
+      const save = pendingSave.current;
+      if (!save) {
+        moved.current = true;
+        return setScreen(s);
+      }
+      target.current = s;
+      try {
+        await save();
+      } finally {
+        target.current = null;
+      }
+    };
+    const Current = SCREENS[screen];
 
-      <section className="space-y-5 rounded-2xl border bg-card p-6">
-        {step === 1 ? (
-          <>
-            <div className="space-y-1.5">
-              <Label htmlFor="headline">Chức danh</Label>
-              <Input
-                id="headline"
-                maxLength={60}
-                value={info.headline}
-                onChange={(e) => setInfo((f) => ({ ...f, headline: e.target.value }))}
-                placeholder="Vd: Senior React Developer"
-                aria-invalid={!!errors.headline}
-              />
-              {errors.headline && <p className="text-xs text-destructive">{errors.headline}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="bio">Giới thiệu bản thân (tuỳ chọn)</Label>
-              <Textarea
-                id="bio"
-                rows={4}
-                maxLength={2000}
-                value={info.bio}
-                onChange={(e) => setInfo((f) => ({ ...f, bio: e.target.value }))}
-                aria-invalid={!!errors.bio}
-              />
-              {errors.bio && <p className="text-xs text-destructive">{errors.bio}</p>}
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="linkedin">LinkedIn (tuỳ chọn)</Label>
-                <Input
-                  id="linkedin"
-                  type="url"
-                  value={info.linkedin}
-                  onChange={(e) => setInfo((f) => ({ ...f, linkedin: e.target.value }))}
-                  placeholder="https://linkedin.com/in/username"
-                  aria-invalid={!!errors.linkedin}
-                />
-                {errors.linkedin && <p className="text-xs text-destructive">{errors.linkedin}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="github">GitHub (tuỳ chọn)</Label>
-                <Input
-                  id="github"
-                  type="url"
-                  value={info.github}
-                  onChange={(e) => setInfo((f) => ({ ...f, github: e.target.value }))}
-                  placeholder="https://github.com/username"
-                  aria-invalid={!!errors.github}
-                />
-                {errors.github && <p className="text-xs text-destructive">{errors.github}</p>}
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <BankFields value={bank} onChange={setBank} errors={errors as BankFieldErrors} />
-            <div className="space-y-1.5">
-              <div className="flex items-start gap-2">
-                <Checkbox id="agree" checked={agree} onCheckedChange={(v) => setAgree(v === true)} className="mt-0.5" />
-                <Label htmlFor="agree" className="text-sm font-normal leading-snug">
-                  Tôi đồng ý điều khoản chia doanh thu của SkillPath và cam kết thông tin ngân hàng là của tôi
-                </Label>
-              </div>
-              {errors.agreeTerms && <p className="text-xs text-destructive">{errors.agreeTerms}</p>}
-            </div>
-          </>
+    return (
+      <>
+        {view.rejectReason && (
+          <Alert variant="destructive">
+            <AlertTitle>Đơn trước bị từ chối</AlertTitle>
+            <AlertDescription className="whitespace-pre-line">Lý do: {view.rejectReason}</AlertDescription>
+          </Alert>
         )}
-      </section>
 
-      <div className="flex items-center justify-between">
-        {step === 2 ? (
-          <Button variant="outline" onClick={() => setStep(1)} disabled={saving}>
-            <ChevronLeft data-icon="inline-start" /> Quay lại
-          </Button>
-        ) : (
-          <span />
-        )}
-        {step === 1 ? (
-          <Button onClick={() => setStep(2)} disabled={!info.headline.trim()}>
-            Tiếp <ChevronRight data-icon="inline-end" />
-          </Button>
-        ) : (
-          <Button onClick={submit} disabled={!agree || saving}>
-            {saving ? 'Đang gửi…' : 'Đăng ký'}
-          </Button>
-        )}
+        <div className={GRID}>
+          <ol aria-label="Các bước đăng ký" className="flex flex-col gap-1">
+            {[...STEPS, 'review' as const].map((s, i) => {
+              const done = s !== 'review' && !missing.has(s);
+              const active = screen === s;
+              return (
+                <li key={s}>
+                  <button
+                    type="button"
+                    aria-current={active ? 'step' : undefined}
+                    onClick={() => void go(s)}
+                    className={cn(
+                      'flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50',
+                      active ? 'bg-muted font-semibold' : 'text-muted-foreground',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold tabular-nums',
+                        done
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : active
+                            ? 'border-primary text-primary'
+                            : 'border-border text-muted-foreground',
+                      )}
+                    >
+                      {done ? <Check className="size-3.5" aria-hidden /> : i + 1}
+                    </span>
+                    <span className={cn(done && !active && 'text-foreground')}>
+                      {s === 'review' ? 'Gửi đơn' : STEP_LABEL[s]}
+                    </span>
+                    {done && <span className="sr-only">(đã xong)</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+
+          <section className="min-w-0 rounded-2xl border bg-card p-5 sm:p-6">
+            <h2 ref={heading} tabIndex={-1} className="mb-5 text-lg font-bold outline-none">
+              {screen === 'review' ? 'Kiểm tra và gửi đơn' : STEP_LABEL[screen]}
+            </h2>
+            {/* key: đổi bước → form dựng lại từ dữ liệu đã lưu, không giữ state bước cũ */}
+            <Current key={screen} view={view} onSaved={saved} registerSave={registerSave} />
+          </section>
+        </div>
+      </>
+    );
+  }
+}
+
+function Approved() {
+  return (
+    <div className="flex max-w-2xl flex-col items-center gap-4 rounded-2xl border bg-card p-8 text-center">
+      <div className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <ShieldCheck className="size-8" aria-hidden />
       </div>
+      <h1 className="text-2xl font-extrabold">Bạn là giảng viên cao cấp</h1>
+      <p className="text-sm text-muted-foreground">Bạn có thể đặt giá trả phí cho khoá học. Thông tin nhận tiền sửa ở trang Hồ sơ.</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Link href="/instructor/courses" className={buttonVariants()}>
+          Về khoá học của tôi
+        </Link>
+        <Link href="/instructor/profile" className={buttonVariants({ variant: 'outline' })}>
+          Sửa thông tin nhận tiền
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function Pending({ submittedAt }: { submittedAt: string | null }) {
+  return (
+    <div className="flex max-w-2xl flex-col items-center gap-4 rounded-2xl border bg-card p-8 text-center">
+      <div className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Clock className="size-8" aria-hidden />
+      </div>
+      <h1 className="text-2xl font-extrabold">Đơn đang chờ duyệt</h1>
+      <p className="text-sm text-pretty text-muted-foreground">
+        {submittedAt && `Gửi lúc ${new Date(submittedAt).toLocaleString('vi-VN')}. `}
+        SkillPath duyệt trong khoảng 2 ngày làm việc, kết quả gửi qua email. Trong lúc chờ bạn vẫn tạo khoá miễn phí được.
+      </p>
+      <Link href="/instructor/courses" className={buttonVariants({ variant: 'outline' })}>
+        Về khoá học của tôi
+      </Link>
     </div>
   );
 }

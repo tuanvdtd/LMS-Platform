@@ -6,14 +6,6 @@ export const PAYOUT_STATUS_LABEL: Record<PayoutStatus, string> = { pending: 'Chá
 export type BankAccount = { bankBin: string; bankAccountNo: string; bankAccountName: string };
 export type PayoutAccountState = { verified: boolean; account: BankAccount | null };
 
-export type PremiumPayload = {
-  headline: string;
-  bio?: string;
-  socials?: { linkedin?: string; github?: string };
-  bank: BankAccount;
-  agreeTerms: true;
-};
-
 export type EarningsSummary = { sharePct: number; unsettled: number; pending: number; paid: number };
 
 export type Paged<T> = { items: T[]; total: number; page: number; pageSize: number };

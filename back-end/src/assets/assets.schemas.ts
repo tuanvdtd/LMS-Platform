@@ -4,6 +4,7 @@ import { PDF_MAX_BYTES, PROMO_MAX_BYTES, THUMBNAIL_MAX_BYTES, VIDEO_MAX_BYTES } 
 // Body xin URL tải lên, mỗi kind có loại file + cỡ riêng. kind lạ → 400.
 const fileName = z.string().trim().min(1).max(255);
 const mp4 = z.literal('video/mp4', 'Chỉ nhận video MP4');
+const image = z.enum(['image/jpeg', 'image/png', 'image/webp'], 'Chỉ nhận ảnh JPG, PNG hoặc WebP');
 
 export const createUploadSchema = z.discriminatedUnion('kind', [
   z
@@ -18,7 +19,15 @@ export const createUploadSchema = z.discriminatedUnion('kind', [
     .object({
       kind: z.literal('thumbnail'),
       fileName,
-      mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp'], 'Chỉ nhận ảnh JPG, PNG hoặc WebP'),
+      mimeType: image,
+      sizeBytes: z.int().min(1).max(THUMBNAIL_MAX_BYTES, 'Ảnh tối đa 5 MB'),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('avatar'),
+      fileName,
+      mimeType: image,
       sizeBytes: z.int().min(1).max(THUMBNAIL_MAX_BYTES, 'Ảnh tối đa 5 MB'),
     })
     .strict(),

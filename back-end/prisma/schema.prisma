@@ -68,7 +68,7 @@ model User {
   accounts Account[]
 
   instructorProfile     InstructorProfile?
-  applications          InstructorApplication[] @relation("applicant")
+  application           InstructorApplication?  @relation("applicant")
   applicationsReviewed  InstructorApplication[] @relation("applicationReviewer")
   courses               Course[]                @relation("courseInstructor")
   approvalsSubmitted    CourseApproval[]        @relation("approvalSubmitter")
@@ -162,24 +162,36 @@ model Verification {
 //  2. XÁC MINH GIẢNG VIÊN & KIỂM DUYỆT
 // ============================================================================
 
+// Đơn giảng viên cao cấp: mỗi user một đơn, sửa lại và gửi lại sau khi bị từ chối.
+// Duyệt xong mới tạo instructor_profiles (bản ghi đó = đã xác minh). Họ tên / ảnh nằm ở user.
 model InstructorApplication {
-  id           String            @id @default(uuid(7)) @db.Uuid
-  userId       String            @db.Uuid
-  status       ApplicationStatus @default(pending)
-  // [{ type: "degree"|"certificate"|"portfolio"|"cv", url, name, sizeBytes }]
-  documents    Json              @default("[]")
-  experience   String?
-  reviewedById String?           @db.Uuid
+  id     String            @id @default(uuid(7)) @db.Uuid
+  userId String            @unique @db.Uuid
+  status ApplicationStatus @default(draft)
+
+  headline String?
+  bio      String?
+  website  String?
+  socials  Json    @default("{}") // { linkedin?, github? }
+
+  termsAcceptedAt DateTime?
+
+  // Cả 3 cùng null hoặc cùng có (CHECK sql/10). Duyệt xong set null: số TK chỉ còn ở instructor_profiles.
+  bankBin         String?
+  bankAccountNo   String?
+  bankAccountName String?
+
+  submittedAt  DateTime?
+  reviewedById String?   @db.Uuid
   reviewedAt   DateTime?
   rejectReason String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   user       User  @relation("applicant", fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy User? @relation("applicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  @@index([userId])
-  @@index([status, createdAt]) // hàng đợi duyệt của admin
+  @@index([status, submittedAt]) // hàng đợi duyệt của admin
   @@map("instructor_applications")
 }
 
@@ -1317,6 +1329,7 @@ enum SkillLevel {
 }
 
 enum ApplicationStatus {
+  draft
   pending
   approved
   rejected

@@ -8,7 +8,7 @@ import {
   png,
   webp,
 } from '../../test/fixtures/files.js';
-import { imageInfo, isPdf, mp4Duration, mp4Size, videoSizeProblem } from './file-check.js';
+import { imageInfo, imageProblem, isPdf, mp4Duration, mp4Size, videoSizeProblem } from './file-check.js';
 
 describe('isPdf', () => {
   it('nhận file bắt đầu bằng %PDF-', () => expect(isPdf(pdf)).toBe(true));
@@ -150,5 +150,17 @@ describe('videoSizeProblem', () => {
     expect(videoSizeProblem({ width: 854, height: 480 })).toBe('Video phải từ 720p trở lên');
     expect(videoSizeProblem({ width: 1280, height: 720 })).toBeNull();
     expect(videoSizeProblem({ width: 1440, height: 900 })).toBeNull(); // 16:10 vẫn nhận
+  });
+});
+
+describe('imageProblem', () => {
+  const min = { width: 200, height: 200 };
+  it('đúng loại, đủ cỡ → null', () => expect(imageProblem(png(200, 200), 'png', min)).toBeNull());
+  it('đuôi khác loại thật → lỗi loại', () =>
+    expect(imageProblem(jpg(400, 400), 'png', min)).toBe('File không phải ảnh JPG, PNG hoặc WebP'));
+  it('không phải ảnh → lỗi loại', () => expect(imageProblem(pdf, 'png', min)).toBe('File không phải ảnh JPG, PNG hoặc WebP'));
+  it('nhỏ hơn tối thiểu → báo kích thước', () => {
+    expect(imageProblem(webp(199, 300), 'webp', min)).toBe('Ảnh tối thiểu 200×200 px');
+    expect(imageProblem(webp(300, 199), 'webp', min)).toBe('Ảnh tối thiểu 200×200 px');
   });
 });
