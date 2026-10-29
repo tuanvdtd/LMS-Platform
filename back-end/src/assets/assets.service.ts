@@ -49,12 +49,12 @@ export class AssetsService {
   // Key do BE sinh (người dùng không chọn đường dẫn), URL ký hạn 10 phút.
   async createUpload(ownerId: string, body: CreateUploadInput) {
     const headers = { 'Content-Type': body.mimeType };
-    if (body.kind === 'thumbnail' || body.kind === 'promo') {
-      // Ảnh bìa, video giới thiệu: R2 public, không vào assets.
+    if (body.kind === 'thumbnail' || body.kind === 'avatar' || body.kind === 'promo') {
+      // Ảnh bìa, ảnh hồ sơ, video giới thiệu: R2 public, không vào assets.
       const key =
-        body.kind === 'thumbnail'
-          ? `thumbnails/${ownerId}/${randomUUID()}.${IMAGE_EXT[body.mimeType]}`
-          : `promos/${ownerId}/${randomUUID()}.mp4`;
+        body.kind === 'promo'
+          ? `promos/${ownerId}/${randomUUID()}.mp4`
+          : `${body.kind === 'avatar' ? 'avatars' : 'thumbnails'}/${ownerId}/${randomUUID()}.${IMAGE_EXT[body.mimeType]}`;
       const uploadUrl = await this.storage.presignPut('public', key, body.mimeType, body.sizeBytes);
       return { assetId: null, key, uploadUrl, headers };
     }

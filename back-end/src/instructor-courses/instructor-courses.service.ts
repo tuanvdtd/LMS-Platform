@@ -1,6 +1,6 @@
 import { ConflictException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { imageInfo, mp4Duration, PROMO_MAX_BYTES, THUMBNAIL_MAX_BYTES, THUMBNAIL_MIN } from '../assets/file-check.js';
+import { imageProblem, mp4Duration, PROMO_MAX_BYTES, THUMBNAIL_MAX_BYTES, THUMBNAIL_MIN } from '../assets/file-check.js';
 import { type FieldError, isGuid, validationError } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { StorageService } from '../infra/storage.service.js';
@@ -326,12 +326,7 @@ export class InstructorCoursesService {
     if (!head) return 'Chưa tải ảnh lên';
     if (head.size > THUMBNAIL_MAX_BYTES) return 'Ảnh tối đa 5 MB';
     // Đọc cả ảnh (≤5 MB): JPEG có EXIF lớn có thể đặt kích thước sau 64 KB đầu.
-    const info = imageInfo(await this.storage.read('public', key));
-    if (!info || info.type !== ext) return 'File không phải ảnh JPG, PNG hoặc WebP';
-    if (info.width < THUMBNAIL_MIN.width || info.height < THUMBNAIL_MIN.height) {
-      return `Ảnh tối thiểu ${THUMBNAIL_MIN.width}×${THUMBNAIL_MIN.height} px`;
-    }
-    return null;
+    return imageProblem(await this.storage.read('public', key), ext, THUMBNAIL_MIN);
   }
 
   private async checkPromo(key: string): Promise<string | null> {

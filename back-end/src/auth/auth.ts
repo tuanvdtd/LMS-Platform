@@ -67,6 +67,8 @@ export function createAuth(
     basePath: '/api/auth',
     secret: requireEnv('BETTER_AUTH_SECRET'),
     trustedOrigins: [requireEnv('FE_URL')],
+    // Tên / ảnh chỉ đổi qua API của Nest để giữ khoá đơn giảng viên và bước kiểm ảnh; endpoint này bỏ qua cả hai.
+    disabledPaths: ['/update-user'],
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
     // Redis là lớp đọc nhanh; bảng session vẫn là nguồn chính.
     secondaryStorage: redisStorage(redis),

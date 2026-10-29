@@ -6,7 +6,6 @@ import type {
   MyPayout,
   Paged,
   PayoutAccountState,
-  PremiumPayload,
   VietQrBank,
 } from '@/types/revenue';
 
@@ -15,9 +14,6 @@ export const getPayoutAccount = () => api.get<PayoutAccountState>('/instructor/p
 
 export const savePayoutAccount = (body: BankAccount) =>
   api.put<PayoutAccountState>('/instructor/payout-account', body).then((r) => r.data);
-
-export const becomePremium = (body: PremiumPayload) =>
-  api.post<PayoutAccountState>('/instructor/premium', body).then((r) => r.data);
 
 export const getEarningsSummary = () => api.get<EarningsSummary>('/instructor/earnings/summary').then((r) => r.data);
 

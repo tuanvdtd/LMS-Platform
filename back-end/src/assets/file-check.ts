@@ -6,6 +6,7 @@ export const THUMBNAIL_MAX_BYTES = 5 * 1024 ** 2;
 export const VIDEO_MAX_BYTES = 1024 ** 3;
 export const PROMO_MAX_BYTES = 200 * 1024 ** 2;
 export const THUMBNAIL_MIN = { width: 750, height: 422 } as const;
+export const AVATAR_MIN = { width: 200, height: 200 } as const;
 export const IMAGE_EXT = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -31,6 +32,18 @@ export function imageInfo(
   } catch {
     return null;
   }
+}
+
+// Ảnh đã đọc từ storage: đúng loại theo đuôi key và đủ kích thước tối thiểu. Lỗi → câu báo cho người dùng.
+export function imageProblem(
+  buf: Uint8Array,
+  ext: string,
+  min: { width: number; height: number },
+): string | null {
+  const info = imageInfo(buf);
+  if (!info || info.type !== ext) return 'File không phải ảnh JPG, PNG hoặc WebP';
+  if (info.width < min.width || info.height < min.height) return `Ảnh tối thiểu ${min.width}×${min.height} px`;
+  return null;
 }
 
 type ReadAt = (offset: number, length: number) => Promise<Buffer>;
