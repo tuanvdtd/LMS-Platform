@@ -249,6 +249,7 @@ describe('Assets + ảnh bìa + khung chương trình (e2e)', () => {
           fileName: 'bai.pdf',
           sizeBytes: pdf.length,
           durationSec: null,
+          status: 'ready',
           createdAt: expect.any(String),
         });
         await call('post', `/api/instructor/assets/${ok.assetId}/complete`, alice.cookie).expect(404);

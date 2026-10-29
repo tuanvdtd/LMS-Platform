@@ -8,7 +8,7 @@ import {
   png,
   webp,
 } from '../../test/fixtures/files.js';
-import { imageInfo, isPdf, mp4Duration } from './file-check.js';
+import { imageInfo, isPdf, mp4Duration, mp4Size, videoSizeProblem } from './file-check.js';
 
 describe('isPdf', () => {
   it('nhận file bắt đầu bằng %PDF-', () => expect(isPdf(pdf)).toBe(true));
@@ -95,5 +95,60 @@ describe('mp4Duration', () => {
     expect(
       await run(Buffer.concat([ftypOnly, ...frees, box('moov', mvhd(5))])),
     ).toBeNull();
+  });
+});
+
+describe('mp4Size', () => {
+  const run = (buf: Buffer) =>
+    mp4Size((offset, length) => Promise.resolve(buf.subarray(offset, offset + length)), buf.length);
+
+  it('MP4 ngang có tiếng → kích thước + hasAudio', async () => {
+    expect(await run(mp4(10))).toEqual({ width: 1920, height: 1080, hasAudio: true });
+    expect(await run(mp4(10, { moovLast: true, video: { width: 1280, height: 720 } }))).toEqual({
+      width: 1280,
+      height: 720,
+      hasAudio: true,
+    });
+  });
+  it('matrix xoay 90° → đổi chỗ width/height (kích thước hiển thị)', async () => {
+    expect(await run(mp4(10, { video: { width: 1920, height: 1080, rotate: 90 } }))).toMatchObject({ width: 1080, height: 1920 });
+  });
+  it('matrix xoay 270° → đổi chỗ width/height', async () => {
+    expect(await run(mp4(10, { video: { width: 1920, height: 1080, rotate: 270 } }))).toMatchObject({ width: 1080, height: 1920 });
+  });
+  it('track text (tkhd 640×480) đứng trước track hình → vẫn lấy kích thước track hình', async () => {
+    expect(await run(mp4(10, { textFirst: true }))).toEqual({ width: 1920, height: 1080, hasAudio: true });
+  });
+  it('cấu trúc lồng độc hại: số lần đọc bị chặn, kết quả null', async () => {
+    const free20 = Buffer.concat(Array.from({ length: 20 }, () => box('free', [])));
+    const mdia20 = Buffer.concat(Array.from({ length: 20 }, () => box('mdia', free20)));
+    const trak20 = Buffer.concat(Array.from({ length: 20 }, () => box('trak', mdia20)));
+    const buf = Buffer.concat([mp4(1).subarray(0, 32), box('moov', trak20)]);
+    let reads = 0;
+    const result = await mp4Size((offset, length) => {
+      reads++;
+      return Promise.resolve(buf.subarray(offset, offset + length));
+    }, buf.length);
+    expect(result).toBeNull();
+    expect(reads).toBeLessThanOrEqual(150);
+  });
+  it('không có tiếng → hasAudio false', async () => {
+    expect(await run(mp4(10, { audio: false }))).toEqual({ width: 1920, height: 1080, hasAudio: false });
+  });
+  it('track audio > 64 KB đứng trước track video vẫn đọc được', async () => {
+    expect(await run(mp4(10, { bigAudio: true }))).toEqual({ width: 1920, height: 1080, hasAudio: true });
+  });
+  it('chỉ có tiếng / không phải MP4 → null', async () => {
+    expect(await run(mp4(10, { video: null }))).toBeNull();
+    expect(await run(pdf)).toBeNull();
+  });
+});
+
+describe('videoSizeProblem', () => {
+  it('chặn dọc trước, rồi chặn dưới 720p', () => {
+    expect(videoSizeProblem({ width: 1080, height: 1920 })).toBe('Chỉ nhận video ngang');
+    expect(videoSizeProblem({ width: 854, height: 480 })).toBe('Video phải từ 720p trở lên');
+    expect(videoSizeProblem({ width: 1280, height: 720 })).toBeNull();
+    expect(videoSizeProblem({ width: 1440, height: 900 })).toBeNull(); // 16:10 vẫn nhận
   });
 });

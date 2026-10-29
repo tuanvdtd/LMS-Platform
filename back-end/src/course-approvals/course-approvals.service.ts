@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { MailService } from '../mail/mail.service.js';
 import type { Prisma } from '@prisma/client';
-import { bucketOf } from '../assets/assets.service.js';
+import { bucketOf, videoUrl } from '../assets/assets.service.js';
 import { isGuid } from '../common/zod.pipe.js';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { StorageService } from '../infra/storage.service.js';
@@ -210,10 +210,10 @@ export class CourseApprovalsService {
           { resources: { some: { item: { courseId } } } },
         ],
       },
-      select: { kind: true, storageKey: true },
+      select: { id: true, kind: true, storageKey: true, hlsKey: true },
     });
     if (!asset) throw new NotFoundException();
-    const ttl = asset.kind === 'video' ? 3600 : 300; // như AssetsService.viewUrl
-    return { url: await this.storage.presignGet(bucketOf(asset.kind), asset.storageKey, ttl) };
+    if (asset.kind === 'video') return { url: await videoUrl(this.storage, asset) };
+    return { url: await this.storage.presignGet(bucketOf(asset.kind), asset.storageKey, 300) };
   }
 }

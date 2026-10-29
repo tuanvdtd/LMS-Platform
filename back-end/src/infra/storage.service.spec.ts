@@ -82,3 +82,26 @@ describe('StorageService.presignGet — CloudFront cho video', () => {
     ).toThrow('CLOUDFRONT_PRIVATE_KEY_BASE64 không phải private key PEM hợp lệ');
   });
 });
+
+describe('StorageService.signVideoPrefix — ký wildcard cho thư mục HLS', () => {
+  // Policy CloudFront là base64 "URL-safe" kiểu riêng: + → -, = → _, / → ~.
+  const decodePolicy = (p: string) =>
+    JSON.parse(Buffer.from(p.replace(/-/g, '+').replace(/_/g, '=').replace(/~/g, '/'), 'base64').toString('utf8'));
+
+  it('URL playlist + Policy wildcard hls/<id>/*, hạn = now + ttl', async () => {
+    const storage = make(CF);
+    expect(storage.hasCdn).toBe(true);
+    const url = new URL(await storage.signVideoPrefix('hls/a1/', 'hls/a1/index.m3u8', 600));
+    expect(url.origin).toBe('https://d111.cloudfront.net');
+    expect(url.pathname).toBe('/hls/a1/index.m3u8');
+    expect(url.searchParams.get('Key-Pair-Id')).toBe('K2TEST');
+    expect(url.searchParams.get('Signature')).toBeTruthy();
+    const statement = decodePolicy(url.searchParams.get('Policy')!).Statement[0];
+    expect(statement.Resource).toBe('https://d111.cloudfront.net/hls/a1/*');
+    expect(Math.abs(statement.Condition.DateLessThan['AWS:EpochTime'] - (Date.now() / 1000 + 600))).toBeLessThan(5);
+  });
+
+  it('không có CloudFront → hasCdn false', () => {
+    expect(make({}).hasCdn).toBe(false);
+  });
+});

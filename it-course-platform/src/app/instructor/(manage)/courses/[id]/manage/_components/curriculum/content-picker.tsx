@@ -29,12 +29,12 @@ type Props = {
 
 const COPY = {
   document: { accept: 'application/pdf', title: 'Chọn file PDF hoặc kéo thả vào đây', hint: 'Tối đa 1 GB', processing: 'Đang xử lý file…' },
-  video: { accept: 'video/mp4', title: 'Chọn file MP4 hoặc kéo thả vào đây', hint: 'MP4 (H.264), tối đa 1 GB', processing: 'Đang xử lý video…' },
+  video: { accept: 'video/mp4', title: 'Chọn file MP4 hoặc kéo thả vào đây', hint: 'MP4 (H.264) ngang, từ 720p, tối đa 1 GB', processing: 'Đang xử lý video…' },
 } as const;
 
 // Video: kèm thời lượng FE đo (gửi lên BE). PDF: durationSec bỏ qua.
 async function checkFile(kind: AssetKind, file: File): Promise<{ problem: string | null; durationSec: number }> {
-  if (kind === 'video') return checkVideo(file, VIDEO_MAX_BYTES, '1 GB');
+  if (kind === 'video') return checkVideo(file, VIDEO_MAX_BYTES, '1 GB', true);
   if (file.type !== 'application/pdf') return { problem: 'Chỉ nhận file PDF', durationSec: 0 };
   if (file.size > PDF_MAX_BYTES) return { problem: 'PDF tối đa 1 GB', durationSec: 0 };
   return { problem: null, durationSec: 0 };

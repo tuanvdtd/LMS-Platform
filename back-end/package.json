@@ -26,9 +26,12 @@
     "db:deploy": "prisma migrate deploy",
     "r2:check": "node --experimental-strip-types scripts/r2-check.ts",
     "s3:check": "node --experimental-strip-types scripts/s3-check.ts",
-    "cloudfront:check": "node --experimental-strip-types scripts/cloudfront-check.ts"
+    "cloudfront:check": "node --experimental-strip-types scripts/cloudfront-check.ts",
+    "hls:check": "node --experimental-strip-types scripts/hls-check.ts",
+    "hls:backfill": "nest build && node dist/hls/backfill.js"
   },
   "dependencies": {
+    "@aws-sdk/client-mediaconvert": "^3.1157.0",
     "@aws-sdk/client-s3": "^3.1143.0",
     "@aws-sdk/cloudfront-signer": "^3.1155.0",
     "@aws-sdk/s3-request-presigner": "^3.1143.0",

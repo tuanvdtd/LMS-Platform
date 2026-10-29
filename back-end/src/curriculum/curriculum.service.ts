@@ -34,7 +34,7 @@ const ITEM_SELECT = {
   isDownloadable: true,
   durationSec: true,
   documentAsset: ASSET_REF,
-  videoAsset: { select: { ...ASSET_REF.select, durationSec: true } },
+  videoAsset: { select: { ...ASSET_REF.select, durationSec: true, status: true } },
   resources: { orderBy: { position: 'asc' }, select: { id: true, title: true, asset: ASSET_REF } },
 } satisfies Prisma.CurriculumItemSelect;
 const LECTURE_ONLY = ['description', 'isPreview', 'isDownloadable'] as const;
@@ -163,9 +163,9 @@ export class CurriculumService {
   }
 
   setContent(courseId: string, userId: string, itemId: string, assetId: string) {
-    return this.mutate(courseId, userId, async (tx) => {
+    return this.mutate(courseId, userId, async (tx, course) => {
       await this.lecture(tx, courseId, itemId);
-      const asset = await this.usableAsset(tx, userId, assetId, ['document', 'video']);
+      const asset = await this.usableAsset(tx, userId, assetId, ['document', 'video'], course.status === 'published');
       // Video: thời lượng BE đã đo lúc complete, chép vào bài để checklist cộng.
       const content =
         asset.kind === 'video'
@@ -222,11 +222,11 @@ export class CurriculumService {
   // Mọi mutation: chủ khoá + không in_review, rồi transaction khoá dòng courses (một khoá cho cả khoá học,
   // không deadlock) để max+1 / đánh số lại không đụng nhau giữa 2 tab.
   // Dùng chung với QuizService: kiểm quyền + khoá dòng course + trả cây mới.
-  async mutate(courseId: string, userId: string, fn: (tx: Tx) => Promise<void>) {
+  async mutate(courseId: string, userId: string, fn: (tx: Tx, course: CourseRow) => Promise<void>) {
     const course = await this.courses.assertEditable(courseId, userId);
     await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT 1 FROM courses WHERE id = ${courseId}::uuid FOR UPDATE`;
-      await fn(tx);
+      await fn(tx, course);
     }, MUTATE_TX);
     return this.tree(course);
   }
@@ -246,22 +246,28 @@ export class CurriculumService {
     });
     let published = 0;
     let videoSeconds = 0;
+    let processingVideos = 0;
+    let failedVideos = 0;
     const out = sections.map((s) => ({
       ...s,
       items: s.items.map(({ documentAsset, videoAsset, resources, ...item }) => {
         if (item.type === 'lecture' && item.isPublished) {
           published++;
-          if (item.lectureKind === 'video') videoSeconds += item.durationSec;
+          if (item.lectureKind === 'video') {
+            videoSeconds += item.durationSec;
+            if (videoAsset?.status === 'processing') processingVideos++;
+            else if (videoAsset?.status === 'failed') failedVideos++;
+          }
         }
         return {
           ...item,
           document: documentAsset && toRef(documentAsset),
-          video: videoAsset && { ...toRef(videoAsset), durationSec: videoAsset.durationSec },
+          video: videoAsset && { ...toRef(videoAsset), durationSec: videoAsset.durationSec, status: videoAsset.status },
           resources: resources.map((r) => ({ id: r.id, title: r.title, asset: toRef(r.asset) })),
         };
       }),
     }));
-    return { sections: out, checklist: this.courses.checklistFor(course, { published, videoSeconds }) };
+    return { sections: out, checklist: this.courses.checklistFor(course, { published, videoSeconds, processingVideos, failedVideos }) };
   }
 
   private renumberItems(tx: Tx, sectionId: string, ids: string[]) {
@@ -293,13 +299,19 @@ export class CurriculumService {
     return item;
   }
 
-  // Asset của mình, đã ready, đúng loại. Tài nguyên đính kèm chỉ nhận document.
-  private async usableAsset(tx: Tx, userId: string, assetId: string, kinds: AssetKind[]) {
+  // Asset của mình, đúng loại, ready — hoặc video đang encode HLS (gắn trước, học viên thấy "chưa sẵn sàng" tới khi xong). Tài nguyên đính kèm chỉ nhận document (không bao giờ processing).
+  // Khoá đang bán (published) chỉ nhận video ready: học viên đã mua sẽ thấy bài không phát được, và job lỗi sẽ làm hỏng khoá đang bán vì khoá published không qua checklist gửi duyệt nữa.
+  private async usableAsset(tx: Tx, userId: string, assetId: string, kinds: AssetKind[], onSale = false) {
     const asset = await tx.asset.findFirst({
-      where: { id: assetId, ownerId: userId, kind: { in: kinds }, status: 'ready' },
-      select: { kind: true, fileName: true, durationSec: true },
+      where: { id: assetId, ownerId: userId, kind: { in: kinds }, status: { in: ['ready', 'processing'] } },
+      select: { kind: true, fileName: true, durationSec: true, status: true },
     });
     if (!asset) throw validationError([{ path: ['assetId'], message: 'File không dùng được' }]);
+    if (onSale && asset.status === 'processing') {
+      throw validationError([
+        { path: ['assetId'], message: 'Video đang xử lý, đợi xử lý xong rồi gắn vào bài (khoá đang bán)' },
+      ]);
+    }
     return asset;
   }
 }
