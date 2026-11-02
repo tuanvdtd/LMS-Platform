@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function CourseDetailSkeleton() {
   return (
     <div className="relative min-h-screen bg-background" role="status" aria-busy="true" aria-label="Đang tải khoá học">
-      <div className="bg-slate-900 px-4 py-10">
+      <div className="bg-ink px-4 py-10">
         <div className="mx-auto flex max-w-screen-xl flex-col gap-3 lg:pr-[372px]">
           <Skeleton className="h-4 w-48 bg-white/15" />
           <Skeleton className="h-8 w-3/4 bg-white/15 md:h-9" />

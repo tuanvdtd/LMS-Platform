@@ -89,7 +89,7 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
       <div className="flex items-center justify-between gap-2 border-b bg-card px-3 py-2 sm:px-4">
         <StepLink slug={courseSlug} item={prev} dir="prev" />
         {lecture.progress.completed ? (
-          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-600 dark:text-green-500">
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-success">
             <CircleCheck className="size-4" aria-hidden /> Đã hoàn thành
           </span>
         ) : lecture.manualComplete ? (

@@ -23,6 +23,15 @@ export interface LearnOutline {
   completedAt: string | null;
   resumeItemId: string | null;
   sections: LearnSection[];
+  review: ReviewItem[];
+}
+
+// Bài giảng nên ôn: liên quan tới câu sai ở lượt nộp gần nhất của từng quiz.
+export interface ReviewItem {
+  itemId: string;
+  title: string;
+  wrongCount: number;
+  quizzes: { itemId: string; title: string }[];
 }
 
 export interface LectureResource {

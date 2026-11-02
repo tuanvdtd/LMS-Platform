@@ -122,7 +122,7 @@ export default function InstructorSidebar() {
         <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
           <Link
             href="/"
-            className="flex items-center gap-2 text-xs font-medium text-blue-600 hover:underline"
+            className="flex items-center gap-2 text-xs font-medium text-primary hover:underline"
           >
             <BookMarked size={13} />
             Chuyển sang Học viên

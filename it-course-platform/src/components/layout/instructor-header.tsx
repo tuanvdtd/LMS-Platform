@@ -50,7 +50,7 @@ export default function InstructorHeader() {
           <span className="hidden text-lg font-bold sm:block">
             Skill<span className="text-primary">Path</span>
           </span>
-          <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700 dark:bg-orange-950 dark:text-orange-300">
+          <span className="rounded-full bg-brand-accent-soft px-2 py-0.5 text-xs font-semibold text-brand-accent-strong">
             Giảng viên
           </span>
         </Link>

@@ -117,7 +117,7 @@ export default function SkillsPage() {
       {/* Recommendations */}
       <div className="border rounded-2xl p-5" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
         <div className="flex items-center gap-2 mb-4">
-          <Target size={18} className="text-orange-500" />
+          <Target size={18} className="text-brand-accent-strong" />
           <h2 className="font-bold" style={{ color: 'var(--foreground)' }}>Lộ trình đề xuất tiếp theo</h2>
         </div>
         <ol className="space-y-3">
@@ -137,7 +137,7 @@ export default function SkillsPage() {
                 <p className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{action}</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{reason}</p>
               </div>
-              <Link href={link} className="text-xs text-blue-600 hover:underline flex items-center gap-0.5 shrink-0">
+              <Link href={link} className="text-xs text-primary hover:underline flex items-center gap-0.5 shrink-0">
                 Xem khoá <ArrowRight size={10} />
               </Link>
             </li>

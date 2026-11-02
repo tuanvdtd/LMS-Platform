@@ -89,13 +89,13 @@ export function StudentsView() {
           </thead>
           <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
             {filtered.map((s) => (
-              <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+              <tr key={s.id} className="hover:bg-muted transition-colors">
                 <td className="px-4 py-3">
                   <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleSelect(s.id)} />
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs shrink-0" style={{ color: 'var(--foreground)' }}>
+                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center font-bold text-xs shrink-0" style={{ color: 'var(--foreground)' }}>
                       {s.name.split(' ').pop()?.charAt(0)}
                     </div>
                     <span className="font-medium" style={{ color: 'var(--foreground)' }}>{s.name}</span>
@@ -120,8 +120,8 @@ export function StudentsView() {
                   <span
                     className="text-xs font-semibold px-2 py-0.5 rounded-full"
                     style={{
-                      background: s.risk === 'high' ? '#fee2e2' : s.risk === 'medium' ? '#fef9c3' : '#dcfce7',
-                      color: s.risk === 'high' ? '#dc2626' : s.risk === 'medium' ? '#854d0e' : '#166534',
+                      background: s.risk === 'high' ? 'var(--danger-soft)' : s.risk === 'medium' ? 'var(--warning-soft)' : 'var(--success-soft)',
+                      color: s.risk === 'high' ? 'var(--danger)' : s.risk === 'medium' ? 'var(--warning)' : 'var(--success)',
                     }}
                   >
                     {s.risk === 'high' ? 'Nguy cơ cao' : s.risk === 'medium' ? 'Theo dõi' : 'Tốt'}

@@ -18,8 +18,8 @@ export default async function VerifyCertificatePage({ params }: PageProps<'/veri
 
   return (
     <div className="mx-auto max-w-md px-4 py-16 text-center">
-      <BadgeCheck className="mx-auto mb-4 size-12 text-emerald-600" />
-      <h1 className="mb-2 text-xl font-extrabold text-emerald-600">Chứng chỉ hợp lệ</h1>
+      <BadgeCheck className="mx-auto mb-4 size-12 text-success" />
+      <h1 className="mb-2 text-xl font-extrabold text-success">Chứng chỉ hợp lệ</h1>
       <p className="mb-6 text-sm text-muted-foreground">Chứng chỉ này đã được SkillPath xác nhận là hợp lệ.</p>
       <Card>
         <CardContent className="pt-6 text-left">

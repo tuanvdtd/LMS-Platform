@@ -28,7 +28,7 @@ export default function InstructorDashboardPage() {
         </div>
         <Link
           href="/instructor/courses"
-          className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary-hover transition-colors"
         >
           + Tạo khoá học mới
         </Link>
@@ -45,7 +45,7 @@ export default function InstructorDashboardPage() {
       {/* Alerts */}
       <div className="border rounded-2xl p-5" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
         <h2 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
-          <AlertTriangle size={16} className="text-amber-500" />
+          <AlertTriangle size={16} className="text-warning" />
           Cần chú ý
         </h2>
         <div className="grid sm:grid-cols-2 gap-3">
@@ -53,7 +53,7 @@ export default function InstructorDashboardPage() {
             <Link
               key={label}
               href={link}
-              className="flex items-start gap-3 p-3 rounded-xl border hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="flex items-start gap-3 p-3 rounded-xl border hover:bg-muted transition-colors"
               style={{ borderColor: 'var(--border)' }}
             >
               <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: color + '20' }}>
@@ -79,17 +79,17 @@ export default function InstructorDashboardPage() {
       <div className="border rounded-2xl p-5" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
-            <TrendingDown size={16} className="text-red-500" />
+            <TrendingDown size={16} className="text-danger" />
             Học viên nguy cơ bỏ học
           </h2>
-          <Link href="/instructor/analytics/students" className="text-xs text-blue-600 hover:underline">
+          <Link href="/instructor/analytics/students" className="text-xs text-primary hover:underline">
             Xem tất cả
           </Link>
         </div>
         <div className="space-y-2">
           {atRiskStudents.slice(0, 3).map((s) => (
             <div key={s.id} className="flex items-center gap-3 text-sm p-3 rounded-xl border" style={{ borderColor: 'var(--border)' }}>
-              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs shrink-0" style={{ color: 'var(--foreground)' }}>
+              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center font-bold text-xs shrink-0" style={{ color: 'var(--foreground)' }}>
                 {s.name.split(' ').pop()?.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
@@ -101,8 +101,8 @@ export default function InstructorDashboardPage() {
               <span
                 className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
                 style={{
-                  background: s.risk === 'high' ? '#fee2e2' : '#fef9c3',
-                  color: s.risk === 'high' ? '#dc2626' : '#854d0e',
+                  background: s.risk === 'high' ? 'var(--danger-soft)' : 'var(--warning-soft)',
+                  color: s.risk === 'high' ? 'var(--danger)' : 'var(--warning)',
                 }}
               >
                 {s.risk === 'high' ? 'Nguy cơ cao' : 'Theo dõi'}

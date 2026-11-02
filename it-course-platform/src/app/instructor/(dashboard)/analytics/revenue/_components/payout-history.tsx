@@ -14,9 +14,9 @@ const fmtDate = (d: string) => new Date(d).toLocaleDateString('vi-VN');
 
 function StatusBadge({ status }: { status: PayoutStatus }) {
   return status === 'paid' ? (
-    <Badge variant="secondary" className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">{PAYOUT_STATUS_LABEL[status]}</Badge>
+    <Badge variant="secondary" className="bg-success-soft text-success">{PAYOUT_STATUS_LABEL[status]}</Badge>
   ) : (
-    <Badge variant="secondary" className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300">{PAYOUT_STATUS_LABEL[status]}</Badge>
+    <Badge variant="secondary" className="bg-warning-soft text-warning">{PAYOUT_STATUS_LABEL[status]}</Badge>
   );
 }
 

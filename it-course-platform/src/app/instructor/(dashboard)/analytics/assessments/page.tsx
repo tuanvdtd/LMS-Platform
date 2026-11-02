@@ -79,13 +79,13 @@ export default function AnalyticsAssessmentsPage() {
               {demoQuiz.questions.map((q, i) => {
                 const quality = qualityColor(q.discriminationIndex ?? 0, q.difficultyActual ?? 0.5);
                 return (
-                  <tr key={q.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <tr key={q.id} className="hover:bg-muted transition-colors">
                     <td className="px-3 py-2.5 text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>{i + 1}</td>
                     <td className="px-3 py-2.5 max-w-48">
                       <p className="text-xs truncate" style={{ color: 'var(--foreground)' }}>{q.content.slice(0, 60)}…</p>
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{q.skills[0]?.name}</span>
+                      <span className="text-xs bg-primary-soft text-primary px-1.5 py-0.5 rounded">{q.skills[0]?.name}</span>
                     </td>
                     <td className="px-3 py-2.5 font-mono text-xs" style={{ color: 'var(--foreground)' }}>
                       {((q.difficultyActual ?? 0) * 100).toFixed(0)}%
@@ -97,8 +97,8 @@ export default function AnalyticsAssessmentsPage() {
                       <span
                         className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{
-                          background: quality === 'good' ? '#dcfce7' : quality === 'bad' ? '#fee2e2' : '#fef9c3',
-                          color: quality === 'good' ? '#166534' : quality === 'bad' ? '#dc2626' : '#854d0e',
+                          background: quality === 'good' ? 'var(--success-soft)' : quality === 'bad' ? 'var(--danger-soft)' : 'var(--warning-soft)',
+                          color: quality === 'good' ? 'var(--success)' : quality === 'bad' ? 'var(--danger)' : 'var(--warning)',
                         }}
                       >
                         {quality === 'good' ? 'Tốt' : quality === 'bad' ? 'Kém' : 'Xem lại'}
@@ -139,8 +139,8 @@ export default function AnalyticsAssessmentsPage() {
                       <div
                         className="inline-flex items-center justify-center w-12 h-8 rounded text-xs font-bold"
                         style={{
-                          background: v < 40 ? '#fee2e2' : v < 60 ? '#fef9c3' : '#dcfce7',
-                          color: v < 40 ? '#dc2626' : v < 60 ? '#854d0e' : '#166534',
+                          background: v < 40 ? 'var(--danger-soft)' : v < 60 ? 'var(--warning-soft)' : 'var(--success-soft)',
+                          color: v < 40 ? 'var(--danger)' : v < 60 ? 'var(--warning)' : 'var(--success)',
                         }}
                       >
                         {v}%
@@ -153,9 +153,9 @@ export default function AnalyticsAssessmentsPage() {
           </table>
         </div>
         <div className="flex items-center gap-4 mt-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 inline-block" /> &lt;40% Yếu</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 inline-block" /> 40–60% TB</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 inline-block" /> &ge;60% Vững</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-danger-soft inline-block" /> &lt;40% Yếu</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-warning-soft inline-block" /> 40–60% TB</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-success-soft inline-block" /> &ge;60% Vững</span>
         </div>
       </div>
     </div>

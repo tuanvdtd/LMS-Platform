@@ -98,7 +98,7 @@ export default function CartView() {
                   <dd className="text-foreground">{formatVnd(cart.summary.subtotal)}</dd>
                 </div>
                 {cart.summary.discount > 0 && (
-                  <div className="flex justify-between gap-4 text-green-700 dark:text-green-400">
+                  <div className="flex justify-between gap-4 text-success">
                     <dt>Giảm giá ({Math.round((cart.summary.discount / cart.summary.subtotal) * 100)}%)</dt>
                     <dd>−{formatVnd(cart.summary.discount)}</dd>
                   </div>
@@ -140,7 +140,7 @@ export default function CartView() {
                           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden /> {cart.couponError}
                         </p>
                       ) : (
-                        <p className="text-green-700 dark:text-green-400">
+                        <p className="text-success">
                           Đã áp mã <span className="font-semibold">{applied}</span>
                         </p>
                       )}
@@ -218,7 +218,7 @@ function CartRow({ item, coupon, onRemove }: { item: CartItem; coupon: string; o
           </Link>
           <p className="mt-1 truncate text-sm text-muted-foreground">{course.instructorName}</p>
           {couponApplied && coupon && (
-            <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-950 dark:text-green-300">
+            <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-success-soft px-2 py-0.5 text-xs font-medium text-success">
               <Tag className="size-3" aria-hidden /> {coupon}
             </span>
           )}

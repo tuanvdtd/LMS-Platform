@@ -149,7 +149,7 @@ export function BuyBox({ course }: Props) {
   }
 
   const enrolledNote = (
-    <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--skill-strong)]">
+    <p className="flex items-center gap-1.5 text-sm font-semibold text-success">
       <CircleCheck className="size-4" aria-hidden /> Bạn đã ghi danh
     </p>
   );

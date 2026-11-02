@@ -18,19 +18,23 @@ export function CategoryCards({ categories }: { categories: CategoryNode[] }) {
             <Link
               key={c.slug}
               href={categoryHref(c.slug)}
-              className="group flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-xs outline-none transition-[box-shadow,border-color,translate] duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              className="group card-interactive flex flex-col gap-4 p-5"
             >
               <span className="grid size-10 place-items-center rounded-lg bg-[var(--primary-light)] text-primary">
                 <CategoryIcon slug={c.slug} className="size-5" />
               </span>
               <div>
-                <p className="font-bold group-hover:text-primary">{c.name}</p>
+                <p className="font-bold">{c.name}</p>
                 <ul className="mt-2 grid gap-1 text-sm text-muted-foreground">
                   {c.children.slice(0, 3).map((s) => <li key={s.slug} className="truncate">{s.name}</li>)}
                 </ul>
               </div>
               <span className="mt-auto flex items-center gap-1 text-sm font-semibold text-primary">
-                Xem khoá học <ArrowRight className="size-4" aria-hidden />
+                Xem khoá học
+                <ArrowRight
+                  className="size-4 transition-transform duration-300 group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 motion-reduce:transition-none"
+                  aria-hidden
+                />
               </span>
             </Link>
           ))}

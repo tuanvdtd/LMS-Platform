@@ -40,7 +40,7 @@ export function UserAvatar({ author, className }: { author: Pick<QaAuthor, 'name
   return (
     <Avatar className={cn('mt-0.5', className)}>
       {author.image && <AvatarImage src={author.image} alt="" />}
-      <AvatarFallback className="text-xs font-semibold text-slate-600">{initials(author.name)}</AvatarFallback>
+      <AvatarFallback className="text-xs font-semibold text-muted-foreground">{initials(author.name)}</AvatarFallback>
     </Avatar>
   );
 }

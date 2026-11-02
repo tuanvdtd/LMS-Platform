@@ -33,13 +33,13 @@ export function FileName({ name, className }: { name: string; className?: string
 export function FileStatusBadge({ file }: { file: LibraryFile }) {
   if (file.status === 'processing')
     return (
-      <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+      <span className="inline-flex shrink-0 items-center rounded-full bg-warning-soft px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-warning">
         Đang xử lý
       </span>
     );
   if (file.status === 'failed')
     return (
-      <span className="inline-flex shrink-0 items-center rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-red-700 dark:bg-destructive/20 dark:text-red-300">
+      <span className="inline-flex shrink-0 items-center rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-danger dark:bg-destructive/20">
         Tải lên lỗi
       </span>
     );
