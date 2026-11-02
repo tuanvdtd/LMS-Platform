@@ -1,7 +1,7 @@
 // back-end/src/catalog/catalog.service.ts
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { activeCoupons } from '../coupons/active-coupons.js';
-import { bucketOf } from '../assets/assets.service.js';
+import { videoUrl } from '../assets/assets.service.js';
 import { isGuid } from '../common/zod.pipe.js';
 import { StorageService } from '../infra/storage.service.js';
 import type { Prisma } from '@prisma/client';
@@ -193,7 +193,7 @@ export class CatalogService {
     };
   }
 
-  // Xem thử không cần mua. Video S3 private → presigned GET như admin xem lúc duyệt.
+  // Xem thử không cần mua. Có HLS → playlist ký CloudFront wildcard, chưa có → MP4 ký như admin xem lúc duyệt.
   async preview(slug: string, itemId: string) {
     const item = isGuid(itemId)
       ? await this.prisma.curriculumItem.findFirst({
@@ -202,7 +202,7 @@ export class CatalogService {
             type: true,
             isPreview: true,
             lectureKind: true,
-            videoAsset: { select: { kind: true, storageKey: true, status: true } },
+            videoAsset: { select: { id: true, kind: true, storageKey: true, status: true, hlsKey: true } },
           },
         })
       : null;
@@ -211,7 +211,7 @@ export class CatalogService {
     if (!canPreview(item) || !v) {
       throw new ForbiddenException({ statusCode: 403, code: 'PREVIEW_NOT_ALLOWED', message: 'Bài này không cho xem thử' });
     }
-    return { url: await this.storage.presignGet(bucketOf(v.kind), v.storageKey, 3600) };
+    return { url: await videoUrl(this.storage, v) };
   }
 
   async instructor(id: string) {

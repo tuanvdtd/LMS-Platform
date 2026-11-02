@@ -42,7 +42,7 @@ export function CatalogSubnav({ parent, activeChild }: { parent: CategoryNode; a
               className={cn(
                 'relative flex min-h-12 items-center px-3 text-sm whitespace-nowrap transition-colors',
                 'after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors',
-                it.root ? 'font-bold text-foreground' : 'font-medium text-muted-foreground hover:text-foreground',
+                it.root ? 'font-bold text-foreground' : 'font-medium text-secondary-foreground hover:text-foreground',
                 it.active && 'text-primary after:bg-primary',
                 focusRing,
               )}
@@ -142,17 +142,14 @@ export function LinkTiles({
             <li key={l.id}>
               <Link
                 href={l.href}
-                className={cn(
-                  'group flex min-h-14 items-center justify-between gap-2 rounded-xl border bg-card px-3 py-3 sm:min-h-16 sm:px-4 transition-[translate,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0',
-                  focusRing,
-                )}
+                className="group card-interactive flex min-h-14 items-center justify-between gap-2 px-3 py-3 sm:min-h-16 sm:px-4"
               >
                 <span className="flex min-w-0 flex-col">
-                  <span className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">{l.name}</span>
+                  <span className="line-clamp-2 text-sm font-semibold text-foreground">{l.name}</span>
                   {l.meta && <span className="text-xs text-muted-foreground">{l.meta}</span>}
                 </span>
                 <ArrowUpRight
-                  className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
+                  className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary group-focus-visible:text-primary"
                   aria-hidden
                 />
               </Link>

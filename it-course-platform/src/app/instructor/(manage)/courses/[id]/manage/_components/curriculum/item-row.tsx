@@ -16,14 +16,14 @@ import { LectureDetailPanel } from './lecture-detail-panel';
 
 // Icon + màu nền theo loại mục (bài giảng PDF dùng icon tài liệu).
 export const TYPE_ICON: Record<ItemType, { icon: typeof Play; className: string }> = {
-  lecture: { icon: Play, className: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300' },
-  quiz: { icon: CircleHelp, className: 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-300' },
+  lecture: { icon: Play, className: 'bg-primary-soft text-primary' },
+  quiz: { icon: CircleHelp, className: 'bg-tertiary-soft text-tertiary' },
   practice_test: { icon: ClipboardCheck, className: 'bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-300' },
-  coding_exercise: { icon: CodeXml, className: 'bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-300' },
+  coding_exercise: { icon: CodeXml, className: 'bg-brand-accent-soft text-brand-accent-strong' },
 };
 
-const DONE = 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300';
-const TODO = 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300';
+const DONE = 'border-success-border bg-success-soft text-success';
+const TODO = 'border-warning-border bg-warning-soft text-warning';
 const IDLE = 'border-transparent bg-muted text-muted-foreground';
 
 function chipOf(item: CurriculumItem): { text: string; className: string } {

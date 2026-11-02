@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 // adminOnly: moderator không thấy (layout cũng trả 403 nếu mở thẳng URL).
 const LINKS = [
   { href: '/admin/course-approvals', label: 'Duyệt khoá học' },
+  { href: '/admin/instructor-applications', label: 'Duyệt giảng viên', adminOnly: true },
   { href: '/admin/payouts', label: 'Thanh toán giảng viên', adminOnly: true },
   { href: '/admin/moderators', label: 'Moderator', adminOnly: true },
   { href: '/admin/settings', label: 'Cài đặt', adminOnly: true },

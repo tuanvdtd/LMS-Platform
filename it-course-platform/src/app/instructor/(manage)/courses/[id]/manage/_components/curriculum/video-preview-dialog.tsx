@@ -1,16 +1,20 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAssetUrl } from '@/lib/api/assets';
 import type { AssetRef } from '@/types/curriculum';
-import { PausingVideo } from '@/components/shared/pausing-video';
+
+const CourseVideo = dynamic(() => import('@/components/shared/course-video').then((m) => m.CourseVideo), {
+  ssr: false,
+  loading: () => <Skeleton className="aspect-video w-full" />,
+});
 
 type LoadUrl = (assetId: string) => Promise<{ url: string }>;
 
-// Giảng viên xem lại video đã gắn: <video> gốc, URL ký hạn 1 giờ.
-// loadUrl: admin duyệt khoá truyền loader riêng; mặc định API giảng viên.
+// Giảng viên (và admin duyệt khoá qua loadUrl riêng) xem lại video đã gắn. HLS tự đổi chữ ký ngầm.
 export function VideoPreviewDialog({
   asset,
   onClose,
@@ -55,5 +59,14 @@ function Player({ assetId, fileName, loadUrl }: { assetId: string; fileName: str
     );
   }
   if (!url) return <Skeleton className="aspect-video w-full rounded-lg" />;
-  return <PausingVideo src={url} aria-label={fileName} controls autoPlay className="aspect-video w-full rounded-lg bg-black" />;
+  return (
+    <CourseVideo
+      key={url}
+      src={url}
+      aria-label={fileName}
+      autoPlay
+      onRefreshUrl={() => loadUrl(assetId).then((r) => r.url)}
+      className="aspect-video w-full rounded-lg bg-black"
+    />
+  );
 }

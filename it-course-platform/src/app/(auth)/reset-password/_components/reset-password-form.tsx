@@ -62,7 +62,7 @@ export function ResetPasswordForm({ token, invite }: { token: string | null; inv
           <p className="text-sm" style={{ color: 'var(--foreground)' }}>
             Link mời đã hết hạn, liên hệ quản trị viên để gửi lại
           </p>
-          <Link href="/login" className="block text-sm text-blue-600 hover:underline">Quay lại đăng nhập</Link>
+          <Link href="/login" className="block text-sm text-primary hover:underline">Quay lại đăng nhập</Link>
         </div>
       </AuthShell>
     );
@@ -77,7 +77,7 @@ export function ResetPasswordForm({ token, invite }: { token: string | null; inv
           <Btn variant="primary" size="lg" className="w-full" onClick={() => router.push('/forgot-password')}>
             Yêu cầu link mới
           </Btn>
-          <Link href="/login" className="block text-sm text-blue-600 hover:underline">Quay lại đăng nhập</Link>
+          <Link href="/login" className="block text-sm text-primary hover:underline">Quay lại đăng nhập</Link>
         </div>
       </AuthShell>
     );

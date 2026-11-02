@@ -273,6 +273,8 @@ export class CheckoutService {
       select: {
         createdAt: true,
         progressPct: true,
+        lastAccessedAt: true,
+        completedAt: true,
         course: { select: { ...BUY_SELECT, instructor: { select: { name: true } } } },
       },
     });

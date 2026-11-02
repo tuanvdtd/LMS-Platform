@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getApplication } from '@/lib/api/instructor-application';
 import { setCoursePrice } from '@/lib/api/instructor-courses';
 import { getPayoutAccount } from '@/lib/api/revenue';
 import { formatPrice, PRICE_TIERS } from '@/types/instructor-course';
@@ -21,6 +22,7 @@ const ITEMS = Object.fromEntries(PRICE_TIERS.map((p) => [String(p), formatPrice(
 export function PricingForm() {
   const { course, setCourse, patchCourse } = useCourse();
   const [account, setAccount] = useState<PayoutAccountState | null>(null);
+  const [pending, setPending] = useState(false);
   const [price, setPrice] = useState(course.priceAmount);
   const [saving, setSaving] = useState(false);
   const locked = course.status === 'in_review';
@@ -29,6 +31,8 @@ export function PricingForm() {
 
   useEffect(() => {
     getPayoutAccount().then(setAccount, () => toast.error('Không tải được thông tin giảng viên'));
+    // Lỗi tải đơn bỏ qua: link vẫn hiện chữ mặc định.
+    getApplication().then((v) => setPending(v.displayStatus === 'pending'), () => undefined);
   }, []);
 
   async function save() {
@@ -60,9 +64,11 @@ export function PricingForm() {
           {account && !account.verified && (
             <Alert>
               <AlertDescription className="flex flex-wrap items-center gap-3">
-                Đăng ký giảng viên cao cấp để bán khoá trả phí. Khoá miễn phí không cần đăng ký.
+                {pending
+                  ? 'Đơn giảng viên cao cấp đang chờ duyệt. Trong lúc chờ, khoá vẫn xuất bản miễn phí được.'
+                  : 'Đăng ký giảng viên cao cấp để bán khoá trả phí. Khoá miễn phí không cần đăng ký.'}
                 <Link href="/instructor/verification" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-                  Đăng ký giảng viên cao cấp
+                  {pending ? 'Xem đơn' : 'Đăng ký giảng viên cao cấp'}
                 </Link>
               </AlertDescription>
             </Alert>

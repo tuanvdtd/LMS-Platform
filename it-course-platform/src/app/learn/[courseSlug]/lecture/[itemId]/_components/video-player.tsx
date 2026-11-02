@@ -3,12 +3,13 @@
 
 import { type RefObject, useRef, useState } from 'react';
 import { Clapperboard, TriangleAlert } from 'lucide-react';
+import { CourseVideo } from '@/components/shared/course-video';
 import { Button } from '@/components/ui/button';
 import type { Lecture } from '@/types/learn';
 import { MediaState } from './media-state';
 import { useVideoProgress } from './use-video-progress';
 
-// <video> gốc + tự hồi phục khi link ký hết hạn: lỗi → xin link mới 1 lần, quay lại đúng giây.
+// Player bài giảng + tự hồi phục khi link ký hết hạn: lỗi → xin link mới 1 lần, quay lại đúng giây. HLS còn tự đổi chữ ký ngầm.
 export function VideoPlayer({
   courseSlug,
   lecture,
@@ -66,14 +67,12 @@ export function VideoPlayer({
   }
   return (
     <div className="bg-black">
-      <video
+      <CourseVideo
         ref={videoRef}
         key={src}
         src={src}
-        controls
-        playsInline
+        onRefreshUrl={onRefreshUrl}
         preload="metadata"
-        controlsList="nodownload"
         className="mx-auto aspect-video max-h-[calc(100dvh-10rem)] w-full"
         onLoadedMetadata={(e) => {
           if (resumeAt.current > 0) e.currentTarget.currentTime = resumeAt.current;

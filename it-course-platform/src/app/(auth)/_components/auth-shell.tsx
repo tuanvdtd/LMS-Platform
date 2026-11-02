@@ -6,11 +6,11 @@ export function AuthShell({ title, children }: { title: string; children: React.
     <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: 'var(--background)' }}>
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
-            <BookOpen size={20} className="text-white" />
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+            <BookOpen size={20} className="text-primary-foreground" />
           </div>
           <span className="text-2xl font-extrabold" style={{ color: 'var(--foreground)' }}>
-            Skill<span className="text-blue-600">Path</span>
+            Skill<span className="text-primary">Path</span>
           </span>
         </div>
 

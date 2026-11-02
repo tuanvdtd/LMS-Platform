@@ -22,7 +22,7 @@ type Loaded =
 
 // Máy trạng thái: overview → running(sheet) → result. `?attempt=<id>` mở thẳng màn xem lại.
 export default function QuizView({ courseSlug, itemId }: { courseSlug: string; itemId: string }) {
-  const { markCompleted } = useLearnShell();
+  const { markCompleted, reloadOutline } = useLearnShell();
   const router = useRouter();
   const pathname = usePathname();
   const key = useSearchParams().get('attempt') ?? '';
@@ -76,8 +76,10 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
       router.replace(`${pathname}?attempt=${attemptId}`);
       window.scrollTo({ top: 0 });
       if (result.passed) {
-        markCompleted(itemId);
+        markCompleted(itemId); // tự tải lại mục lục
         toast.success('Chúc mừng, bạn đã đạt bài kiểm tra!');
+      } else {
+        reloadOutline();
       }
     } catch (e) {
       if (apiErrorCode(e) === 'ATTEMPT_SUBMITTED') {
@@ -85,6 +87,7 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
         clearSavedAttempt(attemptId);
         setSheet(null);
         router.replace(`${pathname}?attempt=${attemptId}`);
+        reloadOutline();
         toast.info('Lượt làm này đã được nộp trước đó');
       } else {
         toast.error(apiMessage(e, 'Nộp bài thất bại, đáp án vẫn được giữ — thử lại'));

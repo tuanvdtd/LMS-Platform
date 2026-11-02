@@ -1,11 +1,16 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPreviewUrl } from '@/lib/api/catalog-client';
-import { PausingVideo } from '@/components/shared/pausing-video';
+
+const CourseVideo = dynamic(() => import('@/components/shared/course-video').then((m) => m.CourseVideo), {
+  ssr: false,
+  loading: () => <Skeleton className="aspect-video w-full" />,
+});
 
 export function PreviewDialog({
   slug,
@@ -49,7 +54,13 @@ export function PreviewDialog({
             <AlertDescription>Không tải được video xem thử</AlertDescription>
           </Alert>
         ) : url ? (
-          <PausingVideo src={url} controls autoPlay className="aspect-video w-full rounded-md bg-black" />
+          <CourseVideo
+            key={url}
+            src={url}
+            autoPlay
+            onRefreshUrl={() => getPreviewUrl(slug, itemId)}
+            className="aspect-video w-full rounded-md bg-black"
+          />
         ) : (
           <Skeleton className="aspect-video w-full" role="status" aria-label="Đang tải video" />
         )}

@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, FileText, Plus, RefreshCw, Trash2, Video, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
@@ -127,8 +128,15 @@ export function LectureDetailPanel({ item }: { item: CurriculumItem }) {
             icon={<Video className="size-4 shrink-0 text-muted-foreground" />}
             name={video.fileName}
             meta={`${video.durationSec != null ? `${formatDuration(video.durationSec)} · ` : ''}${formatBytes(video.sizeBytes)}`}
+            badge={
+              video.status === 'processing' ? (
+                <Badge variant="secondary">Đang xử lý video…</Badge>
+              ) : video.status === 'failed' ? (
+                <Badge variant="destructive" title="Hãy thay video khác">Xử lý thất bại</Badge>
+              ) : null
+            }
             disabled={noPick}
-            onView={() => setPreview(video)}
+            onView={video.status === 'ready' ? () => setPreview(video) : undefined}
             onReplace={() => setPicker('video')}
             onRemove={() =>
               confirm(removeText('video'), () => void run(() => removeContent(courseId, item.id)))
@@ -241,11 +249,13 @@ export function LectureDetailPanel({ item }: { item: CurriculumItem }) {
   );
 }
 
-// Một dòng nội dung đã gắn (PDF / video): Xem nằm ngoài khoá sửa, Thay / Gỡ theo `disabled`.
+// Một dòng nội dung đã gắn (PDF / video): Xem nằm ngoài khoá sửa (không có onView → ẩn, vd video chưa xử lý xong),
+// Thay / Gỡ theo `disabled`.
 function ContentRow({
   icon,
   name,
   meta,
+  badge,
   disabled,
   onView,
   onReplace,
@@ -254,8 +264,9 @@ function ContentRow({
   icon: React.ReactNode;
   name: string;
   meta: string;
+  badge?: React.ReactNode;
   disabled: boolean;
-  onView: () => void;
+  onView?: () => void;
   onReplace: () => void;
   onRemove: () => void;
 }) {
@@ -264,10 +275,13 @@ function ContentRow({
       {icon}
       <span className="min-w-0 flex-1 truncate">{name}</span>
       <span className="text-xs text-muted-foreground tabular-nums">{meta}</span>
-      <Button type="button" variant="ghost" size="sm" onClick={onView}>
-        <Eye data-icon="inline-start" />
-        Xem
-      </Button>
+      {badge}
+      {onView && (
+        <Button type="button" variant="ghost" size="sm" onClick={onView}>
+          <Eye data-icon="inline-start" />
+          Xem
+        </Button>
+      )}
       <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={onReplace}>
         <RefreshCw data-icon="inline-start" />
         Thay

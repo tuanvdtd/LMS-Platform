@@ -61,7 +61,7 @@ export function ForgotPasswordForm() {
       <CheckEmailScreen
         title="Kiểm tra email"
         onResend={() => requestReset(sentTo)}
-        footer={<Link href="/login" className="block text-sm text-blue-600 hover:underline">Quay lại đăng nhập</Link>}
+        footer={<Link href="/login" className="block text-sm text-primary hover:underline">Quay lại đăng nhập</Link>}
       >
         <p className="text-sm" style={{ color: 'var(--foreground)' }}>
           Nếu <strong>{sentTo}</strong> có tài khoản, chúng tôi đã gửi link đặt lại mật khẩu.
@@ -97,7 +97,7 @@ export function ForgotPasswordForm() {
       </form>
       <p className="text-center text-sm mt-6" style={{ color: 'var(--muted-foreground)' }}>
         Nhớ mật khẩu rồi?{' '}
-        <Link href="/login" className="text-blue-600 font-semibold hover:underline">Đăng nhập</Link>
+        <Link href="/login" className="text-primary font-semibold hover:underline">Đăng nhập</Link>
       </p>
     </AuthShell>
   );

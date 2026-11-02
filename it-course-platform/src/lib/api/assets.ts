@@ -11,7 +11,7 @@ export interface UploadTicket {
 }
 
 export interface CreateUploadPayload {
-  kind: 'document' | 'thumbnail' | 'video' | 'promo';
+  kind: 'document' | 'thumbnail' | 'avatar' | 'video' | 'promo';
   fileName: string;
   mimeType: string;
   sizeBytes: number;

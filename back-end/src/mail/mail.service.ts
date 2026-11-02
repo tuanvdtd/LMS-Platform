@@ -23,6 +23,7 @@ export class MailService {
     name: requireEnv('MAIL_FROM_NAME'),
     email: requireEnv('MAIL_FROM_EMAIL'),
   };
+  private readonly feUrl = requireEnv('FE_URL');
 
   constructor(private readonly amqp: AmqpConnection) {}
 
@@ -62,6 +63,23 @@ export class MailService {
           `Khoá học "${title}" chưa được duyệt`,
           `<p>Khoá học <b>${t}</b> chưa được duyệt.</p><p>Lý do: ${escapeHtml(reason ?? '')}</p>` +
             '<p>Bạn có thể chỉnh sửa và gửi duyệt lại.</p>',
+        );
+  }
+
+  // Kết quả duyệt đơn giảng viên cao cấp.
+  sendInstructorApplicationReviewed(to: string, approved: boolean, reason: string | null) {
+    const url = `${this.feUrl}/instructor/verification`;
+    return approved
+      ? this.send(
+          to,
+          'Bạn đã là giảng viên cao cấp SkillPath',
+          '<p>Đơn đăng ký giảng viên cao cấp của bạn đã được duyệt. Giờ bạn có thể đặt giá trả phí cho khoá học.</p>',
+        )
+      : this.send(
+          to,
+          'Đơn giảng viên cao cấp chưa được duyệt',
+          `<p>Đơn đăng ký giảng viên cao cấp của bạn chưa được duyệt.</p><p>Lý do: ${escapeHtml(reason ?? '')}</p>` +
+            `<p>Sửa đơn và gửi lại tại <a href="${url}">${url}</a>.</p>`,
         );
   }
 

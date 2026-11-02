@@ -1,7 +1,5 @@
-import Image from 'next/image';
-import Link from 'next/link';
 import { Star, TrendingUp, TrendingDown, Minus, CheckCircle, XCircle, Clock, AlertCircle, Loader2, Info } from 'lucide-react';
-import type { Course, CourseStatus, RecommendedCourse, SkillMastery, Verdict } from '@/types';
+import type { CourseStatus, SkillMastery, Verdict } from '@/types';
 import { Button } from '@/components/ui/button';
 
 // ─── RatingStars ──────────────────────────────────────────────────────────────
@@ -14,7 +12,7 @@ export function RatingStars({ rating, size = 'sm' }: { rating: number; size?: 's
         <Star
           key={i}
           size={s}
-          className={i <= Math.round(rating) ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}
+          className={i <= Math.round(rating) ? 'fill-rating text-rating' : 'text-border'}
         />
       ))}
     </span>
@@ -98,8 +96,8 @@ export function SkillMasteryBar({ skill }: { skill: SkillMastery }) {
             {skill.skillName}
           </span>
           <div className="flex items-center gap-1.5 ml-2 shrink-0">
-            {skill.trend === 'up' && <TrendingUp size={12} className="text-green-500" />}
-            {skill.trend === 'down' && <TrendingDown size={12} className="text-red-500" />}
+            {skill.trend === 'up' && <TrendingUp size={12} className="text-success" />}
+            {skill.trend === 'down' && <TrendingDown size={12} className="text-danger" />}
             {skill.trend === 'stable' && <Minus size={12} style={{ color: 'var(--muted-foreground)' }} />}
             <span className="text-xs font-mono font-bold" style={{ color }}>
               {skill.mastery}%
@@ -157,11 +155,11 @@ export function ProgressRing({ progress, size = 40 }: { progress: number; size?:
 
 // ─── StatusBadge ─────────────────────────────────────────────────────────────
 const STATUS_MAP: Record<CourseStatus, { label: string; color: string; bg: string }> = {
-  draft: { label: 'Nháp', color: 'var(--status-draft)', bg: '#f1f5f9' },
-  pending: { label: 'Chờ duyệt', color: '#854d0e', bg: '#fef9c3' },
-  approved: { label: 'Đang bán', color: '#166534', bg: '#dcfce7' },
-  rejected: { label: 'Bị từ chối', color: 'var(--status-rejected)', bg: '#fee2e2' },
-  hidden: { label: 'Đã ẩn', color: 'var(--status-hidden)', bg: '#f1f5f9' },
+  draft: { label: 'Nháp', color: 'var(--secondary-foreground)', bg: 'var(--secondary)' },
+  pending: { label: 'Chờ duyệt', color: 'var(--warning)', bg: 'var(--warning-soft)' },
+  approved: { label: 'Đang bán', color: 'var(--success)', bg: 'var(--success-soft)' },
+  rejected: { label: 'Bị từ chối', color: 'var(--danger)', bg: 'var(--danger-soft)' },
+  hidden: { label: 'Đã ẩn', color: 'var(--status-hidden)', bg: 'var(--secondary)' },
 };
 
 export function StatusBadge({ status }: { status: CourseStatus }) {
@@ -266,99 +264,6 @@ export function EmptyState({
       {description && <p className="mt-1 max-w-sm text-sm text-pretty text-muted-foreground">{description}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
-  );
-}
-
-// ─── CourseCard ───────────────────────────────────────────────────────────────
-
-export function CourseCard({ course, progress }: { course: Course; progress?: number }) {
-  return (
-    <Link
-      href={`/course/${course.slug}`}
-      className="group block rounded-xl overflow-hidden border hover:shadow-lg transition-all duration-200"
-      style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
-    >
-      <div className="relative aspect-video bg-slate-100 dark:bg-slate-800">
-        <Image
-          src={course.thumbnail}
-          alt={course.title}
-          fill
-          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        {progress !== undefined && (
-          <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: 'var(--secondary)' }}>
-            <div className="h-full" style={{ width: `${progress}%`, background: 'var(--primary)' }} />
-          </div>
-        )}
-      </div>
-      <div className="p-4">
-        <h3
-          className="font-semibold text-sm leading-snug mb-1 line-clamp-2 group-hover:text-blue-600 transition-colors"
-          style={{ color: 'var(--foreground)' }}
-        >
-          {course.title}
-        </h3>
-        <p className="text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
-          {course.instructor.name}
-        </p>
-        <div className="flex items-center gap-1 mb-2">
-          <span className="text-xs font-bold text-amber-500">{course.rating}</span>
-          <RatingStars rating={course.rating} size="sm" />
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-            ({course.ratingCount.toLocaleString()})
-          </span>
-        </div>
-        <PriceTag price={course.price} originalPrice={course.originalPrice} size="sm" />
-        {progress !== undefined && (
-          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-            {progress}% hoàn thành
-          </p>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-// ─── RecommendationCard ───────────────────────────────────────────────────────
-
-export function RecommendationCard({ course }: { course: RecommendedCourse }) {
-  return (
-    <Link
-      href={`/course/${course.slug}`}
-      className="group block rounded-xl overflow-hidden border hover:shadow-lg transition-all duration-200"
-      style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
-    >
-      <div className="relative aspect-video bg-slate-100">
-        <Image src={course.thumbnail} alt={course.title} fill sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" className="w-full h-full object-cover" />
-      </div>
-      <div className="p-4">
-        <div
-          className="flex items-start gap-1.5 text-xs font-semibold mb-2 px-2 py-1 rounded-lg"
-          style={{
-            background: course.reason.type === 'skill_gap' ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : 'var(--primary-light)',
-            color: course.reason.type === 'skill_gap' ? 'var(--accent)' : 'var(--primary)',
-          }}
-        >
-          <Info size={12} className="mt-0.5 shrink-0" />
-          <span>{course.reason.detail}</span>
-        </div>
-        <h3
-          className="font-semibold text-sm leading-snug mb-1 line-clamp-2"
-          style={{ color: 'var(--foreground)' }}
-        >
-          {course.title}
-        </h3>
-        <p className="text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
-          {course.instructor.name}
-        </p>
-        <div className="flex items-center gap-1 mb-2">
-          <span className="text-xs font-bold text-amber-500">{course.rating}</span>
-          <RatingStars rating={course.rating} />
-        </div>
-        <PriceTag price={course.price} originalPrice={course.originalPrice} size="sm" />
-      </div>
-    </Link>
   );
 }
 

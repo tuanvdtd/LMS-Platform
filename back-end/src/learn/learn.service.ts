@@ -1,6 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { LectureKind, Prisma } from '@prisma/client';
-import { bucketOf } from '../assets/assets.service.js';
+import { bucketOf, videoUrl } from '../assets/assets.service.js';
 import { isGuid } from '../common/zod.pipe.js';
 import { completeItem } from '../curriculum/progress.js';
 import { tooManyRequests } from '../exercise/exercise.service.js';
@@ -22,7 +22,7 @@ const LECTURE_SELECT = {
   lectureKind: true,
   durationSec: true,
   isDownloadable: true,
-  videoAsset: { select: { kind: true, storageKey: true, status: true } },
+  videoAsset: { select: { id: true, kind: true, storageKey: true, status: true, hlsKey: true } },
   documentAsset: { select: { kind: true, storageKey: true, status: true, fileName: true } },
   resources: {
     orderBy: { position: 'asc' },
@@ -71,7 +71,7 @@ export class LearnService {
     ]);
     if (!course) throw courseNotFound();
     if (!enrollment) throw notEnrolled();
-    const [sections, done] = await Promise.all([
+    const [sections, done, wrongRows] = await Promise.all([
       this.prisma.section.findMany({
         where: { courseId: course.id },
         orderBy: { position: 'asc' },
@@ -89,12 +89,40 @@ export class LearnService {
         where: { enrollmentId: enrollment.id, completedAt: { not: null } },
         select: { itemId: true },
       }),
+      // Câu sai ở lượt nộp mới nhất của từng quiz trong khoá mà có "bài giảng liên quan".
+      // Duyệt questionIds của lượt: câu bỏ trống không có dòng quiz_answers vẫn tính là sai.
+      this.prisma.$queryRaw<{ itemId: string; quizItemId: string; wrong: number }[]>`
+        SELECT q."relatedItemId" AS "itemId", z."itemId" AS "quizItemId", COUNT(*)::int AS wrong
+        FROM (
+          SELECT DISTINCT ON (a."quizId") a.id, a."quizId", a."questionIds"
+          FROM quiz_attempts a JOIN quizzes zq ON zq.id = a."quizId"
+          WHERE a."userId" = ${userId}::uuid AND zq."courseId" = ${course.id}::uuid AND a.status = 'submitted'
+          ORDER BY a."quizId", a."submittedAt" DESC, a."attemptNo" DESC
+        ) last
+        CROSS JOIN LATERAL unnest(last."questionIds") AS qid
+        JOIN questions q ON q.id = qid AND q."relatedItemId" IS NOT NULL
+        JOIN quizzes z ON z.id = last."quizId"
+        LEFT JOIN quiz_answers ans ON ans."attemptId" = last.id AND ans."questionId" = qid
+        WHERE ans."isCorrect" IS NOT TRUE
+        GROUP BY q."relatedItemId", z."itemId"`,
     ]);
     const completed = new Set(done.map((p) => p.itemId));
     const visible = sections
       .filter((s) => s.items.length)
       .map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, completed: completed.has(i.id) })) }));
     const items = visible.flatMap((s) => s.items);
+    // Chỉ giữ bài giảng + quiz học viên đang thấy trong mục lục.
+    const titleOf = new Map(items.map((i) => [i.id, i.title]));
+    const review = new Map<string, { itemId: string; title: string; wrongCount: number; quizzes: { itemId: string; title: string }[] }>();
+    for (const r of wrongRows) {
+      const title = titleOf.get(r.itemId);
+      const quizTitle = titleOf.get(r.quizItemId);
+      if (!title || !quizTitle) continue;
+      const entry = review.get(r.itemId) ?? { itemId: r.itemId, title, wrongCount: 0, quizzes: [] };
+      entry.wrongCount += r.wrong;
+      entry.quizzes.push({ itemId: r.quizItemId, title: quizTitle });
+      review.set(r.itemId, entry);
+    }
     // "Tiếp tục học": bài mở gần nhất → bài đầu chưa xong → bài đầu.
     const resume = items.find((i) => i.id === enrollment.lastItemId) ?? items.find((i) => !i.completed) ?? items[0];
     return {
@@ -103,6 +131,7 @@ export class LearnService {
       completedAt: enrollment.completedAt,
       resumeItemId: resume?.id ?? null,
       sections: visible,
+      review: [...review.values()].sort((a, b) => b.wrongCount - a.wrongCount),
     };
   }
 
@@ -128,7 +157,11 @@ export class LearnService {
         where: { enrollmentId_itemId: { enrollmentId: enrollment.id, itemId } },
         select: { lastPositionSec: true, watchedSec: true, completedAt: true },
       }),
-      asset?.status === 'ready' ? this.storage.presignGet(bucketOf(asset.kind), asset.storageKey, MEDIA_TTL) : null,
+      asset?.status !== 'ready'
+        ? null
+        : item.lectureKind === 'video' && item.videoAsset
+          ? videoUrl(this.storage, item.videoAsset)
+          : this.storage.presignGet(bucketOf(asset.kind), asset.storageKey, MEDIA_TTL),
       item.lectureKind === 'document' && item.isDownloadable && doc?.status === 'ready'
         ? this.storage.presignGet(bucketOf(doc.kind), doc.storageKey, MEDIA_TTL, { fileName: doc.fileName })
         : null,

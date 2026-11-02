@@ -29,14 +29,14 @@ export function SaveBar({
 }) {
   if (!isDirty || locked) return null;
   return (
-    <div className="sticky bottom-4 z-10 flex items-center gap-3 rounded-xl bg-slate-900 py-2.5 pr-2.5 pl-4 text-slate-50 shadow-xl">
+    <div className="sticky bottom-4 z-10 flex items-center gap-3 rounded-xl bg-ink py-2.5 pr-2.5 pl-4 text-ink-foreground shadow-xl">
       <span className="size-2 shrink-0 rounded-full bg-brand-accent" aria-hidden />
       <span className="flex-1 text-sm">Bạn có thay đổi chưa lưu</span>
       <Button
         type="button"
         variant="ghost"
         size="sm"
-        className="text-slate-200 hover:bg-slate-800 hover:text-white"
+        className="text-ink-foreground hover:bg-ink-hover hover:text-white"
         disabled={isSubmitting}
         onClick={onDiscard}
       >

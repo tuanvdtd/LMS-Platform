@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Circle, CircleCheck, CirclePlay, Code2, FileQuestion, FileText, ListChecks, type LucideIcon } from 'lucide-react';
+import { ChevronDown, Circle, CircleCheck, CirclePlay, Code2, FileQuestion, FileText, ListChecks, RotateCcw, type LucideIcon } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/types/curriculum';
@@ -43,9 +43,35 @@ export function CourseOutline({
     activeRef.current?.scrollIntoView({ block: 'nearest' });
   }, [currentId]);
   const numbers = new Map(outline.sections.flatMap((s) => s.items).map((it, i) => [it.id, i + 1]));
+  const reviewIds = new Set(outline.review.map((r) => r.itemId));
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
+      {outline.review.length > 0 && (
+        <details open className="group border-b bg-(--skill-weak-bg)/60">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm font-semibold text-foreground outline-none focus-visible:bg-secondary [&::-webkit-details-marker]:hidden">
+            <RotateCcw className="size-4 shrink-0" aria-hidden />
+            <span className="flex-1">Ôn lại ({outline.review.length} bài)</span>
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden />
+          </summary>
+          <ul className="pb-2">
+            {outline.review.map((r) => (
+              <li key={r.itemId}>
+                <Link
+                  href={`/learn/${slug}/lecture/${r.itemId}`}
+                  onClick={onNavigate}
+                  className="flex flex-col gap-0.5 px-4 py-2 text-sm outline-none transition-colors hover:bg-secondary focus-visible:bg-secondary"
+                >
+                  <span className="text-pretty text-foreground">{r.title}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Sai {r.wrongCount} câu ở {r.quizzes.map((q) => q.title).join(', ')}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       <Accordion multiple value={open} onValueChange={setOpen}>
         {outline.sections.map((s, si) => {
           const done = s.items.filter((i) => i.completed).length;
@@ -72,7 +98,7 @@ export function CourseOutline({
                     const body = (
                       <>
                         {it.completed ? (
-                          <CircleCheck className="mt-0.5 size-4 shrink-0 text-green-600 dark:text-green-500" aria-label="Đã hoàn thành" />
+                          <CircleCheck className="mt-0.5 size-4 shrink-0 text-success" aria-label="Đã hoàn thành" />
                         ) : (
                           <Circle className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
                         )}
@@ -82,6 +108,10 @@ export function CourseOutline({
                           </span>
                           <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                             <Icon className="size-3.5" aria-hidden /> {label}
+                            {/* Chữ foreground trên nền nhạt để đủ tương phản ở cả 2 theme, giống PassBadge. */}
+                            {reviewIds.has(it.id) && (
+                              <span className="ml-1 rounded-sm bg-(--skill-weak-bg) px-1.5 py-px font-medium text-foreground">Nên ôn</span>
+                            )}
                           </span>
                         </span>
                       </>

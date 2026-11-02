@@ -22,6 +22,8 @@ export type ChecklistInput = {
   categoryDepth: 1 | 2 | null;
   publishedLectureCount: number;
   videoSeconds: number;
+  processingVideos: number; // bài đã xuất bản có video đang encode HLS
+  failedVideos: number; // bài đã xuất bản có video encode lỗi
 };
 
 export function countWords(text: string | null): number {
@@ -57,6 +59,14 @@ export function buildChecklist(c: ChecklistInput): ChecklistItem[] {
       message: `Cần thêm ${Math.ceil((minVideoSeconds - c.videoSeconds) / 60)} phút video`,
       anchor: 'curriculum',
     });
+
+  if (c.processingVideos > 0)
+    curriculum.push({
+      message: `Còn ${c.processingVideos} video đang xử lý, đợi xử lý xong rồi gửi duyệt`,
+      anchor: 'curriculum',
+    });
+  if (c.failedVideos > 0)
+    curriculum.push({ message: `${c.failedVideos} video xử lý thất bại, hãy thay video khác`, anchor: 'curriculum' });
 
   // Tiêu đề luôn có (tạo/PATCH đều bắt 1–60 ký tự) nên không có dòng "thiếu tiêu đề".
   const basics: ChecklistMissing[] = [];

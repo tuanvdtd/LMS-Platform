@@ -17,8 +17,8 @@ const STEPS = [
 
 const FLOW: [string, string, LucideIcon, string][] = [
   ['Nháp', 'Soạn chương, bài giảng, quiz', PencilLine, 'bg-secondary text-secondary-foreground'],
-  ['Chờ duyệt', 'Chuyên gia theo chủ đề xem xét', Hourglass, 'bg-[color-mix(in_srgb,var(--status-pending)_18%,transparent)] text-[color-mix(in_oklab,var(--status-pending),black_45%)] dark:text-[var(--status-pending)]'],
-  ['Đã duyệt', 'Hiển thị trên catalog', CircleCheck, 'bg-[color-mix(in_srgb,var(--status-approved)_16%,transparent)] text-[color-mix(in_oklab,var(--status-approved),black_40%)] dark:text-[var(--status-approved)]'],
+  ['Chờ duyệt', 'Chuyên gia theo chủ đề xem xét', Hourglass, 'bg-warning-soft text-warning'],
+  ['Đã duyệt', 'Hiển thị trên catalog', CircleCheck, 'bg-success-soft text-success'],
 ];
 
 const TEACH_POINTS = [

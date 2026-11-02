@@ -126,7 +126,7 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
                 htmlFor="description"
                 error={errors.description?.message}
                 counter={
-                  <span className={cn('font-sans font-medium', words >= MIN_WORDS ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400')}>
+                  <span className={cn('font-sans font-medium', words >= MIN_WORDS ? 'text-success' : 'text-warning')}>
                     {words}/{MIN_WORDS} từ
                   </span>
                 }

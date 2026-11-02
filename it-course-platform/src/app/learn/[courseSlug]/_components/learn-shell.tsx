@@ -22,6 +22,7 @@ type SidebarMode = 'docked' | 'drawer';
 type Shell = {
   outline: LearnOutline;
   markCompleted: (itemId: string, progressPct?: number) => void;
+  reloadOutline: () => void;
   setSidebarMode: (mode: SidebarMode) => void;
 };
 
@@ -90,7 +91,15 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
     [courseSlug],
   );
 
-  const ctx = useMemo(() => (outline ? { outline, markCompleted, setSidebarMode: setMode } : null), [outline, markCompleted]);
+  // Lượt quiz trượt không đánh dấu hoàn thành nhưng đổi danh sách "Ôn lại" → tải lại mục lục.
+  const reloadOutline = useCallback(() => {
+    getOutline(courseSlug).then(setOutline, () => undefined);
+  }, [courseSlug]);
+
+  const ctx = useMemo(
+    () => (outline ? { outline, markCompleted, reloadOutline, setSidebarMode: setMode } : null),
+    [outline, markCompleted, reloadOutline],
+  );
 
   if (!outline || !ctx) {
     if (!error) return <LearnShellSkeleton />;

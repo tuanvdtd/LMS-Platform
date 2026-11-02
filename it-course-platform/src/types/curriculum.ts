@@ -26,15 +26,18 @@ export interface AssetRef {
 }
 
 export type AssetKind = 'document' | 'video';
+export type AssetStatus = 'uploading' | 'processing' | 'ready' | 'failed';
 
 export interface LibraryAsset extends AssetRef {
   kind: AssetKind;
   durationSec: number | null;
+  status: AssetStatus;
   createdAt: string;
 }
 
 export interface VideoRef extends AssetRef {
   durationSec: number | null;
+  status: AssetStatus;
 }
 
 export interface CurriculumItem {

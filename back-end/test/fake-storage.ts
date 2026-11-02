@@ -2,7 +2,7 @@ import type { Bucket, ByteRange, StorageService } from '../src/infra/storage.ser
 
 type StoragePort = Pick<
   StorageService,
-  'presignPut' | 'presignGet' | 'head' | 'read' | 'delete' | 'publicUrl' | 'keyOfPublicUrl'
+  'presignPut' | 'presignGet' | 'head' | 'read' | 'delete' | 'publicUrl' | 'keyOfPublicUrl' | 'hasCdn' | 'signVideoPrefix'
 >;
 
 // Thay R2 trong e2e: object nằm trong Map, URL ký là chuỗi giả.
@@ -10,6 +10,12 @@ type StoragePort = Pick<
 export class FakeStorage implements StoragePort {
   private readonly objects = new Map<string, Buffer>();
   static readonly PUBLIC = 'https://cdn.test';
+
+  // E2E luôn coi như có CloudFront: spec bật HLS khởi động được mà không cần CLOUDFRONT_* thật.
+  readonly hasCdn = true;
+  signVideoPrefix(_prefix: string, key: string) {
+    return Promise.resolve(`https://cf.test/${key}?Policy=p&Signature=s&Key-Pair-Id=k`);
+  }
 
   put(bucket: Bucket, key: string, body: Buffer) {
     this.objects.set(`${bucket}/${key}`, body);
