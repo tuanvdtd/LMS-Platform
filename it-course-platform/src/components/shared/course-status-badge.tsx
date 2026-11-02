@@ -4,8 +4,8 @@ import { COURSE_STATUS_LABEL, type CourseStatus } from '@/types/instructor-cours
 
 const TONE: Record<CourseStatus, string> = {
   draft: 'bg-secondary text-secondary-foreground',
-  in_review: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
-  published: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
+  in_review: 'bg-warning-soft text-warning',
+  published: 'bg-success-soft text-success',
   unpublished: 'bg-muted text-muted-foreground',
 };
 

@@ -34,6 +34,8 @@ export interface SessionOrder { id: string; status: 'pending' | 'paid' | 'failed
 export interface MyEnrollment {
   createdAt: string;
   progressPct: string;
+  lastAccessedAt: string | null;
+  completedAt: string | null;
   course: { id: string; slug: string; title: string; thumbnailUrl: string | null; priceAmount: number; instructor: { name: string } };
 }
 

@@ -59,7 +59,7 @@ export default function CourseDetailView({ course, sections }: { course: CourseD
   return (
     <div className="relative min-h-screen bg-background">
       {/* Hero: nền tối cố định (không theo token để dark mode vẫn tối) */}
-      <div className="bg-slate-900 text-white">
+      <div className="bg-ink text-white">
         <div className="mx-auto flex max-w-screen-xl flex-col gap-3 px-4 py-10 lg:pr-[388px]">
           {crumbs.length > 0 && (
             <nav aria-label="Breadcrumb">

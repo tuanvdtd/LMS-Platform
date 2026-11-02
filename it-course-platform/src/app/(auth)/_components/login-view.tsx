@@ -118,7 +118,7 @@ export function LoginView({ redirect, reset, oauthError }: Props) {
             <PasswordToggle shown={showPw} onToggle={() => setShowPw((p) => !p)} />
           </div>
           <div className="flex justify-end mt-1">
-            <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">Quên mật khẩu?</Link>
+            <Link href="/forgot-password" className="text-xs text-primary hover:underline">Quên mật khẩu?</Link>
           </div>
         </Field>
 
@@ -132,7 +132,7 @@ export function LoginView({ redirect, reset, oauthError }: Props) {
 
       <p className="text-center text-sm mt-6" style={{ color: 'var(--muted-foreground)' }}>
         Chưa có tài khoản?{' '}
-        <Link href={withRedirect('/register', redirect)} className="text-blue-600 font-semibold hover:underline">Đăng ký miễn phí</Link>
+        <Link href={withRedirect('/register', redirect)} className="text-primary font-semibold hover:underline">Đăng ký miễn phí</Link>
       </p>
     </AuthShell>
   );
@@ -160,7 +160,7 @@ function UnverifiedNotice({ email, redirect }: { email: string; redirect?: strin
       <Button type="button" variant="outline" size="sm" className="w-full" disabled={cooldown > 0} onClick={resend}>
         {cooldown > 0 ? `Gửi lại email xác minh (${cooldown}s)` : 'Gửi lại email xác minh'}
       </Button>
-      {result && <p className={`text-xs ${result.ok ? 'text-green-600' : 'text-destructive'}`}>{result.text}</p>}
+      {result && <p className={`text-xs ${result.ok ? 'text-success' : 'text-destructive'}`}>{result.text}</p>}
     </div>
   );
 }

@@ -83,7 +83,7 @@ function OrderCard({ order }: { order: MyOrder }) {
           <Method className="size-4" aria-hidden />
           {order.provider === 'vnpay' ? 'VNPay' : 'Thẻ · Stripe'}
         </span>
-        <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-green-800 dark:bg-green-950 dark:text-green-300">
+        <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-success">
           <CircleCheck className="size-3.5" aria-hidden /> Đã thanh toán
         </span>
       </header>
@@ -144,7 +144,7 @@ function OrderCard({ order }: { order: MyOrder }) {
               <dt className="text-muted-foreground">Giá gốc</dt>
               <dd className="w-32 text-right text-foreground">{formatVnd(order.subtotalAmount)}</dd>
             </div>
-            <div className="flex justify-end gap-6 text-green-700 dark:text-green-400">
+            <div className="flex justify-end gap-6 text-success">
               <dt>Giảm giá</dt>
               <dd className="w-32 text-right">−{formatVnd(order.discountAmount)}</dd>
             </div>

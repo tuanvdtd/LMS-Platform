@@ -489,6 +489,8 @@ describe('Cart, checkout, webhook, enroll (e2e)', () => {
 
       const enr = await call('get', '/api/me/enrollments', u.cookie).expect(200);
       expect(enr.body.map((e: { course: { id: string } }) => e.course.id).sort()).toEqual([A.id, B.id].sort());
+      expect(enr.body[0]).toHaveProperty('lastAccessedAt');
+      expect(enr.body[0]).toHaveProperty('completedAt');
     }, T);
 
     it('đơn failed (webhook expired) mà session sau đó được trả → by-session trả paid', async () => {

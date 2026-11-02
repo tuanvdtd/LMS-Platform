@@ -76,7 +76,7 @@ export default function MessagesView() {
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-extrabold" style={{ color: 'var(--foreground)' }}>Tin nhắn</h1>
             {totalUnread > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-xs font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
                 {totalUnread} chưa đọc
               </span>
             )}
@@ -131,7 +131,7 @@ export default function MessagesView() {
               <button
                 key={conv.id}
                 onClick={() => selectConversation(conv.id)}
-                className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted"
                 style={{
                   background: isActive ? 'var(--primary-light, #eff6ff)' : 'transparent',
                   borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent',
@@ -154,7 +154,7 @@ export default function MessagesView() {
                     </span>
                     <div className="flex items-center gap-1 shrink-0 ml-1">
                       {hasUnanswered && conv.unread > 0 && (
-                        <AlertCircle size={12} className="text-orange-500" />
+                        <AlertCircle size={12} className="text-brand-accent-strong" />
                       )}
                       <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                         {lastMsg?.sentAt}
@@ -181,7 +181,7 @@ export default function MessagesView() {
                       {lastMsg?.senderId === 'me' ? 'Bạn: ' : ''}{lastMsg?.text}
                     </p>
                     {conv.unread > 0 && (
-                      <span className="shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold ml-1">
+                      <span className="shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold ml-1">
                         {conv.unread}
                       </span>
                     )}
@@ -240,7 +240,7 @@ export default function MessagesView() {
         {active.messages[active.messages.length - 1]?.senderId !== 'me' && (
           <div
             className="flex items-center gap-2 px-5 py-2 text-xs border-b"
-            style={{ background: '#fff7ed', borderColor: '#fed7aa', color: '#c2410c' }}
+            style={{ background: 'var(--brand-accent-soft)', borderColor: 'var(--border)', color: 'var(--brand-accent-strong)' }}
           >
             <AlertCircle size={13} />
             Học viên đang chờ phản hồi của bạn

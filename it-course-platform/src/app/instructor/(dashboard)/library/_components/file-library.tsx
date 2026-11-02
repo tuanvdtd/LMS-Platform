@@ -213,7 +213,7 @@ export function FileLibrary() {
       </Button>
     ),
     status: u.error ? (
-      <p className="mt-1 text-xs text-red-700 dark:text-red-400">{u.error}</p>
+      <p className="mt-1 text-xs text-danger">{u.error}</p>
     ) : (
       <div className="mt-1.5 flex items-center gap-3">
         <div

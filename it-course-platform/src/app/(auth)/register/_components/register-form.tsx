@@ -92,7 +92,7 @@ export function RegisterForm({ redirect }: { redirect?: string }) {
         </p>
         <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
           Link hết hạn sau 24 giờ. Nếu email này đã có tài khoản, hãy{' '}
-          <Link href={withRedirect('/login', redirect)} className="text-blue-600 font-semibold hover:underline">đăng nhập</Link>.
+          <Link href={withRedirect('/login', redirect)} className="text-primary font-semibold hover:underline">đăng nhập</Link>.
         </p>
       </CheckEmailScreen>
     );
@@ -164,7 +164,7 @@ export function RegisterForm({ redirect }: { redirect?: string }) {
 
       <p className="text-center text-sm mt-6" style={{ color: 'var(--muted-foreground)' }}>
         Đã có tài khoản?{' '}
-        <Link href={withRedirect('/login', redirect)} className="text-blue-600 font-semibold hover:underline">Đăng nhập</Link>
+        <Link href={withRedirect('/login', redirect)} className="text-primary font-semibold hover:underline">Đăng nhập</Link>
       </p>
     </AuthShell>
   );

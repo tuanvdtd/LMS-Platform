@@ -111,7 +111,7 @@ export function CurriculumReview({
                     <li key={o.id} className="text-sm">
                       <div className="flex items-start gap-2">
                         {o.isCorrect ? (
-                          <CheckIcon className="mt-0.5 size-4 shrink-0 text-green-600" aria-label="Đáp án đúng" />
+                          <CheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-label="Đáp án đúng" />
                         ) : (
                           <span className="size-4 shrink-0" aria-hidden />
                         )}

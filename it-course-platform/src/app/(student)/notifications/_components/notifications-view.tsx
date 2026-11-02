@@ -114,7 +114,7 @@ export function NotificationsView() {
                   <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--foreground)' }}>
                     {n.title}
                     {!n.read && (
-                      <span className="inline-block ml-2 w-2 h-2 rounded-full bg-blue-600 align-middle" />
+                      <span className="inline-block ml-2 w-2 h-2 rounded-full bg-primary align-middle" />
                     )}
                   </p>
                   <span className="text-xs shrink-0 mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{n.time}</span>
@@ -125,11 +125,11 @@ export function NotificationsView() {
                 {n.verdict && (
                   <div className="mt-1.5 flex items-center gap-1 text-xs font-semibold">
                     {n.verdict === 'AC' ? (
-                      <><CheckCircle size={12} className="text-green-600" /><span className="text-green-600">Accepted</span></>
+                      <><CheckCircle size={12} className="text-success" /><span className="text-success">Accepted</span></>
                     ) : n.verdict === 'WA' ? (
-                      <><XCircle size={12} className="text-red-500" /><span className="text-red-500">Wrong Answer</span></>
+                      <><XCircle size={12} className="text-danger" /><span className="text-danger">Wrong Answer</span></>
                     ) : (
-                      <span className="text-amber-600">Time Limit Exceeded</span>
+                      <span className="text-warning">Time Limit Exceeded</span>
                     )}
                   </div>
                 )}

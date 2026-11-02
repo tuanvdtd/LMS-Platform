@@ -7,3 +7,5 @@ example/
 /prompt-thiet-ke-frontend.md
 /schema-database.md
 /tools
+.claude/
+.impeccable/

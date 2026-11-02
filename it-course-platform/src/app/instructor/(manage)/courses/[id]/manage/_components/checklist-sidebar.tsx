@@ -36,11 +36,11 @@ const GROUPS: { title: string; entries: Entry[] }[] = [
 
 function StepIcon({ done }: { done: boolean }) {
   return done ? (
-    <span className="flex size-5.5 shrink-0 items-center justify-center rounded-full bg-green-500 text-white">
+    <span className="flex size-5.5 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
       <Check className="size-3.5" strokeWidth={3} />
     </span>
   ) : (
-    <span className="size-5.5 shrink-0 rounded-full border-2 border-slate-300 dark:border-slate-600" />
+    <span className="size-5.5 shrink-0 rounded-full border-2 border-muted-foreground/40" />
   );
 }
 
@@ -65,7 +65,7 @@ export function ChecklistSidebar() {
         </div>
         <Progress
           value={(done / total) * 100}
-          className="[&_[data-slot=progress-indicator]]:bg-green-500"
+          className="[&_[data-slot=progress-indicator]]:bg-success"
           aria-label="Tiến độ gửi duyệt"
         />
       </div>
@@ -111,7 +111,7 @@ export function ChecklistSidebar() {
                       <StepIcon done={entry.page === "pricing" || entry.page === "promotions" || !!item?.done} />
                       <span className="flex-1">{entry.label}</span>
                       {missing.length > 0 && !active && (
-                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11.5px] font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                        <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11.5px] font-semibold text-warning">
                           còn {missing.length}
                         </span>
                       )}
@@ -122,7 +122,7 @@ export function ChecklistSidebar() {
                           <li key={m.message}>
                             <GuardedLink
                               href={`${href}#${m.anchor}`}
-                              className="block py-1 pl-10.5 text-[12.5px]/snug text-amber-700 hover:underline dark:text-amber-400"
+                              className="block py-1 pl-10.5 text-[12.5px]/snug text-warning hover:underline"
                             >
                               {m.message}
                             </GuardedLink>

@@ -86,7 +86,7 @@ export function StringListEditor({ name, anchor, title, hint, placeholder, min, 
         <span
           className={cn(
             'text-[12.5px] font-semibold',
-            filled >= min ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400',
+            filled >= min ? 'text-success' : 'text-warning',
           )}
         >
           {filled >= min ? '✓ Đủ yêu cầu' : `Cần thêm ${min - filled}`}

@@ -366,7 +366,7 @@ function Meter({ label, value, goal, unit }: { label: string; value: number; goa
       <Progress
         value={Math.min(100, (value / goal) * 100)}
         aria-label={label}
-        className="[&_[data-slot=progress-indicator]]:bg-green-500"
+        className="[&_[data-slot=progress-indicator]]:bg-success"
       />
     </div>
   );

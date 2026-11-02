@@ -4,5 +4,5 @@ import { CatalogController } from './catalog.controller.js';
 import { PublicInstructorsController } from './public-instructors.controller.js';
 import { CatalogService } from './catalog.service.js';
 
-@Module({ controllers: [CatalogController, PublicInstructorsController], providers: [CatalogService] })
+@Module({ controllers: [CatalogController, PublicInstructorsController], providers: [CatalogService], exports: [CatalogService] })
 export class CatalogModule {}

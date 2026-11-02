@@ -130,7 +130,7 @@ export default async function TeachPage() {
               ))}
             </ul>
             <div className="mt-3 rounded-lg bg-foreground p-3 font-mono text-xs text-white/80 dark:bg-background">
-              <p><span className="text-[var(--skill-strong)]">✓ Accepted</span> · 5/5 test · 42 ms</p>
+              <p><span className="text-success">✓ Accepted</span> · 5/5 test · 42 ms</p>
             </div>
           </div>
         </div>

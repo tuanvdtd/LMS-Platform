@@ -270,13 +270,52 @@ describe('Học viên làm quiz (e2e)', () => {
   );
 
   it(
+    'outline.review: lượt mới nhất sai câu có bài liên quan → có bài đó; làm lại đúng → biến mất',
+    async () => {
+      const outline = () => call('get', `/api/learn/${slug}`, stu.cookie).expect(200);
+      expect((await outline()).body.review).toEqual([]); // bài liên quan chưa xuất bản → không có trong outline
+      const asset = await prisma.asset.create({
+        data: {
+          ownerId: alice.id,
+          kind: 'document',
+          fileName: 'review.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: BigInt(2048),
+          storageKey: `e2e/${randomUUID()}.pdf`,
+          status: 'ready',
+        },
+        select: { id: true },
+      });
+      await prisma.curriculumItem.update({
+        where: { id: lectureId },
+        data: { lectureKind: 'document', documentAssetId: asset.id, isPublished: true },
+      });
+      try {
+        expect((await outline()).body.review).toEqual([
+          { itemId: lectureId, title: 'Bài giảng 1', wrongCount: 1, quizzes: [{ itemId: quizItemId, title: 'Quiz 1' }] },
+        ]);
+        const start = await learn('post', '/attempts').expect(200);
+        await learn('post', `/attempts/${start.body.attemptId}/submit`, stu, { answers: correct }).expect(200);
+        expect((await outline()).body.review).toEqual([]);
+      } finally {
+        await prisma.curriculumItem.update({
+          where: { id: lectureId },
+          data: { lectureKind: null, documentAssetId: null, isPublished: false },
+        });
+        await prisma.asset.delete({ where: { id: asset.id } });
+      }
+    },
+    SLOW,
+  );
+
+  it(
     'xem kết quả: của người khác → 404; của mình → giống lúc nộp',
     async () => {
       await prisma.enrollment.create({ data: { userId: carol.id, courseId } });
       await learn('get', `/attempts/${attempt2}`, carol).expect(404);
       const res = await learn('get', `/attempts/${attempt2}`).expect(200);
       expect(res.body).toEqual(result2);
-      expect(await prisma.quizAttempt.count({ where: { quizId } })).toBe(3);
+      expect(await prisma.quizAttempt.count({ where: { quizId } })).toBe(4);
     },
     SLOW,
   );

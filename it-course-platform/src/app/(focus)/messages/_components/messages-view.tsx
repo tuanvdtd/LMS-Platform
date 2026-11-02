@@ -99,7 +99,7 @@ export default function MessagesView({ conversationId }: { conversationId?: stri
               Tin nhắn
             </h1>
             {totalUnread > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-xs font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
                 {totalUnread}
               </span>
             )}
@@ -128,7 +128,7 @@ export default function MessagesView({ conversationId }: { conversationId?: stri
               <button
                 key={conv.id}
                 onClick={() => selectConversation(conv.id)}
-                className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted"
                 style={{
                   background: isActive ? 'var(--primary-light, #eff6ff)' : 'transparent',
                   borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent',
@@ -144,7 +144,7 @@ export default function MessagesView({ conversationId }: { conversationId?: stri
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <span
-                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 bg-green-400"
+                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 bg-success"
                     style={{ borderColor: 'var(--card)' }}
                   />
                 </div>
@@ -182,7 +182,7 @@ export default function MessagesView({ conversationId }: { conversationId?: stri
                       {lastMsg?.senderId === 'me' ? 'Bạn: ' : ''}{lastMsg?.text}
                     </p>
                     {conv.unread > 0 && (
-                      <span className="shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold ml-1">
+                      <span className="shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold ml-1">
                         {conv.unread}
                       </span>
                     )}

@@ -25,6 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { approveApplication, getApplicationDetail, rejectApplication } from '@/lib/api/instructor-application';
+import { getVietQrBanks } from '@/lib/api/revenue';
 import { type AdminApplicationDetail, REVIEW_STATUS_LABEL } from '@/types/instructor-application';
 
 const REASON_MAX = 500;
@@ -53,6 +54,15 @@ export function ApplicationDetail() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const [bankNames, setBankNames] = useState<Record<string, string>>({});
+
+  // Tên ngân hàng chỉ để đọc cho dễ; VietQR lỗi thì vẫn hiện BIN.
+  useEffect(() => {
+    getVietQrBanks().then(
+      (banks) => setBankNames(Object.fromEntries(banks.map((b) => [b.bin, b.shortName]))),
+      () => undefined,
+    );
+  }, []);
 
   // Chỉ setState trong callback (lint react-hooks/set-state-in-effect).
   useEffect(() => {
@@ -202,12 +212,15 @@ export function ApplicationDetail() {
             <h2 className="mb-2 text-sm font-semibold">Tài khoản nhận tiền</h2>
             {detail.bankAccountNoMasked ? (
               <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
+                <dt className="text-muted-foreground">Ngân hàng</dt>
+                <dd>
+                  {bankNames[detail.bankBin ?? ''] ?? '—'}{' '}
+                  <span className="font-mono text-muted-foreground">({detail.bankBin})</span>
+                </dd>
                 <dt className="text-muted-foreground">Chủ tài khoản</dt>
                 <dd>{detail.bankAccountName}</dd>
                 <dt className="text-muted-foreground">Số tài khoản</dt>
                 <dd className="font-mono">{detail.bankAccountNoMasked}</dd>
-                <dt className="text-muted-foreground">Mã ngân hàng (BIN)</dt>
-                <dd className="font-mono">{detail.bankBin}</dd>
               </dl>
             ) : (
               <p className="text-sm text-muted-foreground">
