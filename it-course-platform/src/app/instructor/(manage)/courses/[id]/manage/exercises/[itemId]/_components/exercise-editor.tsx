@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { type FieldValues, type Path, useForm, type UseFormSetError } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, CircleAlert, CircleCheck, CircleDashed, Loader2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CircleCheck, CircleDashed, Loader2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -23,10 +23,10 @@ import { apiMessage } from '@/lib/api/checkout';
 import { getCurriculum } from '@/lib/api/curriculum';
 import { getExercise, updateExercise, updateExerciseCode, verifyExercise } from '@/lib/api/exercise';
 import { cn } from '@/lib/utils';
-import { ITEM_TYPE_LABEL } from '@/types/curriculum';
+import { ITEM_TYPE_LABEL, lectureOptions } from '@/types/curriculum';
 import type { ExerciseDetail, VerifyReport } from '@/types/exercise';
 import { flashAnchor, useCourse, useDirtySync } from '../../../_components/course-provider';
-import { submitToPromise } from '../../../_components/form-save';
+import { submitToPromise, TabMark } from '../../../_components/form-save';
 import { GuardedLink } from '../../../_components/guarded-link';
 import Loading from '../loading';
 import { CodeTab, codeField, codeSchema, type CodeValues, toCodePayload, toCodeValues } from './code-tab';
@@ -67,13 +67,7 @@ export function ExerciseEditor({ courseId, itemId }: { courseId: string; itemId:
 
   useEffect(() => {
     getCurriculum(courseId).then(
-      (res) =>
-        setLectures(
-          res.sections
-            .flatMap((s) => s.items)
-            .filter((it) => it.type === 'lecture')
-            .map((it, i) => ({ id: it.id, title: `${ITEM_TYPE_LABEL.lecture} ${i + 1}: ${it.title}` })),
-        ),
+      (res) => setLectures(lectureOptions(res.sections)),
       () => toast.error('Không tải được danh sách bài giảng'),
     );
   }, [courseId]);
@@ -362,24 +356,6 @@ function Editor({
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
-}
-
-function TabMark({ dirty, error }: { dirty: boolean; error: boolean }) {
-  if (error) {
-    return (
-      <>
-        <CircleAlert className="text-destructive" aria-hidden />
-        <span className="sr-only">(có lỗi)</span>
-      </>
-    );
-  }
-  if (!dirty) return null;
-  return (
-    <>
-      <span className="size-2 rounded-full bg-brand-accent" aria-hidden />
-      <span className="sr-only">(chưa lưu)</span>
-    </>
   );
 }
 

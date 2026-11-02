@@ -13,7 +13,6 @@ import { useCurriculum } from './curriculum-context';
 import { DragHandle } from './drag-handle';
 import { InlineTitle } from './inline-title';
 import { LectureDetailPanel } from './lecture-detail-panel';
-import { QuizDetailPanel } from './quiz-detail-panel';
 
 // Icon + màu nền theo loại mục (bài giảng PDF dùng icon tài liệu).
 export const TYPE_ICON: Record<ItemType, { icon: typeof Play; className: string }> = {
@@ -101,17 +100,13 @@ export function ItemRow({ item, label }: { item: CurriculumItem; label: string }
               </>
             )}
           </Button>
-        ) : item.type === 'quiz' ? (
-          <Button variant="outline" size="sm" aria-expanded={open} onClick={() => toggleItem(item.id)}>
-            Soạn câu hỏi
-            <ChevronDown data-icon="inline-end" className={cn('transition-transform', open && 'rotate-180')} />
-          </Button>
-        ) : item.type === 'coding_exercise' ? (
+        ) : item.type === 'quiz' || item.type === 'coding_exercise' ? (
           <GuardedLink
-            href={`/instructor/courses/${courseId}/manage/exercises/${item.id}`}
+            href={`/instructor/courses/${courseId}/manage/${item.type === 'quiz' ? 'quizzes' : 'exercises'}/${item.id}`}
+            transitionTypes={item.type === 'quiz' ? ['nav-forward'] : undefined} // trang soạn quiz trượt vào từ phải (PageSlide)
             className={buttonVariants({ variant: 'outline', size: 'sm' })}
           >
-            Soạn bài tập
+            {item.type === 'quiz' ? 'Soạn câu hỏi' : 'Soạn bài tập'}
           </GuardedLink>
         ) : (
           <Button variant="outline" size="sm" disabled title="Sắp có">
@@ -130,7 +125,7 @@ export function ItemRow({ item, label }: { item: CurriculumItem; label: string }
           <Trash2 />
         </Button>
       </div>
-      {open && (item.type === 'quiz' ? <QuizDetailPanel item={item} /> : <LectureDetailPanel item={item} />)}
+      {open && <LectureDetailPanel item={item} />}
     </li>
   );
 }

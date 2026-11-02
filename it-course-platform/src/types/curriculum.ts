@@ -87,6 +87,14 @@ export function formatDuration(sec: number): string {
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
+// Ô "Bài giảng liên quan" (quiz, bài code): "Bài giảng 3: Tên", đánh số theo loại trên cả khoá.
+export function lectureOptions(sections: CurriculumSection[]): { id: string; title: string }[] {
+  return sections
+    .flatMap((s) => s.items)
+    .filter((it) => it.type === 'lecture')
+    .map((it, i) => ({ id: it.id, title: `${ITEM_TYPE_LABEL.lecture} ${i + 1}: ${it.title}` }));
+}
+
 // Quiz. Giới hạn giống BE quiz.schemas.ts.
 export const QUIZ_LIMITS = {
   description: 1000,

@@ -1,6 +1,7 @@
 'use client';
 
 import axios from 'axios';
+import { CircleAlert } from 'lucide-react';
 import type { FieldValues, Path, UseFormHandleSubmit, UseFormSetError } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,25 @@ export function SaveBar({
         {isSubmitting ? 'Đang lưu…' : 'Lưu'}
       </Button>
     </div>
+  );
+}
+
+// Dấu cạnh tên tab: có lỗi (đỏ) hoặc có thay đổi chưa lưu (chấm cam).
+export function TabMark({ dirty, error = false }: { dirty: boolean; error?: boolean }) {
+  if (error) {
+    return (
+      <>
+        <CircleAlert className="text-destructive" aria-hidden />
+        <span className="sr-only">(có lỗi)</span>
+      </>
+    );
+  }
+  if (!dirty) return null;
+  return (
+    <>
+      <span className="size-2 rounded-full bg-brand-accent" aria-hidden />
+      <span className="sr-only">(chưa lưu)</span>
+    </>
   );
 }
 

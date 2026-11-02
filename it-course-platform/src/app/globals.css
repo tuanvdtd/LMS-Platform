@@ -179,3 +179,42 @@
   font-family: var(--font-sans);
 }
 .quiz-md .w-md-editor-toolbar { background-color: var(--muted); border-radius: var(--radius-md) var(--radius-md) 0 0; }
+
+/* Chuyển trang trượt ngang (PageSlide + <Link transitionTypes>): đi sâu vào (nav-forward) trang cũ lùi sang trái,
+   trang mới vào từ phải; quay lại (nav-back) thì ngược lại. Cũ ra nhanh, mới vào chậm hơn để mắt kịp nhận. */
+::view-transition-old(.nav-forward) {
+  --slide-offset: -60px;
+  animation: 150ms ease-in both vt-fade reverse, 300ms ease-in-out both vt-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --slide-offset: 60px;
+  animation: 210ms ease-out 100ms both vt-fade, 300ms ease-in-out both vt-slide;
+}
+::view-transition-old(.nav-back) {
+  --slide-offset: 60px;
+  animation: 150ms ease-in both vt-fade reverse, 300ms ease-in-out both vt-slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --slide-offset: -60px;
+  animation: 210ms ease-out 100ms both vt-fade, 300ms ease-in-out both vt-slide;
+}
+@keyframes vt-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes vt-slide {
+  from { translate: var(--slide-offset); }
+  to { translate: 0; }
+}
+/* Lớp phủ transition không nuốt click trong lúc trượt. */
+::view-transition {
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

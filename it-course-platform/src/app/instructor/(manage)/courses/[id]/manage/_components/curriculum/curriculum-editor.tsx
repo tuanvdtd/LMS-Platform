@@ -152,14 +152,6 @@ export function CurriculumEditor() {
     return map;
   }, [sections]);
 
-  const lectures = useMemo(
-    () =>
-      (sections ?? []).flatMap((s) =>
-        s.items.filter((it) => it.type === 'lecture').map((it) => ({ id: it.id, title: `${labels.get(it.id)}: ${it.title}` })),
-      ),
-    [sections, labels],
-  );
-
   const ctx = useMemo<CurriculumContextValue>(
     () => ({
       courseId,
@@ -169,9 +161,8 @@ export function CurriculumEditor() {
       openItemId,
       toggleItem,
       confirm: (message, action) => setPendingConfirm({ message, action }),
-      lectures,
     }),
-    [courseId, locked, pending, run, openItemId, toggleItem, lectures],
+    [courseId, locked, pending, run, openItemId, toggleItem],
   );
 
   const stats = useMemo(() => {
