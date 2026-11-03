@@ -16,12 +16,16 @@ export function VideoPlayer({
   videoRef,
   onCompleted,
   onRefreshUrl,
+  onEndedChange,
+  children,
 }: {
   courseSlug: string;
   lecture: Lecture;
   videoRef: RefObject<HTMLVideoElement | null>;
   onCompleted: (progressPct: number) => void;
   onRefreshUrl: () => Promise<string | null>;
+  onEndedChange: (ended: boolean) => void; // hết video → lớp phủ "Bài tiếp"; phát lại → ẩn
+  children?: React.ReactNode; // lớp phủ đặt trên khung video
 }) {
   const [src, setSrc] = useState(lecture.mediaUrl);
   const [failed, setFailed] = useState(false);
@@ -66,21 +70,28 @@ export function VideoPlayer({
     );
   }
   return (
-    <div className="bg-black">
+    <div className="relative bg-black">
       <CourseVideo
         ref={videoRef}
         key={src}
         src={src}
         onRefreshUrl={onRefreshUrl}
         preload="metadata"
-        className="mx-auto aspect-video max-h-[calc(100dvh-10rem)] w-full"
+        // Chừa header + dải bài học + thanh tab trên laptop thấp (674px vẫn thấy tên bài và tab).
+        className="mx-auto aspect-video max-h-[calc(100dvh-13rem)] w-full"
         onLoadedMetadata={(e) => {
           if (resumeAt.current > 0) e.currentTarget.currentTime = resumeAt.current;
         }}
         onPlaying={() => { retried.current = false; }} // phát được → lần hết hạn sau vẫn tự hồi phục
+        onPlay={() => onEndedChange(false)}
         onError={() => void recover()}
         {...tracking}
+        onEnded={() => {
+          tracking.onEnded();
+          onEndedChange(true);
+        }}
       />
+      {children}
     </div>
   );
 }

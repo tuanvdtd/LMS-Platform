@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BookOpen, ChevronLeft, CircleCheck, CircleX, Lock, RotateCcw } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, CircleCheck, CircleX, Lock, RotateCcw } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -44,6 +44,7 @@ export function QuizResult({
   result,
   starting,
   onRetake,
+  nextHref,
 }: {
   courseSlug: string;
   itemId: string;
@@ -51,6 +52,7 @@ export function QuizResult({
   result: AttemptResult;
   starting: boolean;
   onRetake: () => void;
+  nextHref: string | null; // bài kế trong mục lục; null = bài cuối
 }) {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-10">
@@ -71,9 +73,11 @@ export function QuizResult({
           <Button className="h-11" disabled={starting} onClick={onRetake}>
             <RotateCcw data-icon="inline-start" aria-hidden /> {starting ? 'Đang mở…' : 'Làm lại'}
           </Button>
-          <Link href={`/course/${courseSlug}`} className={cn(buttonVariants({ variant: 'outline' }), 'h-11')}>
-            <BookOpen data-icon="inline-start" aria-hidden /> Về khoá học
-          </Link>
+          {nextHref && (
+            <Link href={nextHref} className={cn(buttonVariants({ variant: 'outline' }), 'h-11')}>
+              Bài tiếp <ChevronRight data-icon="inline-end" aria-hidden />
+            </Link>
+          )}
         </div>
       </section>
 

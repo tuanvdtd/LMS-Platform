@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ImageIcon } from 'lucide-react';
+import { CircleX, ImageIcon } from 'lucide-react';
 import { CourseStatusBadge } from '@/components/shared/course-status-badge';
+import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -53,7 +54,10 @@ export function MyCourses() {
           </div>
         ) : (
           <ul className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:grid-cols-1">
-            {courses.map((c) => (
+            {courses.map((c) => {
+              // Bị từ chối thì khoá quay về nháp → tách riêng để giảng viên thấy ngay khoá cần sửa.
+              const rejected = c.status === 'draft' && c.lastReview?.status === 'rejected' ? c.lastReview : null;
+              return (
               <li
                 key={c.id}
                 className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-2.5 sm:flex-row sm:items-center sm:gap-5 sm:p-3.5"
@@ -75,11 +79,27 @@ export function MyCourses() {
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
                     <p className="line-clamp-2 text-sm font-semibold sm:truncate sm:text-base">{c.title}</p>
-                    <CourseStatusBadge status={c.status} />
+                    {rejected ? (
+                      <Badge className="gap-1 bg-danger-soft font-semibold text-danger">
+                        <CircleX aria-hidden />
+                        Bị từ chối · cần sửa
+                      </Badge>
+                    ) : (
+                      <CourseStatusBadge status={c.status} />
+                    )}
                   </div>
-                  <p className="hidden text-xs text-muted-foreground sm:block">
-                    Sửa lần cuối {new Date(c.updatedAt).toLocaleString('vi-VN')}
-                  </p>
+                  {rejected?.reason ? (
+                    <p className="line-clamp-2 rounded-md bg-danger-soft px-2.5 py-1.5 text-xs text-foreground">
+                      <span className="font-semibold text-danger">
+                        Lý do{rejected.reviewedAt && ` (${new Date(rejected.reviewedAt).toLocaleDateString('vi-VN')})`}:
+                      </span>{' '}
+                      {rejected.reason}
+                    </p>
+                  ) : (
+                    <p className="hidden text-xs text-muted-foreground sm:block">
+                      Sửa lần cuối {new Date(c.updatedAt).toLocaleString('vi-VN')}
+                    </p>
+                  )}
                   <div className="flex max-w-sm flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2.5">
                     <Progress value={(c.progress.done / c.progress.total) * 100} className="sm:flex-1" aria-label="Mức hoàn thiện" />
                     <span className="text-[11px] whitespace-nowrap sm:text-xs">
@@ -91,10 +111,11 @@ export function MyCourses() {
                   href={`/instructor/courses/${c.id}/manage/goals`}
                   className={cn(buttonVariants({ variant: 'outline' }), 'mt-auto w-full sm:mt-0 sm:w-auto')}
                 >
-                  {c.status === 'draft' ? 'Tiếp tục hoàn thiện' : 'Quản lý'}
+                  {rejected ? 'Sửa & gửi lại' : c.status === 'draft' ? 'Tiếp tục hoàn thiện' : 'Quản lý'}
                 </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>

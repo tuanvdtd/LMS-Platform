@@ -11,8 +11,20 @@ import { Markdown } from '@/components/markdown';
 const Editor = dynamic(
   () =>
     import('@uiw/react-md-editor').then(({ default: MDEditor, commands: c }) => {
-      const toolbar = [c.bold, c.italic, c.code, c.codeBlock, c.link, c.divider, c.unorderedListCommand, c.orderedListCommand, c.quote];
-      const modes = [c.codeEdit, c.codePreview];
+      // Nhãn tiếng Việt cho tooltip + aria-label (thư viện chỉ có tiếng Anh). Phím tắt giữ nguyên của thư viện.
+      const vi = (cmd: typeof c.bold, label: string) => ({ ...cmd, buttonProps: { ...cmd.buttonProps, 'aria-label': label, title: label } });
+      const toolbar = [
+        vi(c.bold, 'In đậm (Ctrl+B)'),
+        vi(c.italic, 'In nghiêng (Ctrl+I)'),
+        vi(c.code, 'Code trong dòng (Ctrl+J)'),
+        vi(c.codeBlock, 'Khối code (Ctrl+Shift+J)'),
+        vi(c.link, 'Chèn link (Ctrl+L)'),
+        c.divider,
+        vi(c.unorderedListCommand, 'Danh sách gạch đầu dòng (Ctrl+Shift+U)'),
+        vi(c.orderedListCommand, 'Danh sách đánh số (Ctrl+Shift+O)'),
+        vi(c.quote, 'Trích dẫn (Ctrl+Q)'),
+      ];
+      const modes = [vi(c.codeEdit, 'Soạn thảo (Ctrl+7)'), vi(c.codePreview, 'Xem trước (Ctrl+9)')];
       return function Editor(props: React.ComponentProps<typeof MDEditor>) {
         return <MDEditor commands={toolbar} extraCommands={modes} {...props} />;
       };

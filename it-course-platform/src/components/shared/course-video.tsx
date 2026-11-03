@@ -1,6 +1,7 @@
 'use client';
 
 import { type ComponentProps, type Ref, useCallback, useEffect, useMemo, useRef } from 'react';
+import { usePointerFocus } from '@/lib/use-pointer-focus';
 import { I18nProvider } from '@videojs/react/i18n';
 // Đăng ký tĩnh: locale nạp lười sẽ hiện tiếng Anh ở lần render đầu.
 import '@videojs/react/i18n/locales/vi/register';
@@ -102,17 +103,22 @@ export function CourseVideo({ src, onRefreshUrl, ref, className, onError, ...med
     return () => adapter.removeEventListener('error', handle);
   }, []);
 
+  // Bấm vào player rồi nhấn Space: không hiện viền focus (dialog xem trước dùng player ngoài khung học).
+  const pointerFocus = usePointerFocus();
+
   return (
     <I18nProvider locale="vi">
-      <VideoPlayer>
-        <VideoSkin className={className}>
-          {isHls ? (
-            <HlsJsVideo ref={ref} mediaRef={setMediaRef} source={source} playsInline {...media} />
-          ) : (
-            <Video ref={ref} src={src} playsInline onError={onError} {...media} />
-          )}
-        </VideoSkin>
-      </VideoPlayer>
+      <div className="contents" {...pointerFocus}>
+        <VideoPlayer>
+          <VideoSkin className={className}>
+            {isHls ? (
+              <HlsJsVideo ref={ref} mediaRef={setMediaRef} source={source} playsInline {...media} />
+            ) : (
+              <Video ref={ref} src={src} playsInline onError={onError} {...media} />
+            )}
+          </VideoSkin>
+        </VideoPlayer>
+      </div>
     </I18nProvider>
   );
 }

@@ -33,6 +33,13 @@ export async function getCurriculum(slug: string) {
   return data?.sections ?? null;
 }
 
+// Tiêu đề tab trang học "<tên bài> · <tên khoá>" từ catalog công khai (cache 60s); khoá bị ẩn / lỗi → fallback.
+export async function learnItemMetadata(slug: string, itemId: string, fallback: string) {
+  const [course, sections] = await Promise.all([getCourse(slug), getCurriculum(slug)]);
+  const item = sections?.flatMap((s) => s.items).find((i) => i.id === itemId);
+  return { title: item && course ? `${item.title} · ${course.title} | SkillPath` : fallback };
+}
+
 export async function getInstructor(id: string) {
   return fetchJson<PublicInstructor>(`/instructors/${encodeURIComponent(id)}`);
 }

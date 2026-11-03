@@ -17,5 +17,5 @@ export function LectureQa({ courseSlug, itemId }: { courseSlug: string; itemId: 
     }),
     [courseSlug, itemId],
   );
-  return <QaBoard key={itemId} api={api} title="Hỏi đáp" empty="Chưa có câu hỏi nào cho bài này" />;
+  return <QaBoard key={itemId} api={api} title="Câu hỏi về bài này" empty="Chưa có câu hỏi nào cho bài này" />;
 }

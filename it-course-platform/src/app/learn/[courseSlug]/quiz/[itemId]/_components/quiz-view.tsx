@@ -9,6 +9,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { apiMessage } from '@/lib/api/checkout';
 import { apiErrorCode, getAttemptResult, getQuizOverview, startAttempt, submitAttempt } from '@/lib/api/learn-quiz';
 import type { AttemptResult, AttemptSheet, QuizOverview, SubmitPayload } from '@/types/learn-quiz';
+import { itemHref, neighbors } from '../../../_components/learn-nav';
 import { useLearnShell, useSidebarMode } from '../../../_components/learn-shell';
 import { QuizResult } from './quiz-result';
 import { clearSavedAttempt, QuizRunner } from './quiz-runner';
@@ -22,7 +23,7 @@ type Loaded =
 
 // Máy trạng thái: overview → running(sheet) → result. `?attempt=<id>` mở thẳng màn xem lại.
 export default function QuizView({ courseSlug, itemId }: { courseSlug: string; itemId: string }) {
-  const { markCompleted, reloadOutline } = useLearnShell();
+  const { outline, markCompleted, reloadOutline } = useLearnShell();
   const router = useRouter();
   const pathname = usePathname();
   const key = useSearchParams().get('attempt') ?? '';
@@ -106,7 +107,18 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
     return <QuizStart courseSlug={courseSlug} overview={loaded.overview} starting={busy} onStart={start} />;
   }
   if (loaded.kind === 'result') {
-    return <QuizResult courseSlug={courseSlug} itemId={itemId} title={title} result={loaded.result} starting={busy} onRetake={start} />;
+    const { next } = neighbors(outline, itemId);
+    return (
+      <QuizResult
+        courseSlug={courseSlug}
+        itemId={itemId}
+        title={title}
+        result={loaded.result}
+        starting={busy}
+        onRetake={start}
+        nextHref={next && itemHref(courseSlug, next)}
+      />
+    );
   }
 
   const courseLink = (

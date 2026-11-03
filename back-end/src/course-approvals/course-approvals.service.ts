@@ -96,13 +96,13 @@ export class CourseApprovalsService {
     return rows.map((r) => r.categoryId);
   }
 
-  // Pending: cũ nhất trước (xử lý theo thứ tự gửi); đã xử lý: mới nhất trước.
+  // Pending: cũ nhất trước (xử lý theo thứ tự gửi); đã xử lý: vừa xử lý trước (FE hiện cột "Duyệt/Từ chối lúc").
   async list(q: ApprovalsQuery, scope: ReviewScope) {
     const where = { status: q.status, ...inScope(scope) };
     const [items, total] = await Promise.all([
       this.prisma.courseApproval.findMany({
         where,
-        orderBy: { createdAt: q.status === 'pending' ? 'asc' : 'desc' },
+        orderBy: q.status === 'pending' ? { createdAt: 'asc' } : { reviewedAt: 'desc' },
         skip: (q.page - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
         select: {

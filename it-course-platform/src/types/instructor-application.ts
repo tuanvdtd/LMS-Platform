@@ -39,6 +39,7 @@ export type ApplicationView = {
   bank: BankAccount | null;
   submittedAt: string | null;
   rejectReason: string | null;
+  rejectedAt: string | null;
   missing: { step: ApplicationStep; message: string }[];
   revenueSharePct: number;
 };

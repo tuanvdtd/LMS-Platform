@@ -1,8 +1,8 @@
 // …/_components/lecture-notes.tsx
 'use client';
 
-import { type RefObject, useEffect, useId, useState } from 'react';
-import { Pencil, StickyNote, Trash2 } from 'lucide-react';
+import { type RefObject, useEffect, useId, useRef, useState } from 'react';
+import { Pencil, RefreshCw, StickyNote, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -36,10 +36,12 @@ export function LectureNotes({
   videoRef: RefObject<HTMLVideoElement | null> | null;
 }) {
   const inputId = useId();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
-  const [mark, setMark] = useState(0);
+  const [mark, setMark] = useState(0); // mốc đã chốt (giây) — chỉ có nghĩa khi draft không trống
+  const [now, setNow] = useState(0); // giây hiện tại của video
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   const [deleting, setDeleting] = useState<Note | null>(null);
@@ -55,6 +57,16 @@ export function LectureNotes({
 
   const currentSec = () => Math.floor(videoRef?.current?.currentTime ?? 0);
 
+  // Mốc theo video khi ô còn trống; gõ ký tự đầu → chốt. Đọc định kỳ thay vì nghe timeupdate: <video> remount khi
+  // link ký hết hạn (key={src}) nên listener gắn một lần sẽ lạc. React bỏ qua setNow cùng giá trị → chỉ render khi đổi giây.
+  useEffect(() => {
+    if (!videoRef) return;
+    const id = setInterval(() => setNow(Math.floor(videoRef.current?.currentTime ?? 0)), 500);
+    return () => clearInterval(id);
+  }, [videoRef]);
+  const following = draft === '';
+  const shownMark = following ? now : mark;
+
   async function add() {
     const body = draft.trim();
     if (!body || saving) return;
@@ -62,9 +74,7 @@ export function LectureNotes({
     try {
       const note = await createNote(courseSlug, itemId, { positionSec: videoRef ? mark : 0, body });
       setNotes((l) => sortNotes([...(l ?? []), note]));
-      setDraft('');
-      // Ô nhập vẫn focus nên mốc không tự cập nhật → lấy lại mốc hiện tại cho ghi chú kế tiếp.
-      setMark(currentSec());
+      setDraft(''); // ô trống → mốc lại chạy theo video cho ghi chú kế tiếp
     } catch (e) {
       toast.error(apiMessage(e, 'Không lưu được ghi chú'));
     } finally {
@@ -119,15 +129,46 @@ export function LectureNotes({
           void add();
         }}
       >
-        <Label htmlFor={inputId}>Thêm ghi chú{videoRef ? ` tại ${formatDuration(mark)}` : ''}</Label>
+        <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
+          <Label htmlFor={inputId} className="gap-1.5">
+            Thêm ghi chú
+            {videoRef && (
+              <>
+                {' '}tại
+                <span className="rounded-md bg-primary-soft px-1.5 py-0.5 font-mono text-xs font-semibold text-primary tabular-nums">
+                  {formatDuration(shownMark)}
+                </span>
+                {following && <span className="text-xs font-normal text-muted-foreground">theo video</span>}
+              </>
+            )}
+          </Label>
+          {videoRef && !following && now !== mark && (
+            // Nút biến mất ngay khi mốc khớp → trả focus về ô nhập để gõ tiếp được luôn.
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 text-primary"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setMark(currentSec());
+                inputRef.current?.focus();
+              }}
+            >
+              <RefreshCw data-icon="inline-start" /> Lấy mốc {formatDuration(now)}
+            </Button>
+          )}
+        </div>
         <Textarea
+          ref={inputRef}
           id={inputId}
           value={draft}
           maxLength={NOTE_MAX}
           rows={3}
-          placeholder="Điều bạn muốn nhớ ở đoạn này…"
-          onFocus={() => setMark(currentSec())}
-          onChange={(e) => setDraft(e.target.value)}
+          placeholder={videoRef ? 'Điều bạn muốn nhớ ở đoạn này… Mốc chốt khi bạn bắt đầu gõ.' : 'Điều bạn muốn nhớ ở tài liệu này…'}
+          onChange={(e) => {
+            if (!draft && e.target.value) setMark(currentSec()); // ký tự đầu tiên chốt mốc
+            setDraft(e.target.value);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
               e.preventDefault();

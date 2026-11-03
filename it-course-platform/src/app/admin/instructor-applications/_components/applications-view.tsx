@@ -1,158 +1,117 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { ChevronRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { listApplications } from '@/lib/api/instructor-application';
 import { cn } from '@/lib/utils';
-import { type AdminApplicationRow, REVIEW_STATUS_LABEL, type ReviewedStatus } from '@/types/instructor-application';
-import type { Paged } from '@/types/revenue';
+import type { AdminApplicationRow } from '@/types/instructor-application';
+import { HEAD, PageHeader, QueueFooter, QueueMessage, QueueTabs, ROW, useQueue } from '../../_components/queue';
+import { fmtDate, WaitingChip } from '../../_components/review-ui';
 
-const TABS = Object.keys(REVIEW_STATUS_LABEL) as ReviewedStatus[];
-const EMPTY: Record<ReviewedStatus, string> = {
-  pending: 'Không có đơn nào đang chờ duyệt.',
-  approved: 'Chưa có đơn nào được duyệt.',
-  rejected: 'Chưa có đơn nào bị từ chối.',
+// Cột: người nộp · chức danh · thời điểm · mũi tên.
+const COLS = 'md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)_8.5rem_1rem]';
+
+const EMPTY = {
+  pending: { title: 'Không có đơn chờ duyệt', text: 'Đơn đăng ký giảng viên cao cấp sẽ hiện ở đây, đơn chờ lâu nhất ở trên cùng.' },
+  approved: { title: 'Chưa duyệt đơn nào', text: 'Giảng viên đã được duyệt sẽ hiện ở đây.' },
+  rejected: { title: 'Chưa từ chối đơn nào', text: 'Đơn bị từ chối kèm lý do sẽ hiện ở đây.' },
 };
-const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString('vi-VN') : '—');
-const href = (id: string) => `/admin/instructor-applications/${id}`;
 
-// Hàng đợi đơn giảng viên cao cấp.
 export function ApplicationsView() {
-  const router = useRouter();
-  const [status, setStatus] = useState<ReviewedStatus>('pending');
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<Paged<AdminApplicationRow> | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
-
-  // Chỉ setState trong callback (lint react-hooks/set-state-in-effect); reset data/failed ở các handler.
-  useEffect(() => {
-    let stale = false;
-    listApplications({ status, page }).then(
-      (d) => {
-        if (!stale) setData(d);
-      },
-      () => {
-        if (!stale) setFailed(true);
-      },
-    );
-    return () => {
-      stale = true;
-    };
-  }, [status, page, reloadKey]);
-
-  function load(next: { status?: ReviewedStatus; page?: number; reload?: boolean }) {
-    setData(null);
-    setFailed(false);
-    if (next.status) setStatus(next.status);
-    if (next.page) setPage(next.page);
-    if (next.reload) setReloadKey((k) => k + 1);
-  }
-
-  const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
-  const dateLabel = status === 'pending' ? 'Ngày nộp' : 'Ngày xử lý';
+  const q = useQueue(listApplications);
+  const { status, data } = q;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold">Duyệt giảng viên cao cấp</h1>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Duyệt giảng viên cao cấp"
+        description="Giảng viên được duyệt sẽ đặt được giá trả phí cho khoá học và nhận doanh thu hằng tháng. Kiểm tra hồ sơ chuyên môn và tài khoản nhận tiền trước khi duyệt."
+      />
 
-      <section className="space-y-4 rounded-2xl border bg-card p-5">
-        <div role="tablist" aria-label="Trạng thái đơn" className="flex flex-wrap gap-2">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              type="button"
-              role="tab"
-              aria-selected={status === t}
-              onClick={() => status !== t && load({ status: t, page: 1 })}
-              className={cn('rounded-lg border px-3 py-1.5 text-sm hover:bg-muted', status === t && 'bg-muted font-semibold text-primary')}
-            >
-              {REVIEW_STATUS_LABEL[t]}
-            </button>
-          ))}
+      <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
+        <div className="overflow-x-auto border-b px-1 [scrollbar-width:none] sm:px-3">
+          <QueueTabs value={status} counts={q.counts} onChange={q.changeStatus} />
         </div>
 
-        {failed ? (
-          <div className="flex flex-col items-start gap-3 py-6" role="alert">
-            <p className="text-sm text-muted-foreground">Không tải được danh sách đơn.</p>
-            <Button size="sm" variant="outline" onClick={() => load({ reload: true })}>
-              Thử lại
-            </Button>
-          </div>
+        {q.failed ? (
+          <QueueMessage kind="error" title="Không tải được danh sách đơn" text="Kiểm tra kết nối rồi thử lại." onRetry={q.retry} />
         ) : !data ? (
-          <div className="space-y-2" role="status" aria-busy="true" aria-label="Đang tải">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex items-center gap-3 py-2">
-                <Skeleton className="size-9 shrink-0 rounded-full" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-3 w-64" />
-                </div>
-                <Skeleton className="h-4 w-20" />
-              </div>
-            ))}
-          </div>
+          <RowsSkeleton />
         ) : data.items.length === 0 ? (
-          <p className="py-6 text-sm text-muted-foreground">{EMPTY[status]}</p>
+          <QueueMessage kind="empty" {...EMPTY[status]} />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Giảng viên</TableHead>
-                <TableHead className="hidden md:table-cell">Chức danh</TableHead>
-                <TableHead>{dateLabel}</TableHead>
-                <TableHead>
-                  <span className="sr-only">Thao tác</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            <div className={cn(HEAD, COLS)} aria-hidden>
+              <span>Người nộp</span>
+              <span>Chức danh</span>
+              <span>{status === 'pending' ? 'Nộp lúc' : status === 'approved' ? 'Duyệt lúc' : 'Từ chối lúc'}</span>
+              <span />
+            </div>
+            <ul className="divide-y">
               {data.items.map((row) => (
-                <TableRow key={row.id} className="cursor-pointer" onClick={() => router.push(href(row.id))}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="size-9">
-                        {row.user.image && <AvatarImage src={row.user.image} alt="" />}
-                        <AvatarFallback>{row.user.name.slice(0, 2)}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <div className="truncate font-medium">{row.user.name}</div>
-                        <div className="truncate text-xs text-muted-foreground">{row.user.email}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden max-w-xs truncate md:table-cell">{row.headline ?? '—'}</TableCell>
-                  <TableCell className="whitespace-nowrap">{fmt(status === 'pending' ? row.submittedAt : row.reviewedAt)}</TableCell>
-                  <TableCell className="text-right">
-                    <Link href={href(row.id)} onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">
-                      Xem
-                    </Link>
-                  </TableCell>
-                </TableRow>
+                <li key={row.id}>
+                  <Row row={row} now={q.now} />
+                </li>
               ))}
-            </TableBody>
-          </Table>
-        )}
-
-        {data && data.total > 0 && (
-          <div className="flex items-center justify-end gap-2 text-sm">
-            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => load({ page: page - 1 })}>
-              Trước
-            </Button>
-            <span>
-              Trang {page}/{pages}
-            </span>
-            <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => load({ page: page + 1 })}>
-              Sau
-            </Button>
-          </div>
+            </ul>
+            <QueueFooter data={data} page={q.page} onPage={q.changePage} />
+          </>
         )}
       </section>
+    </div>
+  );
+}
+
+function Row({ row, now }: { row: AdminApplicationRow; now: number }) {
+  const pending = row.status === 'pending';
+  return (
+    <Link href={`/admin/instructor-applications/${row.id}`} className={cn(ROW, COLS)}>
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar className="size-10 shrink-0">
+          {row.user.image && <AvatarImage src={row.user.image} alt="" />}
+          <AvatarFallback>{row.user.name.slice(0, 2)}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-foreground">{row.user.name}</p>
+          <p className="truncate text-xs text-muted-foreground">{row.user.email}</p>
+        </div>
+      </div>
+      {/* sr-only: hàng tiêu đề cột aria-hidden → mỗi ô tự mang nhãn khi đọc tên link. */}
+      <p className={cn('min-w-0 truncate text-sm', row.headline ? 'text-foreground' : 'text-muted-foreground')}>
+        <span className="sr-only">Chức danh: </span>
+        {row.headline ?? 'Chưa ghi chức danh'}
+      </p>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground md:flex-col md:items-start md:gap-1">
+        <span className="tabular-nums">
+          <span className="sr-only">{pending ? 'Nộp ngày ' : 'Xử lý ngày '}</span>
+          {fmtDate(pending ? row.submittedAt : row.reviewedAt)}
+        </span>
+        {pending && row.submittedAt && <WaitingChip since={row.submittedAt} now={now} />}
+      </div>
+      <ChevronRight className="hidden size-4 text-muted-foreground md:block" aria-hidden />
+    </Link>
+  );
+}
+
+function RowsSkeleton() {
+  return (
+    <div role="status" aria-busy="true" aria-label="Đang tải danh sách đơn" className="divide-y">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className={cn('grid items-center gap-x-5 gap-y-2 px-5 py-3.5', COLS)}>
+          <div className="flex items-center gap-3">
+            <Skeleton className="size-10 shrink-0 rounded-full" />
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-44" />
+            </div>
+          </div>
+          <Skeleton className="hidden h-4 w-3/4 md:block" />
+          <Skeleton className="hidden h-4 w-20 md:block" />
+          <span />
+        </div>
+      ))}
     </div>
   );
 }

@@ -3,17 +3,19 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { BookOpen, ChevronLeft, ChevronRight, FileQuestion, Lock, PanelRight, TriangleAlert, X } from 'lucide-react';
+import { useParams, useSelectedLayoutSegment } from 'next/navigation';
+import { ChevronRight, FileQuestion, Library, Lock, PanelLeftClose, PanelLeftOpen, TriangleAlert, X } from 'lucide-react';
+import { LogoMark } from '@/components/shared/logo-mark';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ProgressRing } from '@/components/shared/product-ui';
 import { LearnShellSkeleton } from '@/components/skeletons/learn-shell-skeleton';
 import { apiMessage } from '@/lib/api/checkout';
 import { getOutline, setLastItem } from '@/lib/api/learn';
 import { apiErrorCode } from '@/lib/api/learn-quiz';
+import { usePointerFocus } from '@/lib/use-pointer-focus';
 import { cn } from '@/lib/utils';
-import type { LearnItem, LearnOutline } from '@/types/learn';
+import type { LearnOutline } from '@/types/learn';
 import { CourseOutline } from './course-outline';
 import { flatItems, itemHref, neighbors } from './learn-nav';
 import { StateMessage } from './state-message';
@@ -49,17 +51,25 @@ function readDocked() {
   }
 }
 
-// Khung học chung: tải mục lục một lần, giữ khi chuyển bài.
+// Mục bấm được trên header ink: cùng cao 44px, chữ ink-foreground, hover ink-hover.
+const headerBtn =
+  'inline-flex shrink-0 items-center justify-center rounded-md text-ink-foreground outline-none transition-colors hover:bg-ink-hover focus-visible:ring-3 focus-visible:ring-ring/50 [&_.lucide:not([class*=size-])]:size-4';
+const INK_TRACK = '[&_[data-slot=progress-track]]:bg-ink-hover';
+
+// Khung học chung: tải mục lục một lần, giữ khi chuyển bài. Header trắng liền chất liệu với mục lục bên trái;
+// khối tối duy nhất là khung video.
 export function LearnShell({ children }: { children: React.ReactNode }) {
   const params = useParams<{ courseSlug: string; itemId: string }>();
   const courseSlug = params.courseSlug;
   const itemId: string | undefined = params.itemId; // /learn/<slug> không có itemId
+  const segment = useSelectedLayoutSegment(); // 'lecture' | 'quiz' | 'code' | null
   const [outline, setOutline] = useState<LearnOutline | null>(null);
   const [error, setError] = useState<{ code?: string; message: string } | null>(null);
   const [nonce, setNonce] = useState(0);
   const [mode, setMode] = useState<SidebarMode>('docked');
   const [docked, setDocked] = useState(readDocked);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const pointerFocus = usePointerFocus();
 
   useEffect(() => {
     let cancelled = false;
@@ -129,8 +139,10 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
   }
 
   const items = flatItems(outline);
+  const { next } = neighbors(outline, itemId);
+  const nextHref = next && itemHref(courseSlug, next);
   const done = items.filter((i) => i.completed).length;
-  const { prev, next } = neighbors(outline, itemId);
+  const pct = Math.round(outline.progressPct);
   const showDock = mode === 'docked' && docked;
   const toggleDock = () => {
     setDocked((d) => {
@@ -138,98 +150,152 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
       return !d;
     });
   };
+  // Dải tiến độ đầu mục lục: nền ink nối liền header thành chữ L tối (header không lơ lửng trên cột trắng);
+  // con số đo được đứng trước (Transparent Scorecard).
+  const progressBand = (title: React.ReactNode) => (
+    <div className="flex flex-col gap-2.5 border-b border-ink-border bg-ink px-4 py-3.5 text-ink-foreground">
+      {title}
+      <div className="flex items-end justify-between gap-3">
+        <p className="text-xs text-ink-muted tabular-nums">
+          Đã hoàn thành <span className="font-semibold text-ink-foreground">{done}/{items.length}</span> bài
+        </p>
+        <p className="text-2xl leading-none font-extrabold text-primary tabular-nums">{pct}%</p>
+      </div>
+      <Progress value={pct} aria-label="Tiến độ khoá học" className={INK_TRACK} />
+    </div>
+  );
 
   return (
     <ShellContext value={ctx}>
-      <div className="min-h-dvh bg-background">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-card px-3 sm:gap-3 sm:px-4">
-          <Link href="/" aria-label="SkillPath — trang chủ" className="flex shrink-0 items-center gap-1.5 rounded-md text-sm font-bold text-primary">
-            <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <BookOpen className="size-4" aria-hidden />
-            </span>
-            <span className="hidden sm:inline">SkillPath</span>
-          </Link>
-          <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-          <Link href={`/course/${outline.course.slug}`} className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground hover:underline">
-            {outline.course.title}
-          </Link>
-          <div className="flex shrink-0 items-center gap-2" aria-label={`Đã hoàn thành ${done}/${items.length} bài`}>
-            <ProgressRing progress={Math.round(outline.progressPct)} size={36} />
-            <span className="hidden text-xs text-muted-foreground tabular-nums sm:inline">{done}/{items.length} bài</span>
-          </div>
-          <nav aria-label="Chuyển bài" className="flex shrink-0 items-center">
-            <NavButton slug={outline.course.slug} item={prev} label="Bài trước" icon={ChevronLeft} />
-            <NavButton slug={outline.course.slug} item={next} label="Bài tiếp" icon={ChevronRight} />
-          </nav>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn('size-11 shrink-0', mode === 'docked' && 'lg:hidden')}
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Mở nội dung khoá học"
+      <div className="min-h-dvh bg-background" {...pointerFocus}>
+        {/* Mục lục đứng trước nội dung trong thứ tự Tab → cho người dùng bàn phím nhảy thẳng vào bài. */}
+        <a
+          href="#learn-main"
+          className="sr-only rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50"
+        >
+          Tới nội dung bài học
+        </a>
+        <header className="sticky top-0 z-30 flex h-14 border-b border-ink-border bg-ink text-ink-foreground">
+          {/* Nhóm trái: khi mục lục đang hiện (lg) rộng đúng bằng cột mục lục, viền phải nối liền viền mục lục
+              → header chia 2 cột như layout bên dưới. */}
+          {/* Viền phải luôn có trên lg (khi thu gọn nó làm vạch ngăn sau logo); bề rộng trượt cùng nhịp với cột mục lục
+              (interpolate-size: co giãn tới "auto", trình duyệt cũ thì nhảy thẳng). */}
+          <div
+            className={cn(
+              'flex shrink-0 items-center gap-1 px-1.5 sm:px-2 lg:border-r lg:border-ink-border lg:transition-[width] lg:duration-300 lg:ease-[cubic-bezier(0.16,1,0.3,1)] lg:[interpolate-size:allow-keywords] motion-reduce:transition-none',
+              showDock ? 'lg:w-88 xl:w-96' : 'lg:w-auto',
+            )}
           >
-            <PanelRight />
-          </Button>
-          {mode === 'docked' && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden size-11 shrink-0 lg:inline-flex"
-              onClick={toggleDock}
-              aria-pressed={docked}
-              aria-label={docked ? 'Ẩn nội dung khoá học' : 'Hiện nội dung khoá học'}
+            {/* Mỗi khổ chỉ hiện một nút mục lục: ngăn trượt (mobile / quiz đang làm / bài code) hoặc ẩn-hiện cột trái (desktop). */}
+            <button type="button" className={cn(headerBtn, 'size-11', mode === 'docked' && 'lg:hidden')} onClick={() => setDrawerOpen(true)} aria-label="Mở nội dung khoá học">
+              <PanelLeftOpen />
+            </button>
+            {mode === 'docked' && (
+              <button
+                type="button"
+                className={cn(headerBtn, 'hidden size-11 lg:inline-flex')}
+                onClick={toggleDock}
+                aria-pressed={docked}
+                aria-label={docked ? 'Ẩn nội dung khoá học' : 'Hiện nội dung khoá học'}
+                title={docked ? 'Ẩn nội dung khoá học' : 'Hiện nội dung khoá học'}
+              >
+                {docked ? <PanelLeftClose /> : <PanelLeftOpen />}
+              </button>
+            )}
+            <Link href="/" aria-label="SkillPath — trang chủ" className={cn(headerBtn, 'h-11 gap-1.5 px-1.5')}>
+              <LogoMark className="h-7" />
+              <span className="hidden text-base font-bold sm:inline">
+                SkillPath
+              </span>
+            </Link>
+          </div>
+
+          {/* Nhóm phải: tên khoá thẳng hàng tên bài ở dải dưới video (lg: 16px + 8px đệm link = 24px như px-6 của dải). */}
+          <div className="flex min-w-0 flex-1 items-center gap-1 pr-2 sm:gap-2 sm:pr-4 lg:pl-4">
+            <span className="mx-1 h-5 w-px shrink-0 bg-ink-border lg:hidden" aria-hidden />
+            <Link
+              href={`/course/${outline.course.slug}`}
+              title={outline.course.title}
+              className={cn(headerBtn, 'h-11 min-w-0 shrink justify-start px-2 text-sm font-semibold')}
             >
-              <PanelRight />
-            </Button>
-          )}
+              <span className="truncate">{outline.course.title}</span>
+            </Link>
+            <div className="flex-1" />
+            {/* Tiến độ khi mục lục không trên màn (mobile, quiz đang làm, bài code, đã ẩn): header là thứ duy nhất còn lại. */}
+            <button
+              type="button"
+              onClick={() => {
+                if (mode === 'docked' && !docked && window.matchMedia('(min-width: 64rem)').matches) toggleDock();
+                else setDrawerOpen(true);
+              }}
+              aria-label={`Tiến độ khoá học ${pct}%, đã hoàn thành ${done}/${items.length} bài. Mở nội dung khoá học`}
+              className={cn(headerBtn, 'h-11 shrink-0 gap-2 px-2 text-xs', showDock && 'lg:hidden')}
+            >
+              <Progress value={pct} aria-hidden className={cn('hidden w-16 sm:flex [&_[data-slot=progress-track]]:h-1.5', INK_TRACK)} />
+              <span className="font-semibold tabular-nums">{pct}%</span>
+              <span className="hidden text-ink-muted tabular-nums md:inline">
+                · {done}/{items.length} bài
+              </span>
+            </button>
+            <Link href="/my-learning" className={cn(headerBtn, 'hidden h-11 shrink-0 gap-1.5 px-2.5 text-sm font-medium sm:inline-flex')}>
+              <Library className="text-ink-muted" aria-hidden />
+              Học tập của tôi
+            </Link>
+            {/* Bài giảng có "Bài tiếp" ở dải dưới video; quiz / bài code đặt ở đây. Chỉ đi tới, quay lại dùng mục lục. */}
+            {segment !== 'lecture' && nextHref && next && (
+              <Link
+                href={nextHref}
+                title={`Bài tiếp: ${next.title}`}
+                aria-label={`Bài tiếp: ${next.title}`}
+                className={buttonVariants({ variant: 'outline', className: 'h-11 shrink-0' })}
+              >
+                Bài tiếp <ChevronRight data-icon="inline-end" />
+              </Link>
+            )}
+          </div>
         </header>
         <div className="flex">
-          <div className="min-w-0 flex-1">{children}</div>
-          {showDock && (
-            <aside aria-label="Nội dung khoá học" className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-80 shrink-0 flex-col border-l bg-card lg:flex">
-              <h2 className="border-b px-4 py-3 text-sm font-semibold text-foreground">Nội dung khoá học</h2>
-              <CourseOutline outline={outline} currentId={itemId} />
+          {/* Thu gọn / mở có trượt: cột ngoài co giãn bề rộng (đẩy nội dung), ruột bề rộng cố định trượt ra/vào bằng
+              translate. Thu gọn → inert (Tab không lọt vào phần đã ẩn). Drawer mode (quiz đang làm, bài code) không có cột. */}
+          {mode === 'docked' && (
+            <aside
+              aria-label="Nội dung khoá học"
+              inert={!docked}
+              className={cn(
+                'sticky top-14 hidden h-[calc(100dvh-3.5rem)] shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none lg:block',
+                docked ? 'w-88 xl:w-96' : 'w-0',
+              )}
+            >
+              <div
+                className={cn(
+                  'flex h-full w-88 flex-col border-r bg-card transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none xl:w-96',
+                  !docked && '-translate-x-full',
+                )}
+              >
+                {progressBand(<h2 className="text-sm font-semibold">Nội dung khoá học</h2>)}
+                <CourseOutline outline={outline} currentId={itemId} />
+              </div>
             </aside>
           )}
+          <div id="learn-main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
+            {children}
+          </div>
         </div>
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-          <SheetContent side="right" showCloseButton={false} className="gap-0 p-0 data-[side=right]:w-[22rem] max-w-[90vw]">
-            <SheetClose render={<Button variant="ghost" size="icon" className="absolute right-2 top-2 z-10 size-11" aria-label="Đóng" />}>
+          <SheetContent side="left" showCloseButton={false} className="max-w-[90vw] gap-0 p-0 data-[side=left]:w-96">
+            <SheetClose
+              render={<Button variant="ghost" size="icon" className="absolute top-1.5 right-1.5 z-10 size-11 text-ink-foreground hover:bg-ink-hover hover:text-white" aria-label="Đóng" />}
+            >
               <X />
             </SheetClose>
-            <SheetHeader className="border-b pr-14">
-              <SheetTitle>Nội dung khoá học</SheetTitle>
+            {/* Tiêu đề nằm trong dải tiến độ; pr-14 chừa nút đóng. */}
+            <SheetHeader className="gap-0 p-0">
+              {progressBand(<SheetTitle className="pr-12 text-ink-foreground">Nội dung khoá học</SheetTitle>)}
             </SheetHeader>
             <CourseOutline outline={outline} currentId={itemId} onNavigate={() => setDrawerOpen(false)} />
           </SheetContent>
         </Sheet>
       </div>
     </ShellContext>
-  );
-}
-
-function NavButton({
-  slug,
-  item,
-  label,
-  icon: Icon,
-}: {
-  slug: string;
-  item: LearnItem | null;
-  label: string;
-  icon: typeof ChevronLeft;
-}) {
-  const href = item && itemHref(slug, item);
-  if (!href) {
-    return (
-      <Button variant="ghost" size="icon" className="size-11" disabled aria-label={label}>
-        <Icon />
-      </Button>
-    );
-  }
-  return (
-    <Link href={href} aria-label={`${label}: ${item.title}`} title={item.title} className={buttonVariants({ variant: 'ghost', size: 'icon', className: 'size-11' })}>
-      <Icon />
-    </Link>
   );
 }

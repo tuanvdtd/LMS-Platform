@@ -53,6 +53,7 @@
   --color-ink-muted: var(--ink-muted);
   --color-ink-hover: var(--ink-hover);
   --color-ink-border: var(--ink-border);
+  /* Nền hover của mục bấm được trên bề mặt card (header khung học). Theme tối: secondary/muted trùng card nên cần tông riêng. */
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-popover: var(--popover);
@@ -314,6 +315,24 @@
   font-family: var(--font-sans);
 }
 .quiz-md .w-md-editor-toolbar { background-color: var(--muted); border-radius: var(--radius-md) var(--radius-md) 0 0; }
+/* Khung player Video.js (CourseVideo): viền focus mặc định là vòng trắng bo 28px nằm ngoài khung → viền ring vẽ vào trong. */
+.media-container:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+/* usePointerFocus: focus đến từ cú bấm chuột thì không vẽ viền dù sau đó nhấn phím (Space trên video / tiêu đề phần).
+   Ngoài @layer nên thắng utility focus-visible:ring-* của Tailwind; Tab là hiện lại. */
+[data-pointer-focus] :focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Placeholder mặc định của thư viện chỉ đạt 3:1 → dùng token muted-foreground (≥ 4.5:1 cả hai theme). */
+.quiz-md .w-md-editor-text-input::placeholder {
+  color: var(--muted-foreground);
+  -webkit-text-fill-color: var(--muted-foreground);
+  opacity: 1;
+}
 
 /* Chuyển trang trượt ngang (PageSlide + <Link transitionTypes>): đi sâu vào (nav-forward) trang cũ lùi sang trái,
    trang mới vào từ phải; quay lại (nav-back) thì ngược lại. Cũ ra nhanh, mới vào chậm hơn để mắt kịp nhận. */

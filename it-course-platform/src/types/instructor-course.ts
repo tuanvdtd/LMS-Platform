@@ -81,6 +81,7 @@ export interface CourseListItem {
   thumbnailUrl: string | null;
   updatedAt: string;
   progress: { done: number; total: number };
+  lastReview: LastReview | null; // lần gửi duyệt gần nhất (draft + rejected = bị từ chối, cần sửa)
 }
 
 // PATCH: chỉ gửi trường muốn đổi. subtitle/description chuỗi rỗng → BE lưu null.

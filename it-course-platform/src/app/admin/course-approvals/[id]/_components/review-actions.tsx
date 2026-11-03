@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import axios from 'axios';
+import { CircleCheck, CircleX, Copyright, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -13,35 +14,56 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
-import { approveCourse, getApproval, rejectCourse } from '@/lib/api/course-approvals';
+import { approveCourse, getApproval, listApprovals, rejectCourse } from '@/lib/api/course-approvals';
+import { cn } from '@/lib/utils';
 import type { AdminApprovalDetail } from '@/types/course-approval';
-import { APPROVAL_STATUS_LABEL, formatPrice } from '@/types/instructor-course';
+import { formatPrice } from '@/types/instructor-course';
+import { NextPending } from '../../../_components/queue';
+import { type Check, CheckList, fmtDateTime, RejectDialog, ReviewStatusBadge, Spinner } from '../../../_components/review-ui';
 
 const REASON_MAX = 1000;
-const fmt = (d: string) => new Date(d).toLocaleString('vi-VN');
+const PRESETS = [
+  'Video hoặc âm thanh chất lượng thấp, khó theo dõi.',
+  'Mô tả và mục tiêu khoá học chưa rõ ràng.',
+  'Giáo trình còn bài trống hoặc thiếu nội dung.',
+  'Nội dung có dấu hiệu vi phạm bản quyền.',
+  'Khoá học chưa đúng danh mục đã chọn.',
+  'Giá chưa tương xứng với thời lượng và nội dung.',
+];
 
-// Cột phải trang duyệt: giá, cam kết, lịch sử, Duyệt / Từ chối.
-export function ReviewActions({
-  detail,
-  onChange,
-}: {
-  detail: AdminApprovalDetail;
-  onChange: (d: AdminApprovalDetail) => void;
-}) {
-  const { approval, course, history } = detail;
-  const [busy, setBusy] = useState(false);
+// Bằng chứng đo được từ chính bài nộp, đặt cạnh nút duyệt (giá khoá vĩnh viễn → phải thấy trước khi bấm).
+function courseChecks({ course, sections, quizzes }: AdminApprovalDetail): Check[] {
+  const items = sections.flatMap((s) => s.items);
+  const empty = items.filter((i) => i.type === 'lecture' && !i.video && !i.document).length;
+  const videoMin = Math.round(items.reduce((t, i) => t + (i.video ? i.durationSec : 0), 0) / 60);
+  const quizList = Object.values(quizzes);
+  const emptyQuiz = quizList.filter((q) => q.questions.length === 0).length;
+  const checks: Check[] = [
+    { ok: !!course.thumbnailUrl, label: course.thumbnailUrl ? 'Có ảnh bìa' : 'Chưa có ảnh bìa' },
+    { ok: !!course.category, label: course.category ? 'Đã chọn danh mục' : 'Chưa chọn danh mục' },
+    {
+      ok: !!course.description && course.learningObjectives.length > 0,
+      label: course.description && course.learningObjectives.length > 0 ? 'Có mô tả và mục tiêu' : 'Thiếu mô tả hoặc mục tiêu khoá học',
+    },
+    { ok: empty === 0, label: empty ? `${empty} bài giảng chưa có nội dung` : `Mọi bài giảng có nội dung · ${videoMin} phút video` },
+  ];
+  if (quizList.length > 0) checks.push({ ok: emptyQuiz === 0, label: emptyQuiz ? `${emptyQuiz} quiz chưa có câu hỏi` : 'Mọi quiz đều có câu hỏi' });
+  return checks;
+}
+
+// Cột phải trang duyệt: trạng thái, giá, người gửi, ghi chú bản quyền, kiểm tra tự động, Duyệt / Từ chối.
+export function ReviewActions({ detail, onChange }: { detail: AdminApprovalDetail; onChange: (d: AdminApprovalDetail) => void }) {
+  const { approval, course } = detail;
+  const [busy, setBusy] = useState<'approve' | 'reject' | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
-  const [reason, setReason] = useState('');
+  const pending = approval.status === 'pending';
+  const checks = courseChecks(detail);
+  const warnings = checks.filter((c) => !c.ok).map((c) => c.label);
 
-  async function run(action: () => Promise<AdminApprovalDetail>, done: string) {
-    setBusy(true);
+  async function run(kind: 'approve' | 'reject', action: () => Promise<AdminApprovalDetail>, done: string) {
+    setBusy(kind);
     try {
       onChange(await action());
       setConfirmOpen(false);
@@ -50,120 +72,129 @@ export function ReviewActions({
     } catch (e) {
       const data = axios.isAxiosError(e) ? e.response?.data : undefined;
       toast.error(data?.message ?? 'Thao tác thất bại, thử lại');
-      // 409 ALREADY_REVIEWED: admin khác đã xử lý → tải lại để thấy kết quả.
-      if (data?.code === 'ALREADY_REVIEWED') getApproval(approval.id).then(onChange, () => undefined);
+      // 409 ALREADY_REVIEWED: người khác đã xử lý → đóng hộp thoại, tải lại để thấy kết quả.
+      if (data?.code === 'ALREADY_REVIEWED') {
+        setConfirmOpen(false);
+        setRejectOpen(false);
+        getApproval(approval.id).then(onChange, () => undefined);
+      }
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
   return (
-    <aside className="flex flex-col gap-4 rounded-2xl border bg-card p-5 text-sm">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-muted-foreground">Giá bán</div>
-          <div className="font-mono text-lg font-bold">{formatPrice(course.priceAmount)}</div>
-        </div>
-        <Badge variant={approval.status === 'rejected' ? 'destructive' : approval.status === 'approved' ? 'default' : 'secondary'}>
-          {APPROVAL_STATUS_LABEL[approval.status]}
-        </Badge>
-      </div>
+    <aside aria-labelledby="decision-heading" className="flex flex-col rounded-xl border bg-card text-sm shadow-sm">
+      <header className="flex items-center justify-between gap-2 border-b px-5 py-3.5">
+        <h2 id="decision-heading" className="text-base font-semibold text-foreground">
+          Quyết định
+        </h2>
+        <ReviewStatusBadge status={approval.status} />
+      </header>
 
-      <Separator />
-      <div>
-        <div className="text-muted-foreground">Người gửi</div>
-        <div className="font-medium">{approval.submittedBy.name}</div>
-        <div className="text-xs text-muted-foreground">{approval.submittedBy.email}</div>
-        <div className="mt-1 text-xs text-muted-foreground">Gửi lúc {fmt(approval.createdAt)}</div>
-      </div>
-
-      <Separator />
-      <div>
-        <div className="text-muted-foreground">Ghi chú của giảng viên</div>
-        <p className="whitespace-pre-line">{approval.copyrightNote ?? 'Không có'}</p>
-      </div>
-
-      <Separator />
-      {approval.status === 'pending' ? (
-        <div className="flex flex-col gap-2">
-          <Button disabled={busy} onClick={() => setConfirmOpen(true)}>
-            Duyệt &amp; xuất bản
-          </Button>
-          <Button variant="outline" className="border-destructive/40 text-destructive hover:text-destructive" disabled={busy} onClick={() => setRejectOpen(true)}>
-            Từ chối
-          </Button>
-        </div>
-      ) : (
-        <div>
-          <p>
-            Kết quả: <span className="font-medium">{APPROVAL_STATUS_LABEL[approval.status]}</span>
-            {approval.reviewedBy && ` bởi ${approval.reviewedBy.name}`}
-            {approval.reviewedAt && ` lúc ${fmt(approval.reviewedAt)}`}
-          </p>
-          {approval.status === 'rejected' && approval.reason && (
-            <p className="mt-2 whitespace-pre-line text-destructive">Lý do: {approval.reason}</p>
+      <div className="flex flex-col gap-5 p-5">
+        <div className="flex flex-col gap-1">
+          <p className="text-xs text-muted-foreground">Giá bán</p>
+          <p className="text-2xl font-extrabold text-foreground tabular-nums">{formatPrice(course.priceAmount)}</p>
+          {pending && course.priceAmount > 0 && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Lock className="size-3.5" aria-hidden /> Giá bị khoá vĩnh viễn sau khi duyệt.
+            </p>
           )}
         </div>
-      )}
 
-      <Separator />
-      <div>
-        <div className="mb-2 font-semibold">Lịch sử gửi duyệt</div>
-        {history.length === 0 ? (
-          <p className="text-muted-foreground">Lần gửi đầu tiên</p>
+        <div className="flex flex-col gap-1.5 rounded-lg bg-muted p-3">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+            <Copyright className="size-3.5" aria-hidden /> Ghi chú bản quyền của giảng viên
+          </p>
+          <p className={approval.copyrightNote ? 'whitespace-pre-line text-foreground' : 'text-muted-foreground'}>
+            {approval.copyrightNote ?? 'Không có ghi chú.'}
+          </p>
+        </div>
+
+        {pending && <CheckList checks={checks} />}
+
+        {pending ? (
+          <div className="flex flex-col gap-2">
+            <Button className="h-11" disabled={!!busy} onClick={() => setConfirmOpen(true)}>
+              <CircleCheck data-icon="inline-start" />
+              Duyệt &amp; xuất bản
+            </Button>
+            <Button
+              variant="outline"
+              className="h-11 border-danger-border text-danger hover:bg-danger-soft hover:text-danger"
+              disabled={!!busy}
+              onClick={() => setRejectOpen(true)}
+            >
+              <CircleX data-icon="inline-start" />
+              Từ chối
+            </Button>
+          </div>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {history.map((h) => (
-              <li key={h.id} className="flex flex-col gap-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground">{fmt(h.createdAt)}</span>
-                  <Badge variant={h.status === 'rejected' ? 'destructive' : 'secondary'}>{APPROVAL_STATUS_LABEL[h.status]}</Badge>
-                </div>
-                {h.reason && <p className="whitespace-pre-line text-xs text-muted-foreground">{h.reason}</p>}
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col gap-3">
+            <Outcome detail={detail} />
+            <NextPending fetchPage={listApprovals} current={approval.id} hrefOf={(id) => `/admin/course-approvals/${id}`} />
+          </div>
         )}
       </div>
 
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <AlertDialog open={confirmOpen} onOpenChange={(o) => !busy && setConfirmOpen(o)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Duyệt &amp; xuất bản khoá học?</AlertDialogTitle>
-            <AlertDialogDescription>Khoá sẽ được xuất bản và giá bị khoá vĩnh viễn.</AlertDialogDescription>
+            <AlertDialogTitle>Duyệt &amp; xuất bản “{course.title}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Khoá lên catalog ngay và giá {formatPrice(course.priceAmount)} bị khoá vĩnh viễn. Giảng viên nhận thông báo đã duyệt.
+            </AlertDialogDescription>
           </AlertDialogHeader>
+          {warnings.length > 0 && (
+            <div className="flex flex-col gap-1 rounded-lg border border-warning-border bg-warning-soft p-3 text-sm text-warning">
+              <p className="font-semibold">Còn {warnings.length} mục cần xem:</p>
+              <ul className="list-disc pl-5">
+                {warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Huỷ</AlertDialogCancel>
-            <AlertDialogAction disabled={busy} onClick={() => run(() => approveCourse(approval.id), 'Đã duyệt khoá học')}>
-              Duyệt &amp; xuất bản
+            <AlertDialogCancel disabled={!!busy}>Huỷ</AlertDialogCancel>
+            <AlertDialogAction disabled={!!busy} onClick={() => run('approve', () => approveCourse(approval.id), 'Đã duyệt và xuất bản khoá học')}>
+              {busy === 'approve' && <Spinner />}
+              {warnings.length > 0 ? 'Vẫn duyệt & xuất bản' : 'Duyệt & xuất bản'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Từ chối khoá học</DialogTitle>
-            <DialogDescription>Giảng viên sẽ thấy lý do này để chỉnh sửa và gửi lại.</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="reject-reason">Lý do từ chối</Label>
-            <Textarea id="reject-reason" value={reason} maxLength={REASON_MAX} rows={5} onChange={(e) => setReason(e.target.value)} />
-            <div className="text-right text-xs text-muted-foreground">
-              {reason.length}/{REASON_MAX}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" disabled={busy} onClick={() => setRejectOpen(false)}>
-              Huỷ
-            </Button>
-            <Button variant="destructive" disabled={!reason.trim() || busy} onClick={() => run(() => rejectCourse(approval.id, reason.trim()), 'Đã từ chối')}>
-              Xác nhận từ chối
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RejectDialog
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        title="Từ chối khoá học"
+        description="Giảng viên sẽ thấy lý do này để chỉnh sửa khoá và gửi duyệt lại."
+        presets={PRESETS}
+        max={REASON_MAX}
+        busy={busy === 'reject'}
+        onConfirm={(reason) => run('reject', () => rejectCourse(approval.id, reason), 'Đã từ chối khoá học')}
+      />
     </aside>
+  );
+}
+
+// Kết quả đã duyệt / từ chối: ai, lúc nào, lý do.
+function Outcome({ detail }: { detail: AdminApprovalDetail }) {
+  const { approval } = detail;
+  const rejected = approval.status === 'rejected';
+  return (
+    <div className={cn('flex flex-col gap-1.5 rounded-lg border p-3', rejected ? 'border-danger-border bg-danger-soft' : 'border-success-border bg-success-soft')}>
+      <p className={cn('flex items-center gap-1.5 font-semibold', rejected ? 'text-danger' : 'text-success')}>
+        {rejected ? <CircleX className="size-4" aria-hidden /> : <CircleCheck className="size-4" aria-hidden />}
+        {rejected ? 'Đã từ chối' : 'Đã duyệt & xuất bản'}
+      </p>
+      <p className="text-xs text-foreground">
+        {approval.reviewedBy ? `Bởi ${approval.reviewedBy.name}` : 'Người duyệt đã bị xoá'}
+        {approval.reviewedAt && ` · ${fmtDateTime(approval.reviewedAt)}`}
+      </p>
+      {rejected && approval.reason && <p className="whitespace-pre-line text-foreground">{approval.reason}</p>}
+    </div>
   );
 }

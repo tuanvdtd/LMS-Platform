@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ChevronLeft, CircleCheck, CircleX, Play, RotateCcw } from 'lucide-react';
+import { CircleCheck, CircleX, Play, RotateCcw } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { PassBadge } from './quiz-result';
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+// Không có link "Về khoá học": header khung học đã có tên khoá (link) + mục lục.
 export function QuizStart({
   courseSlug,
   overview,
@@ -29,10 +30,6 @@ export function QuizStart({
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-10">
-      <Link href={`/course/${courseSlug}`} className="mb-4 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="size-4" aria-hidden /> Về khoá học
-      </Link>
-
       <section className="flex flex-col gap-5 rounded-xl border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-3">
           {attempts.length > 0 && <PassBadge passed={overview.passed} labels={['Đã đạt', 'Chưa đạt']} />}

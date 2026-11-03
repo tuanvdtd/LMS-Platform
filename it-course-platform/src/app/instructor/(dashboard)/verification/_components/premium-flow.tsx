@@ -137,7 +137,9 @@ export function PremiumFlow() {
       <>
         {view.rejectReason && (
           <Alert variant="destructive">
-            <AlertTitle>Đơn trước bị từ chối</AlertTitle>
+            <AlertTitle>
+              Đơn trước bị từ chối{view.rejectedAt && ` ngày ${new Date(view.rejectedAt).toLocaleDateString('vi-VN')}`}
+            </AlertTitle>
             <AlertDescription className="whitespace-pre-line">Lý do: {view.rejectReason}</AlertDescription>
           </Alert>
         )}

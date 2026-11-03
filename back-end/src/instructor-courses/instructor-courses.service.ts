@@ -90,6 +90,8 @@ export class InstructorCoursesService {
         thumbnailUrl: c.thumbnailUrl,
         updatedAt: c.updatedAt,
         progress: { done: checklist.filter((i) => i.done).length, total: checklist.length },
+        // Khoá bị từ chối quay về nháp → FE dựa vào đây để tách "bị từ chối, cần sửa" khỏi nháp chưa gửi.
+        lastReview: c.approvals[0] ?? null,
       };
     });
   }

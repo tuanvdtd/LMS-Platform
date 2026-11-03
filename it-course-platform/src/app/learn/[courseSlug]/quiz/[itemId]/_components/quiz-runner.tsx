@@ -67,6 +67,9 @@ export function QuizRunner({
   const [flagged, setFlagged] = useState(() => new Set(initial.flagged));
   const [current, setCurrent] = useState(initial.current);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Đổi câu → câu mới trượt vào từ phía đang đi tới (giống trang soạn quiz của giảng viên). Lần đầu đứng yên.
+  const [slide, setSlide] = useState({ index: current, from: '' as '' | 'left' | 'right' });
+  if (slide.index !== current) setSlide({ index: current, from: current > slide.index ? 'right' : 'left' });
 
   const total = sheet.questions.length;
   const q = sheet.questions[current];
@@ -144,6 +147,17 @@ export function QuizRunner({
             <p className="text-sm text-muted-foreground">Đã trả lời {answeredCount}/{total} câu</p>
           </div>
 
+          {/* overflow-x-clip: câu đang trượt vào không làm trang hiện thanh cuộn ngang (clip không chặn sticky). */}
+          <div className="overflow-x-clip">
+          <div
+            key={current}
+            className={cn(
+              'flex flex-col gap-5',
+              slide.from && 'animate-in duration-200 ease-out fade-in-0 motion-reduce:animate-none',
+              slide.from === 'right' && 'slide-in-from-right-8',
+              slide.from === 'left' && 'slide-in-from-left-8',
+            )}
+          >
           <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm sm:p-5">
             <Badge variant="secondary">{multi ? 'Chọn nhiều' : 'Chọn 1'}</Badge>
             <Markdown className="text-base text-foreground">{q.stem}</Markdown>
@@ -182,6 +196,8 @@ export function QuizRunner({
                 </div>
               );
             })}
+          </div>
+          </div>
           </div>
 
           <div className="flex items-center justify-between gap-3">

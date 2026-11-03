@@ -7,9 +7,9 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { authClient } from '@/lib/auth-client';
 import { isAdmin, isStaff } from '@/lib/instructor-role';
-import { AdminNav } from './_components/admin-nav';
+import { AdminShell } from './_components/admin-shell';
 
-// Khu admin tối giản. Gate ở client như instructor/layout.tsx.
+// Khu quản trị. Gate ở client như instructor/layout.tsx.
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { data, isPending, error, refetch } = authClient.useSession();
   const router = useRouter();
@@ -28,22 +28,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </Centered>
     );
   }
-  if (!data) {
-    return (
-      <div className="space-y-4 p-6" role="status" aria-busy="true" aria-label="Đang tải">
-        <Skeleton className="h-8 w-56" />
-        <Skeleton className="h-40 w-full" />
-      </div>
-    );
-  }
+  if (!data) return <ShellSkeleton />;
   if (!isStaff(data.user)) return <Forbidden />;
   const admin = isAdmin(data.user);
   return (
-    <div className="flex min-h-screen">
-      <AdminNav admin={admin} />
-      <main className="flex-1 overflow-y-auto p-6">
-        <RoleGate admin={admin}>{children}</RoleGate>
-      </main>
+    <AdminShell user={data.user} admin={admin}>
+      <RoleGate admin={admin}>{children}</RoleGate>
+    </AdminShell>
+  );
+}
+
+// Cùng hình khung thật: header h-14, sidebar 256px (desktop), nội dung trên nền muted.
+function ShellSkeleton() {
+  return (
+    <div className="min-h-dvh bg-muted" role="status" aria-busy="true" aria-label="Đang tải khu quản trị">
+      <div className="flex h-14 items-center gap-3 border-b bg-card px-4">
+        <Skeleton className="size-7 rounded-md" />
+        <Skeleton className="h-4 w-24" />
+        <div className="flex-1" />
+        <Skeleton className="size-7 rounded-full" />
+      </div>
+      <div className="flex">
+        <div className="hidden w-64 shrink-0 flex-col gap-2 border-r bg-card p-3 lg:flex">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
+        <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-8 lg:py-8">
+          <Skeleton className="h-8 w-56" />
+          <Skeleton className="h-72 w-full max-w-6xl rounded-xl" />
+        </div>
+      </div>
     </div>
   );
 }

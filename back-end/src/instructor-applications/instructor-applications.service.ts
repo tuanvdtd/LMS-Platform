@@ -85,6 +85,7 @@ export class InstructorApplicationsService {
         : null,
       submittedAt: a?.submittedAt ?? null,
       rejectReason: a?.rejectReason ?? null,
+      rejectedAt: a?.rejectReason ? a.reviewedAt : null, // ngày bị từ chối, hiện cùng lý do
       missing: done ? [] : applicationMissing(a, user.image),
       revenueSharePct: sharePct,
     };
