@@ -1010,7 +1010,7 @@ model SubmissionResult {
   @@map("submission_results")
 }
 
-// Thông báo cho user. Feature này chỉ ghi bản ghi verdict; đẩy socket.io + API chuông làm ở feature notification.
+// Thông báo cho user (chuông + trang Thông báo); producer ghi trong transaction, đẩy realtime qua NotificationsGateway sau commit.
 model Notification {
   id        String           @id @default(uuid(7)) @db.Uuid
   userId    String           @db.Uuid
@@ -1018,7 +1018,8 @@ model Notification {
   title     String
   body      String
   link      String?
-  data      Json             @default("{}") // verdict: { submissionId, status, score }
+  // verdict: { submissionId, status, score }; qa_answer: { questionId, answerId }; course_review: { courseId, approvalId, approved }; instructor_application: { applicationId, approved }
+  data      Json             @default("{}")
   readAt    DateTime?
   createdAt DateTime         @default(now())
 
@@ -1031,6 +1032,8 @@ model Notification {
 enum NotificationType {
   verdict
   qa_answer
+  course_review
+  instructor_application
 }
 
 // ============================================================================

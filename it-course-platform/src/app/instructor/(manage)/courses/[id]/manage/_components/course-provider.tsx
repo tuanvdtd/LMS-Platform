@@ -16,6 +16,7 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCourse } from '@/lib/api/instructor-courses';
+import { useNotificationStore } from '@/lib/notification-store';
 import type { CourseDetail } from '@/types/instructor-course';
 
 type CourseContextValue = {
@@ -130,6 +131,18 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Admin duyệt / từ chối lúc đang mở trang quản lý khoá → tải lại để thanh trên đổi trạng thái, hiện lý do.
+  // Chỉ khi khoá đang in_review: lúc đó không sửa được nên không có gì chưa lưu bị ghi đè.
+  const lastReceived = useNotificationStore((s) => s.lastReceived);
+  const handled = useRef<string | null>(null);
+  useEffect(() => {
+    const n = lastReceived;
+    if (n?.type !== 'course_review' || n.data.courseId !== id || handled.current === n.id) return;
+    if (course?.status !== 'in_review') return;
+    handled.current = n.id;
+    void load();
+  }, [lastReceived, id, course?.status, load]);
 
   // Đóng tab / tải lại khi còn thay đổi chưa lưu. Link nội bộ do GuardedLink lo.
   useEffect(() => {

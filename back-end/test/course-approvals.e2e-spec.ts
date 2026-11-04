@@ -3,11 +3,13 @@ import { Test } from '@nestjs/testing';
 import { randomInt, randomUUID } from 'node:crypto';
 import request, { type Response } from 'supertest';
 import type { App } from 'supertest/types.js';
+import type { MockInstance } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { requireEnv } from '../src/env.js';
 import { PrismaService } from '../src/infra/prisma.service.js';
 import { StorageService } from '../src/infra/storage.service.js';
 import { MailService } from '../src/mail/mail.service.js';
+import { NotificationsGateway } from '../src/notifications/notifications.gateway.js';
 import { setupApp } from '../src/setup-app.js';
 import { FakeStorage } from './fake-storage.js';
 
@@ -21,6 +23,7 @@ type TestUser = { id: string; cookie: string };
 describe('Định giá, gửi duyệt & duyệt khoá (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let push: MockInstance<NotificationsGateway['push']>;
   const mail = { sendVerification: vi.fn(), sendResetPassword: vi.fn(), sendCourseReviewed: vi.fn() };
   const emails: string[] = [];
   let admin: TestUser;
@@ -107,6 +110,7 @@ describe('Định giá, gửi duyệt & duyệt khoá (e2e)', () => {
     setupApp(app);
     await app.init();
     prisma = app.get(PrismaService);
+    push = vi.spyOn(app.get(NotificationsGateway), 'push');
     [admin, teacher, other, student] = await Promise.all([
       makeUser('student,admin'),
       makeUser('student,instructor'),
@@ -231,10 +235,13 @@ describe('Định giá, gửi duyệt & duyệt khoá (e2e)', () => {
     const approvalOf = async () =>
       (await prisma.courseApproval.findFirstOrThrow({ where: { courseId: ready.courseId }, orderBy: { createdAt: 'desc' } })).id;
 
+    const reviewNotes = () =>
+      prisma.notification.findMany({ where: { userId: teacher.id, type: 'course_review' }, orderBy: { createdAt: 'asc' } });
+
     it('từ chối thiếu lý do → 400', async () =>
       call('post', `/api/admin/course-approvals/${await approvalOf()}/reject`, admin.cookie).send({ reason: ' ' }).expect(400));
 
-    it('từ chối → khoá về draft, giảng viên thấy lý do, có gửi mail', async () => {
+    it('từ chối → khoá về draft, giảng viên thấy lý do, có mail + thông báo', async () => {
       const id = await approvalOf();
       const res = await call('post', `/api/admin/course-approvals/${id}/reject`, admin.cookie)
         .send({ reason: 'Âm thanh bài 2 bị rè' })
@@ -243,11 +250,22 @@ describe('Định giá, gửi duyệt & duyệt khoá (e2e)', () => {
       const course = await call('get', `/api/instructor/courses/${ready.courseId}`, teacher.cookie).expect(200);
       expect(course.body).toMatchObject({ status: 'draft', lastReview: { status: 'rejected', reason: 'Âm thanh bài 2 bị rè' } });
       expect(mail.sendCourseReviewed).toHaveBeenCalledWith(expect.any(String), 'E2E ready', false, 'Âm thanh bài 2 bị rè');
+      const notes = await reviewNotes();
+      expect(notes).toHaveLength(1);
+      expect(notes[0]).toMatchObject({
+        title: 'Khoá học chưa được duyệt',
+        body: '"E2E ready": Âm thanh bài 2 bị rè',
+        link: `/instructor/courses/${ready.courseId}/manage/goals`,
+        data: { courseId: ready.courseId, approvalId: id, approved: false },
+        readAt: null,
+      });
+      expect(push).toHaveBeenLastCalledWith(expect.objectContaining({ id: notes[0].id }));
     });
 
     it('xử lý lại approval đã từ chối → 409 ALREADY_REVIEWED', async () => {
       const res = await call('post', `/api/admin/course-approvals/${await approvalOf()}/approve`, admin.cookie).expect(409);
       expect(res.body.code).toBe('ALREADY_REVIEWED');
+      expect(await reviewNotes()).toHaveLength(1);
     });
 
     it('gửi lại → duyệt → published, có publishedAt; giá bị khoá', async () => {
@@ -259,6 +277,14 @@ describe('Định giá, gửi duyệt & duyệt khoá (e2e)', () => {
       expect(res.body.course.status).toBe('published');
       expect(res.body.course.publishedAt).not.toBeNull();
       expect(res.body.history).toHaveLength(1);
+      const notes = await reviewNotes();
+      expect(notes).toHaveLength(2);
+      expect(notes[1]).toMatchObject({
+        title: 'Khoá học đã được duyệt',
+        body: '"E2E ready" đã được xuất bản.',
+        data: { courseId: ready.courseId, approvalId: id, approved: true },
+      });
+      expect(push).toHaveBeenLastCalledWith(expect.objectContaining({ id: notes[1].id }));
       const price = await call('put', `/api/instructor/courses/${ready.courseId}/price`, teacher.cookie)
         .send({ priceAmount: 299_000 })
         .expect(409);

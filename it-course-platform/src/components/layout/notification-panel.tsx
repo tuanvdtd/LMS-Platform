@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bell, BellDot, Code, MessageCircleQuestion, type LucideIcon } from 'lucide-react';
+import { BadgeCheck, Bell, BellDot, ClipboardCheck, Code, MessageCircleQuestion, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,7 +13,12 @@ import { metaOf, type Audience } from '@/lib/notifications';
 import { fullTime, timeAgo } from '@/lib/time-ago';
 import type { AppNotification, NotificationType } from '@/types/notification';
 
-const ICONS: Record<NotificationType, LucideIcon> = { verdict: Code, qa_answer: MessageCircleQuestion };
+const ICONS: Record<NotificationType, LucideIcon> = {
+  verdict: Code,
+  qa_answer: MessageCircleQuestion,
+  course_review: ClipboardCheck,
+  instructor_application: BadgeCheck,
+};
 // Loại lạ (BE thêm trước FE) → chuông thường.
 export const notificationIcon = (type: string): LucideIcon =>
   Object.hasOwn(ICONS, type) ? ICONS[type as NotificationType] : Bell;

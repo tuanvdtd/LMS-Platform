@@ -3,11 +3,13 @@ import { Test } from '@nestjs/testing';
 import { randomInt, randomUUID } from 'node:crypto';
 import request, { type Response } from 'supertest';
 import type { App } from 'supertest/types.js';
+import type { MockInstance } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { requireEnv } from '../src/env.js';
 import { PrismaService } from '../src/infra/prisma.service.js';
 import { StorageService } from '../src/infra/storage.service.js';
 import { MailService } from '../src/mail/mail.service.js';
+import { NotificationsGateway } from '../src/notifications/notifications.gateway.js';
 import { setupApp } from '../src/setup-app.js';
 import { FakeStorage } from './fake-storage.js';
 import { png } from './fixtures/files.js';
@@ -26,6 +28,7 @@ type Step = 'info' | 'avatar' | 'terms' | 'payout';
 describe('Đơn giảng viên cao cấp (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let push: MockInstance<NotificationsGateway['push']>;
   const storage = new FakeStorage();
   const mail = { sendVerification: vi.fn(), sendResetPassword: vi.fn(), sendInstructorApplicationReviewed: vi.fn() };
   const emails: string[] = [];
@@ -73,6 +76,7 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
     setupApp(app);
     await app.init();
     prisma = app.get(PrismaService);
+    push = vi.spyOn(app.get(NotificationsGateway), 'push');
     [admin, moderator, teacher, other, legacy, student] = await Promise.all([
       makeUser('student,admin'),
       makeUser('moderator'),
@@ -179,6 +183,8 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
   });
   describe('admin', () => {
     const base = '/api/admin/instructor-applications';
+    const appNotes = (userId: string) =>
+      prisma.notification.findMany({ where: { userId, type: 'instructor_application' }, orderBy: { createdAt: 'asc' } });
 
     it('moderator / giảng viên → 403', async () => {
       await call('get', base, moderator.cookie).expect(403);
@@ -195,13 +201,22 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
 
     it('id sai định dạng → 404', () => call('get', `${base}/abc`, admin.cookie).expect(404));
 
-    it('từ chối → rejected + mail; giảng viên thấy lý do', async () => {
+    it('từ chối → rejected + mail + thông báo; giảng viên thấy lý do', async () => {
       await call('post', `${base}/${appId}/reject`, admin.cookie).send({ reason: '' }).expect(400);
       const { body } = await call('post', `${base}/${appId}/reject`, admin.cookie).send({ reason: 'Ảnh mờ' }).expect(200);
       expect(body).toMatchObject({ status: 'rejected', rejectReason: 'Ảnh mờ' });
       expect(mail.sendInstructorApplicationReviewed).toHaveBeenLastCalledWith(expect.any(String), false, 'Ảnh mờ');
       const view = await call('get', '/api/instructor/application', teacher.cookie).expect(200);
       expect(view.body).toMatchObject({ displayStatus: 'rejected', rejectReason: 'Ảnh mờ' });
+      const notes = await appNotes(teacher.id);
+      expect(notes).toHaveLength(1);
+      expect(notes[0]).toMatchObject({
+        title: 'Đơn giảng viên cao cấp chưa được duyệt',
+        body: 'Lý do: Ảnh mờ',
+        link: '/instructor/verification',
+        data: { applicationId: appId, approved: false },
+      });
+      expect(push).toHaveBeenLastCalledWith(expect.objectContaining({ id: notes[0].id }));
     });
 
     it('sửa sau khi bị từ chối → draft giữ lý do; nộp lại → pending, xoá lý do', async () => {
@@ -229,6 +244,7 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
       expect(res.body.code).toBe('ALREADY_PREMIUM');
       const after = await prisma.instructorApplication.findUniqueOrThrow({ where: { id: row.id } });
       expect(after).toMatchObject({ status: 'pending', bankAccountNo: BANK.bankAccountNo });
+      expect(await appNotes(legacy.id)).toHaveLength(0);
     });
 
     it('duyệt uuid hợp lệ nhưng không tồn tại → 404', () =>
@@ -240,6 +256,15 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
         const { body } = await call('post', `${base}/${appId}/approve`, admin.cookie).expect(200);
         expect(body.status).toBe('approved');
         expect(mail.sendInstructorApplicationReviewed).toHaveBeenLastCalledWith(expect.any(String), true, null);
+        const notes = await appNotes(teacher.id);
+        expect(notes).toHaveLength(2);
+        expect(notes[1]).toMatchObject({
+          title: 'Bạn đã là giảng viên cao cấp',
+          body: 'Đơn đăng ký đã được duyệt. Giờ bạn có thể đặt giá cho khoá học.',
+          link: '/instructor/verification',
+          data: { applicationId: appId, approved: true },
+        });
+        expect(push).toHaveBeenLastCalledWith(expect.objectContaining({ id: notes[1].id }));
 
         const profile = await prisma.instructorProfile.findUniqueOrThrow({ where: { userId: teacher.id } });
         expect(profile).toMatchObject({ headline: 'Senior Backend', bio: BIO, socials: INFO.socials, ...BANK });
@@ -251,6 +276,7 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
         // Từ chối đơn đã duyệt cũng bị chặn.
         const late = await call('post', `${base}/${appId}/reject`, admin.cookie).send({ reason: 'Muộn' }).expect(409);
         expect(late.body.code).toBe('APPLICATION_NOT_PENDING');
+        expect(await appNotes(teacher.id)).toHaveLength(2);
 
         const view = await call('get', '/api/instructor/application', teacher.cookie).expect(200);
         expect(view.body.displayStatus).toBe('approved');
