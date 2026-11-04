@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getApplication } from '@/lib/api/instructor-application';
+import { useNotificationStore } from '@/lib/notification-store';
 import { cn } from '@/lib/utils';
 import { type ApplicationStep, type ApplicationView, STEP_LABEL, STEPS } from '@/types/instructor-application';
 import { AvatarStep } from './avatar-step';
@@ -55,6 +56,17 @@ export function PremiumFlow() {
     );
   }, []);
   useEffect(() => load(), [load]);
+
+  // Admin xử lý đơn lúc đang mở màn chờ duyệt → tải lại để sang màn đã duyệt / hiện lý do từ chối.
+  // Chỉ khi pending: màn chờ không có form nên không mất gì chưa lưu.
+  const lastReceived = useNotificationStore((s) => s.lastReceived);
+  const handled = useRef<string | null>(null);
+  useEffect(() => {
+    const n = lastReceived;
+    if (n?.type !== 'instructor_application' || handled.current === n.id || view?.displayStatus !== 'pending') return;
+    handled.current = n.id;
+    load();
+  }, [lastReceived, view?.displayStatus, load]);
 
   // Màn đang mở, đọc trong saved(): lần lưu kết thúc sau khi người dùng đã sang bước khác thì không kéo họ về.
   const screenRef = useRef(screen);

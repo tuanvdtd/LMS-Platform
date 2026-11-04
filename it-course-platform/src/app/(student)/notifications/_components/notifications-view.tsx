@@ -11,7 +11,9 @@ import { Button } from '@/components/ui/button';
 import { apiMessage } from '@/lib/api/checkout';
 import { listNotifications } from '@/lib/api/notifications';
 import { useNotificationStore } from '@/lib/notification-store';
-import { NOTIF_META } from '@/lib/notifications';
+import { authClient } from '@/lib/auth-client';
+import { isInstructor } from '@/lib/instructor-role';
+import { NOTIF_META, typesFor } from '@/lib/notifications';
 import { fullTime, timeAgo } from '@/lib/time-ago';
 import { cn } from '@/lib/utils';
 import { isSubmissionStatus, verdictOf } from '@/types/exercise';
@@ -20,15 +22,16 @@ import type { AppNotification, NotificationType } from '@/types/notification';
 type Filter = 'all' | NotificationType;
 type List = { filter: Filter; items: AppNotification[]; nextCursor: string | null };
 
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'all', label: 'Tất cả' },
-  ...(Object.keys(NOTIF_META) as NotificationType[]).map((id) => ({ id, label: NOTIF_META[id].label })),
-];
 const query = (filter: Filter, cursor?: string) => ({ ...(filter !== 'all' && { type: filter }), ...(cursor && { cursor }) });
 
 // Danh sách riêng theo chip (lọc ở BE) + "Xem thêm"; đánh dấu / xoá đi qua store để chuông cập nhật theo.
 export function NotificationsView() {
   const router = useRouter();
+  const { data: session } = authClient.useSession();
+  const filters: { id: Filter; label: string }[] = [
+    { id: 'all', label: 'Tất cả' },
+    ...typesFor(isInstructor(session?.user)).map((id) => ({ id, label: NOTIF_META[id].label })),
+  ];
   const [filter, setFilter] = useState<Filter>('all');
   const [list, setList] = useState<List | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +118,7 @@ export function NotificationsView() {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Lọc thông báo">
-        {FILTERS.map(({ id, label }) => (
+        {filters.map(({ id, label }) => (
           <button
             key={id}
             type="button"

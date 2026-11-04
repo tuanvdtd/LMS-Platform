@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { MailService } from '../mail/mail.service.js';
+import { NotificationsGateway } from '../notifications/notifications.gateway.js';
 import type { Prisma } from '@prisma/client';
 import { bucketOf, videoUrl } from '../assets/assets.service.js';
 import { isGuid } from '../common/zod.pipe.js';
@@ -51,6 +52,7 @@ export class CourseApprovalsService {
     private readonly curriculum: CurriculumService,
     private readonly storage: StorageService,
     private readonly mail: MailService,
+    private readonly notifications: NotificationsGateway,
   ) {}
 
   async submit(courseId: string, userId: string, note: string | null) {
@@ -171,7 +173,7 @@ export class CourseApprovalsService {
       });
       const found = await tx.courseApproval.findFirst({
         where: { id, ...inScope(scope) },
-        select: { courseId: true, course: { select: { title: true, publishedAt: true, instructor: { select: { email: true } } } } },
+        select: { courseId: true, course: { select: { title: true, publishedAt: true, instructorId: true, instructor: { select: { email: true } } } } },
       });
       if (!found) throw new NotFoundException();
       if (res.count === 0) {
@@ -185,8 +187,21 @@ export class CourseApprovalsService {
             ? { status: 'published', publishedAt: found.course.publishedAt ?? new Date(), updatedAt: new Date() }
             : { status: 'draft', updatedAt: new Date() },
       });
-      return found;
+      const approved = status === 'approved';
+      const notification = await tx.notification.create({
+        data: {
+          userId: found.course.instructorId,
+          type: 'course_review',
+          title: approved ? 'Khoá học đã được duyệt' : 'Khoá học chưa được duyệt',
+          body: approved ? `"${found.course.title}" đã được xuất bản.` : `"${found.course.title}": ${reason}`,
+          link: `/instructor/courses/${found.courseId}/manage/goals`,
+          data: { courseId: found.courseId, approvalId: id, approved },
+        },
+      });
+      return { ...found, notification };
     }, TX_OPTIONS);
+    // Đẩy sau commit (xem SubmissionConsumer).
+    this.notifications.push(row.notification);
     // Không await: MailService không throw, lỗi chỉ ghi log (như auth).
     void this.mail.sendCourseReviewed(row.course.instructor.email, row.course.title, status === 'approved', reason);
     return this.detail(id, scope);

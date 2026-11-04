@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, type Notification } from '@prisma/client';
 import { AVATAR_MIN, imageProblem, THUMBNAIL_MAX_BYTES } from '../assets/file-check.js';
 import { AUTH, type Auth } from '../auth/auth.js';
 import { isGuid, validationError } from '../common/zod.pipe.js';
@@ -7,6 +7,7 @@ import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js'
 import { PrismaService } from '../infra/prisma.service.js';
 import { StorageService } from '../infra/storage.service.js';
 import { MailService } from '../mail/mail.service.js';
+import { NotificationsGateway } from '../notifications/notifications.gateway.js';
 import type { PayoutAccountInput } from '../revenue/revenue.schemas.js';
 import { RevenueService } from '../revenue/revenue.service.js';
 import { applicationMissing, maskAccountNo, type MissingStep } from './application-rules.js';
@@ -55,6 +56,7 @@ export class InstructorApplicationsService {
     private readonly storage: StorageService,
     private readonly revenue: RevenueService,
     private readonly mail: MailService,
+    private readonly notifications: NotificationsGateway,
     @Inject(AUTH) private readonly auth: Auth,
   ) {}
 
@@ -200,9 +202,9 @@ export class InstructorApplicationsService {
 
   async approve(id: string, reviewerId: string) {
     if (!isGuid(id)) throw new NotFoundException();
-    let email: string;
+    let done: { email: string; notification: Notification };
     try {
-      email = await this.prisma.$transaction(async (tx) => {
+      done = await this.prisma.$transaction(async (tx) => {
         // WHERE status = pending: hai admin bấm cùng lúc thì người sau count = 0.
         const res = await tx.instructorApplication.updateMany({
           where: { id, status: 'pending' },
@@ -243,31 +245,57 @@ export class InstructorApplicationsService {
           where: { id },
           data: { bankBin: null, bankAccountNo: null, bankAccountName: null },
         });
-        return app.user.email;
+        const notification = await tx.notification.create({
+          data: {
+            userId: app.userId,
+            type: 'instructor_application',
+            title: 'Bạn đã là giảng viên cao cấp',
+            body: 'Đơn đăng ký đã được duyệt. Giờ bạn có thể đặt giá cho khoá học.',
+            link: '/instructor/verification',
+            data: { applicationId: id, approved: true },
+          },
+        });
+        return { email: app.user.email, notification };
       }, TX_OPTIONS);
     } catch (e) {
       // Profile đã có (giảng viên lên cao cấp bằng đường khác) → transaction rollback.
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw alreadyPremium('Người dùng đã là giảng viên cao cấp');
       throw e;
     }
+    this.notifications.push(done.notification); // sau commit
     // Không await: MailService không throw, lỗi chỉ ghi log.
-    void this.mail.sendInstructorApplicationReviewed(email, true, null);
+    void this.mail.sendInstructorApplicationReviewed(done.email, true, null);
     return this.detail(id);
   }
 
   async reject(id: string, reviewerId: string, reason: string) {
     if (!isGuid(id)) throw new NotFoundException();
-    const res = await this.prisma.instructorApplication.updateMany({
-      where: { id, status: 'pending' },
-      data: { status: 'rejected', rejectReason: reason, reviewedById: reviewerId, reviewedAt: new Date() },
-    });
-    const row = await this.prisma.instructorApplication.findUnique({
-      where: { id },
-      select: { user: { select: { email: true } } },
-    });
-    if (!row) throw new NotFoundException();
-    if (res.count === 0) throw notPending();
-    void this.mail.sendInstructorApplicationReviewed(row.user.email, false, reason);
+    // Trong transaction để thông báo đi cùng việc chuyển trạng thái.
+    const { email, notification } = await this.prisma.$transaction(async (tx) => {
+      const res = await tx.instructorApplication.updateMany({
+        where: { id, status: 'pending' },
+        data: { status: 'rejected', rejectReason: reason, reviewedById: reviewerId, reviewedAt: new Date() },
+      });
+      const row = await tx.instructorApplication.findUnique({
+        where: { id },
+        select: { userId: true, user: { select: { email: true } } },
+      });
+      if (!row) throw new NotFoundException();
+      if (res.count === 0) throw notPending();
+      const notification = await tx.notification.create({
+        data: {
+          userId: row.userId,
+          type: 'instructor_application',
+          title: 'Đơn giảng viên cao cấp chưa được duyệt',
+          body: `Lý do: ${reason}`,
+          link: '/instructor/verification',
+          data: { applicationId: id, approved: false },
+        },
+      });
+      return { email: row.user.email, notification };
+    }, TX_OPTIONS);
+    this.notifications.push(notification); // sau commit
+    void this.mail.sendInstructorApplicationReviewed(email, false, reason);
     return this.detail(id);
   }
 
