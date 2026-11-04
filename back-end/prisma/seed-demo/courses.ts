@@ -97,7 +97,6 @@ export async function writeCourse(prisma: PrismaClient, c: SeedCourse, ctx: Cour
         await tx.question.create({ data: { id: questionId, quizId, position: qi, type: q.type, stem: q.stem, relatedItemId: lectureIds[q.relatedLecture] } });
         await tx.questionOption.createMany({ data: q.options.map((o, oi) => ({ questionId, content: o.content, isCorrect: !!o.correct, explanation: o.explanation, position: oi })) });
       }
-      await tx.quizTopic.createMany({ data: topicIds.slice(0, 3).map((topicId) => ({ quizId, topicId })) });
       if (isPublished) items.push({ id: quizItemId, durationSec: 0 });
 
       const ex = c.exercise;

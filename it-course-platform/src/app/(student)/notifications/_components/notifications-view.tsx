@@ -1,161 +1,217 @@
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle, XCircle, BookOpen, Bell, Code, Settings, UserPlus, MessageCircleQuestion, Star } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Bell, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { notificationIcon } from '@/components/layout/notification-panel';
+import { VerdictBadge } from '@/components/shared/product-ui';
+import { NotificationListSkeleton, NotificationsSkeleton } from '@/components/skeletons/notifications-skeleton';
 import { Button } from '@/components/ui/button';
-import { MOCK_NOTIFICATIONS as INITIAL, type Notif, type NotifType } from '@/lib/mock-notifications';
+import { apiMessage } from '@/lib/api/checkout';
+import { listNotifications } from '@/lib/api/notifications';
+import { useNotificationStore } from '@/lib/notification-store';
+import { NOTIF_META } from '@/lib/notifications';
+import { fullTime, timeAgo } from '@/lib/time-ago';
+import { cn } from '@/lib/utils';
+import { isSubmissionStatus, verdictOf } from '@/types/exercise';
+import type { AppNotification, NotificationType } from '@/types/notification';
 
-const ICONS: Record<NotifType, React.ElementType> = {
-  verdict: Code,
-  course: BookOpen,
-  reminder: Bell,
-  system: Settings,
-  enrollment: UserPlus,
-  question: MessageCircleQuestion,
-  review: Star,
-};
+type Filter = 'all' | NotificationType;
+type List = { filter: Filter; items: AppNotification[]; nextCursor: string | null };
 
-const COLORS: Record<NotifType, string> = {
-  verdict: '#2563eb',
-  course: '#7c3aed',
-  reminder: '#d97706',
-  system: '#64748b',
-  enrollment: '#059669',
-  question: '#2563eb',
-  review: '#d97706',
-};
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: 'all', label: 'Tất cả' },
+  ...(Object.keys(NOTIF_META) as NotificationType[]).map((id) => ({ id, label: NOTIF_META[id].label })),
+];
+const query = (filter: Filter, cursor?: string) => ({ ...(filter !== 'all' && { type: filter }), ...(cursor && { cursor }) });
 
+// Danh sách riêng theo chip (lọc ở BE) + "Xem thêm"; đánh dấu / xoá đi qua store để chuông cập nhật theo.
 export function NotificationsView() {
-  const [notifs, setNotifs] = useState<Notif[]>(INITIAL);
-  const [filter, setFilter] = useState<'all' | NotifType>('all');
+  const router = useRouter();
+  const [filter, setFilter] = useState<Filter>('all');
+  const [list, setList] = useState<List | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [nonce, setNonce] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const lastReceived = useNotificationStore((s) => s.lastReceived);
 
-  const displayed = filter === 'all' ? notifs : notifs.filter((n) => n.type === filter);
-  const unreadCount = notifs.filter((n) => !n.read).length;
+  useEffect(() => {
+    let cancelled = false;
+    listNotifications(query(filter)).then(
+      (p) => { if (!cancelled) setList({ filter, items: p.items, nextCursor: p.nextCursor }); },
+      (e) => { if (!cancelled) setError(apiMessage(e, 'Không tải được thông báo')); },
+    );
+    return () => { cancelled = true; };
+  }, [filter, nonce]);
 
-  function markAll() {
-    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+  // Thông báo mới qua socket → chèn đầu nếu khớp chip đang xem.
+  // Chỉnh state ngay lúc render (mẫu React khuyên dùng) thay vì setState trong effect.
+  const [seen, setSeen] = useState(lastReceived);
+  if (seen !== lastReceived) {
+    setSeen(lastReceived);
+    const n = lastReceived;
+    if (n && list && (list.filter === 'all' || list.filter === n.type) && !list.items.some((x) => x.id === n.id)) {
+      setList({ ...list, items: [n, ...list.items] });
+    }
   }
 
-  function markOne(id: string) {
-    setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  const patch = (fn: (items: AppNotification[]) => AppNotification[]) => setList((l) => (l ? { ...l, items: fn(l.items) } : l));
+
+  function open(n: AppNotification) {
+    useNotificationStore.getState().markRead(n);
+    patch((xs) => xs.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+    if (n.link) router.push(n.link);
+  }
+  function dismiss(n: AppNotification) {
+    useNotificationStore.getState().remove(n);
+    patch((xs) => xs.filter((x) => x.id !== n.id));
+  }
+  function readAll() {
+    useNotificationStore.getState().markAllRead();
+    patch((xs) => xs.map((x) => ({ ...x, read: true })));
+  }
+  function choose(f: Filter) {
+    setError(null);
+    setFilter(f);
+  }
+  async function loadMore() {
+    if (!list?.nextCursor) return;
+    // Con trỏ = mục cuối còn hiển thị: nếu mục cuối cũ đã bị xoá, BE sẽ trả rỗng và nút "Xem thêm" chết.
+    const last = list.items[list.items.length - 1];
+    if (!last) { setNonce((x) => x + 1); return; } // hết mục hiển thị → tải lại trang đầu của chip
+    setLoadingMore(true);
+    try {
+      const p = await listNotifications(query(list.filter, last.id));
+      setList((l) =>
+        l && l.filter === list.filter
+          ? { ...l, items: [...l.items, ...p.items.filter((x) => !l.items.some((y) => y.id === x.id))], nextCursor: p.nextCursor }
+          : l,
+      );
+    } catch (e) {
+      toast.error(apiMessage(e, 'Không tải thêm được thông báo'));
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
-  function dismiss(id: string) {
-    setNotifs((prev) => prev.filter((n) => n.id !== id));
-  }
-
-  const FILTERS = [
-    { id: 'all', label: 'Tất cả' },
-    { id: 'verdict', label: 'Chấm bài' },
-    { id: 'course', label: 'Khoá học' },
-    { id: 'reminder', label: 'Nhắc học' },
-    { id: 'system', label: 'Hệ thống' },
-  ] as const;
+  // Skeleton cả trang chỉ lần đầu; đổi chip thì giữ header + chip (focus ở nguyên chip vừa bấm), chỉ danh sách là skeleton.
+  if (!list && !error) return <NotificationsSkeleton />;
+  const switching = !error && (!list || list.filter !== filter);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-2xl px-4 py-10">
+      <div className="mb-6 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold" style={{ color: 'var(--foreground)' }}>Thông báo</h1>
-          {unreadCount > 0 && (
-            <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{unreadCount} chưa đọc</p>
-          )}
+          <h1 className="text-2xl font-extrabold text-foreground">Thông báo</h1>
+          {unreadCount > 0 && <p className="mt-0.5 text-sm text-muted-foreground">{unreadCount} chưa đọc</p>}
         </div>
         {unreadCount > 0 && (
-          <Button variant="link" onClick={markAll} className="px-0">
+          <Button variant="link" onClick={readAll} className="px-0">
             Đánh dấu tất cả đã đọc
           </Button>
         )}
       </div>
 
-      {/* Filter chips */}
-      <div className="flex gap-2 flex-wrap mb-6">
+      <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Lọc thông báo">
         {FILTERS.map(({ id, label }) => (
           <button
             key={id}
-            onClick={() => setFilter(id as typeof filter)}
-            className="px-3 py-1.5 rounded-full border text-xs font-medium transition-colors"
-            style={{
-              background: filter === id ? 'var(--primary)' : 'var(--card)',
-              color: filter === id ? '#fff' : 'var(--foreground)',
-              borderColor: filter === id ? 'var(--primary)' : 'var(--border)',
-            }}
+            type="button"
+            aria-pressed={filter === id}
+            onClick={() => choose(id)}
+            className={cn(
+              'h-11 rounded-full border px-3 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8',
+              filter === id ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground hover:bg-muted',
+            )}
           >
             {label}
           </button>
         ))}
       </div>
 
-      <div className="space-y-2">
-        {displayed.map((n) => {
-          const Icon = ICONS[n.type];
-          return (
-            <div
-              key={n.id}
-              onClick={() => markOne(n.id)}
-              className="flex gap-3 p-4 rounded-2xl border cursor-pointer transition-all hover:shadow-sm"
-              style={{
-                borderColor: 'var(--border)',
-                background: n.read ? 'var(--card)' : 'var(--primary-light, #eff6ff)',
-                opacity: n.read ? 0.85 : 1,
-              }}
-            >
-              {/* Icon */}
-              <div
-                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center mt-0.5"
-                style={{ background: COLORS[n.type] + '1a' }}
-              >
-                <Icon size={16} style={{ color: COLORS[n.type] }} />
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--foreground)' }}>
-                    {n.title}
-                    {!n.read && (
-                      <span className="inline-block ml-2 w-2 h-2 rounded-full bg-primary align-middle" />
-                    )}
-                  </p>
-                  <span className="text-xs shrink-0 mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{n.time}</span>
-                </div>
-                <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{n.body}</p>
-
-                {/* Verdict indicator */}
-                {n.verdict && (
-                  <div className="mt-1.5 flex items-center gap-1 text-xs font-semibold">
-                    {n.verdict === 'AC' ? (
-                      <><CheckCircle size={12} className="text-success" /><span className="text-success">Accepted</span></>
-                    ) : n.verdict === 'WA' ? (
-                      <><XCircle size={12} className="text-danger" /><span className="text-danger">Wrong Answer</span></>
-                    ) : (
-                      <span className="text-warning">Time Limit Exceeded</span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Dismiss */}
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                onClick={(e) => { e.stopPropagation(); dismiss(n.id); }}
-                className="self-start text-muted-foreground hover:text-destructive"
-                aria-label="Xoá thông báo"
-              >
-                ×
+      {switching ? (
+        <NotificationListSkeleton />
+      ) : error ? (
+        <div className="flex flex-col items-center gap-3 py-16 text-center">
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <Button variant="outline" className="h-11 sm:h-9" onClick={() => { setError(null); setNonce((x) => x + 1); }}>
+            Thử lại
+          </Button>
+        </div>
+      ) : !list || list.items.length === 0 ? (
+        <div className="py-16 text-center">
+          <Bell size={36} className="mx-auto mb-3 text-muted-foreground" aria-hidden />
+          <p className="text-muted-foreground">Không có thông báo nào</p>
+        </div>
+      ) : (
+        <>
+          <ul className="space-y-2">
+            {list.items.map((n) => {
+              const Icon = notificationIcon(n.type);
+              const status = n.type === 'verdict' && isSubmissionStatus(n.data.status) ? n.data.status : null;
+              return (
+                <li
+                  key={n.id}
+                  className={cn(
+                    'flex gap-1 rounded-2xl border p-1 transition-shadow hover:shadow-sm',
+                    n.read ? 'border-border bg-card' : 'border-primary/20 bg-primary-soft',
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => open(n)}
+                    className="flex min-w-0 flex-1 gap-3 rounded-xl p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                      <Icon size={16} aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-start justify-between gap-2">
+                        <span className="text-sm leading-snug font-semibold text-foreground">
+                          {n.title}
+                          {!n.read && (
+                            <>
+                              <span className="ml-2 inline-block size-2 rounded-full bg-primary align-middle" aria-hidden />
+                              <span className="sr-only">Chưa đọc</span>
+                            </>
+                          )}
+                        </span>
+                        <time dateTime={n.createdAt} title={fullTime(n.createdAt)} className="mt-0.5 shrink-0 text-xs text-muted-foreground">
+                          {timeAgo(n.createdAt)}
+                        </time>
+                      </span>
+                      <span className="mt-0.5 block text-sm text-muted-foreground">{n.body}</span>
+                      {status && (
+                        <span className="mt-1.5 block">
+                          <VerdictBadge verdict={verdictOf(status)} />
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => dismiss(n)}
+                    className="size-11 self-start text-muted-foreground hover:text-destructive sm:size-8"
+                    aria-label="Xoá thông báo"
+                  >
+                    <X aria-hidden />
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+          {list.nextCursor && (
+            <div className="mt-6 flex justify-center">
+              <Button variant="outline" className="h-11 sm:h-9" isLoading={loadingMore} onClick={loadMore}>
+                Xem thêm
               </Button>
             </div>
-          );
-        })}
-
-        {displayed.length === 0 && (
-          <div className="text-center py-16">
-            <Bell size={36} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-            <p style={{ color: 'var(--muted-foreground)' }}>Không có thông báo nào</p>
-          </div>
-        )}
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

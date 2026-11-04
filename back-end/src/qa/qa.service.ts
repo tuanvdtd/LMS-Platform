@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { isGuid } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
+import { NotificationsGateway } from '../notifications/notifications.gateway.js';
 import { courseNotFound, itemNotFound, notEnrolled } from '../learn/learn.service.js';
 import type { AnswerInput, CreateQuestionInput, InstructorQuestionsQuery, LearnQuestionsQuery } from './qa.schemas.js';
 
@@ -91,7 +92,10 @@ const excerpt = (s: string) => {
 // Không có quyền / khác khoá → 404, không lộ bài có tồn tại.
 @Injectable()
 export class QaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsGateway,
+  ) {}
 
   // ---- tìm + kiểm quyền --------------------------------------------------------------------------------
 
@@ -201,7 +205,7 @@ export class QaService {
       ? await this.prisma.courseAnswer.findFirst({ where: { id: replyToAnswerId, questionId: q.id }, select: { userId: true } })
       : null;
     if (replyToAnswerId && !target) throw answerNotFound();
-    return this.prisma.$transaction(async (tx) => {
+    const { answer, notification } = await this.prisma.$transaction(async (tx) => {
       const a = await tx.courseAnswer.create({
         data: { questionId: q.id, userId, body, isInstructor, replyToUserId: target?.userId ?? null },
         select: ANSWER_SELECT,
@@ -214,20 +218,24 @@ export class QaService {
           data: { instructorAnsweredAt: a.createdAt },
         });
       }
-      if (userId !== q.userId) {
-        await tx.notification.create({
-          data: {
-            userId: q.userId,
-            type: 'qa_answer',
-            title: 'Có câu trả lời mới',
-            body: `Câu hỏi "${excerpt(q.body)}"`,
-            link: q.item ? `/learn/${q.course.slug}/lecture/${q.item.id}` : `/learn/${q.course.slug}`,
-            data: { questionId: q.id, answerId: a.id },
-          },
-        });
-      }
-      return presentAnswer(a, userId, q.course.instructorId);
+      const notification =
+        userId !== q.userId
+          ? await tx.notification.create({
+              data: {
+                userId: q.userId,
+                type: 'qa_answer',
+                title: 'Có câu trả lời mới',
+                body: `Câu hỏi "${excerpt(q.body)}"`,
+                link: q.item ? `/learn/${q.course.slug}/lecture/${q.item.id}` : `/learn/${q.course.slug}`,
+                data: { questionId: q.id, answerId: a.id },
+              },
+            })
+          : null;
+      return { answer: presentAnswer(a, userId, q.course.instructorId), notification };
     }, TX_OPTIONS);
+    // Đẩy sau commit (xem SubmissionConsumer).
+    if (notification) this.notifications.push(notification);
+    return answer;
   }
 
   async removeAnswer(a: AnswerDeleteRow, viewerId: string) {

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { BookOpen, CircleCheck, Lightbulb, Lock, Target } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
-import { SkillTagBadge } from '@/components/shared/product-ui';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -59,13 +58,6 @@ function Statement({
             </span>
           )}
         </div>
-        {ex.topics.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {ex.topics.map((t) => (
-              <SkillTagBadge key={t.id} name={t.name} />
-            ))}
-          </div>
-        )}
       </header>
 
       {ex.learningObjective && (

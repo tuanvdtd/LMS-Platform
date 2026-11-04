@@ -5,7 +5,6 @@ import { isGuid } from '../common/zod.pipe.js';
 import { completeItem } from '../curriculum/progress.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
-import { recomputeMastery } from '../topics/mastery.js';
 import { grade, seededShuffle } from './grading.js';
 import type { SubmitInput } from './learn-quiz.schemas.js';
 
@@ -33,7 +32,6 @@ const LEARN_QUIZ_SELECT = {
   shuffle: true,
   description: true,
   item: { select: { title: true } },
-  topics: { select: { topic: { select: { id: true, name: true } } } },
   questions: { where: { archivedAt: null }, orderBy: { position: 'asc' }, select: QUESTION_SELECT },
 } satisfies Prisma.QuizSelect;
 type LearnQuiz = Prisma.QuizGetPayload<{ select: typeof LEARN_QUIZ_SELECT }>;
@@ -91,7 +89,6 @@ export class LearnQuizService {
       description: quiz.description,
       passScorePct: quiz.passScorePct,
       questionCount: quiz.questions.length,
-      topics: quiz.topics.map((t) => t.topic),
       passed: submitted.some((a) => a.passed),
       bestScorePct: submitted.length ? Math.max(...submitted.map((a) => a.scorePct)) : null,
       inProgressAttemptId: attempts.find((a) => a.status === 'in_progress')?.id ?? null,
@@ -169,7 +166,6 @@ export class LearnQuizService {
         },
       });
 
-      await recomputeMastery(tx, userId, quiz.topics.map((t) => t.topic.id));
       if (passed) await completeItem(tx, enrollment.id, quiz.courseId, itemId, now);
     }, SUBMIT_TX);
     return this.buildResult(quiz, userId, attemptId);
@@ -182,7 +178,7 @@ export class LearnQuizService {
   }
 
   private async buildResult(quiz: LearnQuiz, userId: string, attemptId: string) {
-    const [attempt, mastery, passedCount] = await Promise.all([
+    const [attempt, passedCount] = await Promise.all([
       this.prisma.quizAttempt.findFirst({
         where: { id: attemptId, userId, quizId: quiz.id, status: 'submitted' },
         select: {
@@ -196,10 +192,6 @@ export class LearnQuizService {
           shuffle: true,
           answers: { select: { questionId: true, selectedOptionIds: true, isCorrect: true } },
         },
-      }),
-      this.prisma.userTopicMastery.findMany({
-        where: { userId, topicId: { in: quiz.topics.map((t) => t.topic.id) } },
-        select: { topicId: true, score: true },
       }),
       this.prisma.quizAttempt.count({ where: { userId, quizId: quiz.id, passed: true } }),
     ]);
@@ -222,10 +214,6 @@ export class LearnQuizService {
       total: rows.length,
       timeSpentSec: attempt.timeSpentSec ?? 0,
       answersRevealed,
-      topics: quiz.topics.map(({ topic }) => ({
-        ...topic,
-        masteryPct: Math.round(Number(mastery.find((m) => m.topicId === topic.id)?.score ?? 0) * 100),
-      })),
       questions: shuffleOptions(rows, attempt.shuffle, attempt.id).map((q) => ({
         id: q.id,
         type: q.type,

@@ -46,14 +46,13 @@ export interface ExerciseDetail {
   learningObjective: string | null;
   solutionExplanation: string | null;
   relatedItemId: string | null;
-  topicIds: string[];
   languages: Language[];
   updatedAt: string;
   starters: StarterCode[];
   tests: ExerciseTest[];
 }
 export type UpdateExercisePayload = Partial<
-  Pick<ExerciseDetail, 'instructions' | 'hints' | 'difficulty' | 'learningObjective' | 'solutionExplanation' | 'relatedItemId' | 'topicIds'>
+  Pick<ExerciseDetail, 'instructions' | 'hints' | 'difficulty' | 'learningObjective' | 'solutionExplanation' | 'relatedItemId'>
 >;
 export interface UpdateCodePayload {
   languages: Language[];
@@ -79,7 +78,6 @@ export interface LearnExercise {
   instructions: string;
   difficulty: Difficulty;
   learningObjective: string | null;
-  topics: { id: string; name: string }[];
   relatedItem: { id: string; title: string } | null;
   languages: Language[];
   starters: Partial<Record<Language, string>>;
@@ -137,6 +135,7 @@ const VERDICT: Record<SubmissionStatus, Verdict> = {
   compile_error: 'CE',
   internal_error: 'IE',
 };
+export const isSubmissionStatus = (s: unknown): s is SubmissionStatus => typeof s === 'string' && s in VERDICT;
 export const verdictOf = (s: SubmissionStatus): Verdict => VERDICT[s];
 export const isGrading = (s: SubmissionStatus) => s === 'pending' || s === 'running';
 // Cùng ngưỡng kẹt với BE (5 phút): quá hạn thì BE dọn bài khi nộp mới, FE không khoá nút nữa.

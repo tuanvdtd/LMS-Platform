@@ -297,7 +297,7 @@ function Editor({
             <Card>
               <CardContent>
                 <fieldset disabled={locked} className="min-w-0">
-                  <StatementTab form={statement} topics={course.topics} lectures={lectures} locked={locked} />
+                  <StatementTab form={statement} lectures={lectures} locked={locked} />
                 </fieldset>
               </CardContent>
             </Card>

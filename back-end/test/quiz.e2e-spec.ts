@@ -28,7 +28,7 @@ type Question = {
   answerCount: number;
   options: Option[];
 };
-type Quiz = { description: string | null; passScorePct: number; shuffle: boolean; topicIds: string[]; questions: Question[] };
+type Quiz = { description: string | null; passScorePct: number; shuffle: boolean; questions: Question[] };
 type Tree = { sections: { id: string; items: { id: string; type: string; isPublished: boolean }[] }[] };
 
 describe('Soạn quiz (e2e)', () => {
@@ -110,25 +110,24 @@ describe('Soạn quiz (e2e)', () => {
   });
 
   it(
-    'thêm item quiz → có dòng Quiz mặc định, topic = topic của khoá',
+    'thêm item quiz → có dòng Quiz mặc định',
     async () => {
-      const quiz = await prisma.quiz.findUnique({ where: { itemId: quizItemId }, include: { topics: true } });
+      const quiz = await prisma.quiz.findUnique({ where: { itemId: quizItemId } });
       expect(quiz).toMatchObject({ courseId, description: null, passScorePct: 70, shuffle: true });
-      expect(quiz!.topics.map((t) => t.topicId).sort()).toEqual(topicIds.slice(0, 2).sort());
       expect(await prisma.quiz.count({ where: { itemId: lectureId } })).toBe(0);
     },
     SLOW,
   );
 
   it(
-    'GET quiz mặc định; PATCH lưu cài đặt; topic ngoài khoá / điểm ngoài 0–100 → 400',
+    'GET quiz mặc định; PATCH lưu cài đặt; topicIds / điểm ngoài 0–100 → 400',
     async () => {
       const quiz = (await q('get').expect(200)).body as Quiz;
       expect(quiz).toMatchObject({ description: null, passScorePct: 70, shuffle: true, questions: [] });
-      expect(quiz.topicIds.sort()).toEqual(topicIds.slice(0, 2).sort());
+      expect(quiz).not.toHaveProperty('topicIds');
 
-      const res = await q('patch', '', { description: '  Ôn tập  ', passScorePct: 80, shuffle: false, topicIds: [topicIds[0]] }).expect(200);
-      expect(res.body.quiz).toMatchObject({ description: 'Ôn tập', passScorePct: 80, shuffle: false, topicIds: [topicIds[0]] });
+      const res = await q('patch', '', { description: '  Ôn tập  ', passScorePct: 80, shuffle: false }).expect(200);
+      expect(res.body.quiz).toMatchObject({ description: 'Ôn tập', passScorePct: 80, shuffle: false });
       expect(itemOf(res.body.curriculum, quizItemId).type).toBe('quiz');
 
       await q('patch', '', { topicIds: [topicIds[2]] }).expect(400);
@@ -335,17 +334,6 @@ describe('Soạn quiz (e2e)', () => {
       await prisma.course.update({ where: { id: courseId }, data: { status: 'in_review' } });
       expect((await q('post', '/questions/import', { questions: [single()] }).expect(409)).body.code).toBe('COURSE_LOCKED');
       await prisma.course.update({ where: { id: courseId }, data: { status: 'draft' } });
-    },
-    SLOW,
-  );
-
-  // Giữ ở CUỐI describe: test này đổi topic của khoá.
-  it(
-    'đổi topic của khoá → QuizTopic ngoài khoá bị xoá',
-    async () => {
-      await setCourseTopics([topicIds[0], topicIds[2]]);
-      const rows = await prisma.quizTopic.findMany({ where: { quiz: { itemId: quizItemId } } });
-      expect(rows.map((r) => r.topicId)).toEqual([topicIds[0]]);
     },
     SLOW,
   );

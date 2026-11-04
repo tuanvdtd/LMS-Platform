@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { categoryHref, topicHref } from '@/lib/category-links';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { useNotificationStore } from '@/lib/notification-store';
 import { accountLinks } from '@/components/layout/account-links';
 import { isStaff, teachHref } from '@/lib/instructor-role';
 import type { CategoryNode } from '@/types';
@@ -29,6 +30,7 @@ export function MobileNav({
   onSignOut: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const unread = useNotificationStore((s) => s.unreadCount);
   const [stack, setStack] = useState<string[]>([]);
   const { resolvedTheme, setTheme } = useTheme();
   const l1 = categories.find((c) => c.slug === stack[0]);
@@ -103,6 +105,12 @@ export function MobileNav({
                 <Link href="/notifications" onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
                   <Bell size={15} className="text-muted-foreground" />
                   Thông báo
+                  {unread > 0 && (
+                    <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-xs leading-none font-semibold text-primary-foreground">
+                      <span aria-hidden>{unread > 99 ? '99+' : unread}</span>
+                      <span className="sr-only">{unread} chưa đọc</span>
+                    </span>
+                  )}
                 </Link>
                 {staff ? (
                   <Link href="/admin" onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">

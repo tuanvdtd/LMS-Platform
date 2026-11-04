@@ -2,12 +2,14 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomInt, randomUUID } from 'node:crypto';
 import request, { type Response } from 'supertest';
+import type { MockInstance } from 'vitest';
 import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { requireEnv } from '../src/env.js';
 import { PrismaService } from '../src/infra/prisma.service.js';
 import { StorageService } from '../src/infra/storage.service.js';
 import { MailService } from '../src/mail/mail.service.js';
+import { NotificationsGateway } from '../src/notifications/notifications.gateway.js';
 import { setupApp } from '../src/setup-app.js';
 import { FakeStorage } from './fake-storage.js';
 
@@ -23,6 +25,7 @@ type Tree = { sections: { id: string; items: { id: string; title: string }[] }[]
 describe('Hỏi đáp khoá học (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let push: MockInstance<NotificationsGateway['push']>;
   const emails: string[] = [];
   let alice: TestUser; // giảng viên khoá A
   let bob: TestUser; // giảng viên khoá B
@@ -76,6 +79,7 @@ describe('Hỏi đáp khoá học (e2e)', () => {
     setupApp(app);
     await app.init();
     prisma = app.get(PrismaService);
+    push = vi.spyOn(app.get(NotificationsGateway), 'push');
     [alice, bob, stu, stu2, carol] = await Promise.all([makeUser(), makeUser(), makeUser(), makeUser(), makeUser()]);
     courseA = (await call('post', '/api/instructor/courses', alice, { title: 'Khoá e2e hỏi đáp A' }).expect(201)).body.id as string;
     const courseB = (await call('post', '/api/instructor/courses', bob, { title: 'Khoá e2e hỏi đáp B' }).expect(201)).body.id as string;
@@ -249,6 +253,17 @@ describe('Hỏi đáp khoá học (e2e)', () => {
       expect(await prisma.courseAnswer.count({ where: { questionId: q1 } })).toBe(0);
       await inst('delete', `/${q2}`).expect(204);
       expect((await learn('get', '/questions').expect(200)).body).toMatchObject({ items: [], total: 0 });
+    },
+    SLOW,
+  );
+
+  it(
+    'mỗi notification qa_answer ghi xuống DB được đẩy socket đúng 1 lần',
+    async () => {
+      const users = [alice, bob, stu, stu2, carol].map((u) => u.id);
+      const rows = (await prisma.notification.findMany({ where: { userId: { in: users } }, select: { id: true } })).map((n) => n.id);
+      expect(rows.length).toBeGreaterThan(0);
+      expect(push.mock.calls.map(([n]) => n.id).sort()).toEqual(rows.sort());
     },
     SLOW,
   );

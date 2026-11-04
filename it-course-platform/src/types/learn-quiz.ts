@@ -7,7 +7,6 @@ export interface QuizOverview {
   description: string | null;
   passScorePct: number;
   questionCount: number;
-  topics: { id: string; name: string }[];
   passed: boolean;
   bestScorePct: number | null;
   inProgressAttemptId: string | null;
@@ -49,7 +48,6 @@ export interface AttemptResult {
   total: number;
   timeSpentSec: number;
   answersRevealed: boolean;
-  topics: { id: string; name: string; masteryPct: number }[];
   questions: ResultQuestion[];
 }
 

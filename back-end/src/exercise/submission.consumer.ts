@@ -7,15 +7,15 @@ import { z } from 'zod';
 import { completeItem } from '../curriculum/progress.js';
 import { optionalEnv } from '../env.js';
 import { PrismaService } from '../infra/prisma.service.js';
+import { NotificationsGateway } from '../notifications/notifications.gateway.js';
 import { SUBMISSION_CHANNEL, SUBMISSION_QUEUES } from '../infra/rabbit.module.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
-import { recomputeMastery } from '../topics/mastery.js';
 import { CodeRunner, type Language } from './code-runner.js';
 import { excerpt, notificationBody, runTests, summarize } from './grading.js';
 
 const PERSISTENT: Options.Publish = { persistent: true };
 const MAX_ATTEMPTS = 3;
-// Mastery + completeItem + notification ~10 query; DB dev ~1-2s/query.
+// completeItem + notification + ghi kết quả ~10 query; DB dev ~1-2s/query.
 const GRADE_TX = { ...TX_OPTIONS, timeout: 60_000 };
 const jobSchema = z.object({ submissionId: z.guid(), attempt: z.int().min(1) });
 
@@ -32,14 +32,13 @@ const SUBMISSION_SELECT = {
       itemId: true,
       item: { select: { title: true, isPublished: true } },
       course: { select: { slug: true } },
-      topics: { select: { topicId: true } },
       testCases: { orderBy: { position: 'asc' }, select: { id: true, position: true, input: true, expectedOutput: true, points: true } },
     },
   },
 } as const;
 type Sub = NonNullable<Awaited<ReturnType<SubmissionConsumer['find']>>>;
 
-// Đọc submission.grade → Piston → ghi kết quả + mastery + hoàn thành mục + notification.
+// Đọc submission.grade → Piston → ghi kết quả + hoàn thành mục + notification.
 // Piston/DB lỗi → submission.retry (tối đa 3 lần) → submission.dead + internal_error. Sentry không gửi source code.
 @Injectable()
 export class SubmissionConsumer implements OnApplicationBootstrap {
@@ -49,6 +48,7 @@ export class SubmissionConsumer implements OnApplicationBootstrap {
     private readonly amqp: AmqpConnection,
     private readonly prisma: PrismaService,
     private readonly runner: CodeRunner,
+    private readonly notifications: NotificationsGateway,
   ) {}
 
   onApplicationBootstrap() {
@@ -117,10 +117,10 @@ export class SubmissionConsumer implements OnApplicationBootstrap {
         ? await this.prisma.enrollment.findFirst({ where: { userId: sub.userId, courseId: ex.courseId }, select: { id: true } })
         : null;
     const now = new Date();
-    await this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const [row] = await tx.$queryRaw<{ status: string }[]>`
         SELECT status FROM submissions WHERE id = ${submissionId}::uuid FOR UPDATE`;
-      if (row?.status !== 'running') return; // bị đánh dấu kẹt trong lúc chấm
+      if (row?.status !== 'running') return null; // bị đánh dấu kẹt trong lúc chấm
       await tx.submissionResult.deleteMany({ where: { submissionId } });
       await tx.submissionResult.createMany({
         data: results.map((r) => ({
@@ -138,27 +138,27 @@ export class SubmissionConsumer implements OnApplicationBootstrap {
         where: { id: submissionId },
         data: { ...summary, totalTests: ex.testCases.length, compileError: compileError === null ? null : excerpt(compileError), gradedAt: now },
       });
-      // Thứ tự khoá: advisory(user) trong recomputeMastery TRƯỚC, dòng enrollment trong completeItem SAU (giống nộp quiz) — không đảo.
-      await recomputeMastery(tx, sub.userId, ex.topics.map((t) => t.topicId));
       if (enrollment) await completeItem(tx, enrollment.id, ex.courseId, ex.itemId, now);
-      await tx.notification.create({ data: this.notification(sub, summary.status, summary.score, summary.passedTests, ex.testCases.length) });
+      return tx.notification.create({ data: this.notification(sub, summary.status, summary.score, summary.passedTests, ex.testCases.length) });
     }, GRADE_TX);
+    // Đẩy sau commit: đẩy trong tx mà tx rollback thì học viên đã được báo một kết quả không tồn tại.
+    if (created) this.notifications.push(created);
   }
 
   // Hết lượt thử → nhả suất đang chấm + báo học viên nộp lại.
   private async fail(submissionId: string, body?: string) {
     const sub = await this.find(submissionId);
     if (!sub || (sub.status !== 'pending' && sub.status !== 'running')) return;
-    await this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const { count } = await tx.submission.updateMany({
         where: { id: submissionId, status: { in: ['pending', 'running'] } },
         data: { status: 'internal_error', gradedAt: new Date() },
       });
-      if (count) {
-        const n = this.notification(sub, 'internal_error', 0, 0, sub.exercise.testCases.length);
-        await tx.notification.create({ data: body ? { ...n, body: `Bài "${sub.exercise.item.title}": ${body}` } : n });
-      }
+      if (!count) return null;
+      const n = this.notification(sub, 'internal_error', 0, 0, sub.exercise.testCases.length);
+      return tx.notification.create({ data: body ? { ...n, body: `Bài "${sub.exercise.item.title}": ${body}` } : n });
     }, TX_OPTIONS);
+    if (created) this.notifications.push(created);
   }
 
   private notification(sub: Sub, status: SubmissionStatus, score: number, passedTests: number, totalTests: number) {

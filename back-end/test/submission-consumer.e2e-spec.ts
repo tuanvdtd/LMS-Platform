@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomInt, randomUUID } from 'node:crypto';
 import request, { type Response } from 'supertest';
+import type { MockInstance } from 'vitest';
 import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { requireEnv } from '../src/env.js';
@@ -11,6 +12,7 @@ import { SubmissionConsumer } from '../src/exercise/submission.consumer.js';
 import { PrismaService } from '../src/infra/prisma.service.js';
 import { StorageService } from '../src/infra/storage.service.js';
 import { MailService } from '../src/mail/mail.service.js';
+import { NotificationsGateway } from '../src/notifications/notifications.gateway.js';
 import { setupApp } from '../src/setup-app.js';
 import { FakeCodeRunner } from './fake-code-runner.js';
 import { FakeStorage } from './fake-storage.js';
@@ -29,6 +31,7 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let consumer: SubmissionConsumer;
+  let push: MockInstance<NotificationsGateway['push']>;
   const runner = new FakeCodeRunner();
   const amqp = { publish: vi.fn().mockResolvedValue(true) };
   const emails: string[] = [];
@@ -41,7 +44,6 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
   let quizItem: string;
   let exerciseId: string;
   let enrollmentId: string;
-  let topicIds: string[];
   let correct: { questionId: string; optionIds: string[] }[];
   let sub1: string;
   let sub2: string;
@@ -88,7 +90,6 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
   const row = (id: string) => prisma.submission.findUniqueOrThrow({ where: { id } });
   const results = (id: string) => prisma.submissionResult.count({ where: { submissionId: id } });
   const notifications = () => prisma.notification.findMany({ where: { userId: stu.id }, orderBy: { createdAt: 'asc' } });
-  const mastery = () => prisma.userTopicMastery.findMany({ where: { userId: stu.id, topicId: { in: topicIds } } });
   const progress = () => prisma.enrollment.findUniqueOrThrow({ where: { id: enrollmentId } });
   const link = (id: string) => `/learn/${slug}/code/${item}?submission=${id}`;
 
@@ -108,12 +109,10 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
     await app.init();
     prisma = app.get(PrismaService);
     consumer = app.get(SubmissionConsumer);
+    push = vi.spyOn(app.get(NotificationsGateway), 'push');
     [alice, stu] = await Promise.all([makeUser(), makeUser()]);
     courseId = (await call('post', '/api/instructor/courses', alice.cookie, { title: 'Khoá e2e chấm bài code' }).expect(201))
       .body.id as string;
-    topicIds = (await prisma.topic.findMany({ take: 2, orderBy: { name: 'asc' }, select: { id: true } })).map((t) => t.id);
-    // Topic của khoá phải có trước khi tạo item: quiz / bài code lấy topic mặc định lúc tạo.
-    await as('patch', '', { topics: topicIds.map((id, i) => ({ id, isPrimary: i === 0 })) }).expect(200);
     sectionId = ((await as('post', '/sections', { title: 'Phần 1' }).expect(201)).body as Tree).sections[0].id;
     item = await addItem('coding_exercise', TITLE);
     quizItem = await addItem('quiz', 'Quiz 1');
@@ -147,7 +146,7 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
     enrollmentId = (await prisma.enrollment.create({ data: { userId: stu.id, courseId }, select: { id: true } })).id;
   }, SLOW);
 
-  // course cascade → exercise/submission/enrollment; user cascade → notification/mastery.
+  // course cascade → exercise/submission/enrollment; user cascade → notification.
   afterAll(async () => {
     const ids = [alice, stu].filter(Boolean).map((u) => u.id);
     await prisma?.course.deleteMany({ where: { instructorId: { in: ids } } });
@@ -156,7 +155,7 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
   });
 
   it(
-    'PRINT 3 → wrong_answer 25đ, 2 result, 1 notification, mastery 0.25, chưa hoàn thành item',
+    'PRINT 3 → wrong_answer 25đ, 2 result, 1 notification, chưa hoàn thành item',
     async () => {
       sub1 = await grade('PRINT 3');
       const s = await row(sub1);
@@ -180,9 +179,6 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
       });
       expect(ns[0].data).toEqual({ submissionId: sub1, status: 'wrong_answer', score: 25 });
 
-      const m = await mastery();
-      expect(m).toHaveLength(2);
-      for (const t of m) expect(Number(t.score)).toBeCloseTo(0.25, 3);
       const ip = await prisma.itemProgress.findUnique({ where: { enrollmentId_itemId: { enrollmentId, itemId: item } } });
       expect(ip?.completedAt ?? null).toBeNull();
     },
@@ -203,13 +199,10 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
   );
 
   it(
-    'làm quiz đạt 100 → mastery gộp bài code: (25·5 + 100·1) / 6 / 100 = 0.375, attemptsCount 2',
+    'làm quiz đạt 100 → progressPct > 0 (mốc cho test sau)',
     async () => {
       const start = await learnQuiz('post', '/attempts').expect(200);
       await learnQuiz('post', `/attempts/${start.body.attemptId}/submit`, { answers: correct }).expect(200);
-      const m = await mastery();
-      expect(m).toHaveLength(2);
-      for (const t of m) expect([Number(t.score).toFixed(3), t.attemptsCount]).toEqual(['0.375', 2]);
       progressBefore = Number((await progress()).progressPct);
       expect(progressBefore).toBeGreaterThan(0);
     },
@@ -217,7 +210,7 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
   );
 
   it(
-    'SUM → accepted 100đ, hoàn thành item, progressPct tăng, mastery = 1, lời giải được mở',
+    'SUM → accepted 100đ, hoàn thành item, progressPct tăng, lời giải được mở',
     async () => {
       sub2 = await grade('SUM');
       const s = await row(sub2);
@@ -225,7 +218,6 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
       const ip = await prisma.itemProgress.findUniqueOrThrow({ where: { enrollmentId_itemId: { enrollmentId, itemId: item } } });
       expect(ip.completedAt).not.toBeNull();
       expect(Number((await progress()).progressPct)).toBeGreaterThan(progressBefore);
-      for (const t of await mastery()) expect(Number(t.score)).toBeCloseTo(1, 3);
       const { body } = await learnEx().expect(200);
       expect(body.solution).not.toBeNull();
       expect([body.completed, body.bestScore]).toEqual([true, 100]);
@@ -414,6 +406,18 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
       } finally {
         await prisma.curriculumItem.update({ where: { id: item }, data: { isPublished: true } });
       }
+    },
+    SLOW,
+  );
+
+  it(
+    'mỗi notification ghi xuống DB được đẩy socket đúng 1 lần, bài bỏ qua không đẩy',
+    async () => {
+      const pushed = push.mock.calls.map(([n]) => n.id).sort();
+      const rows = (await notifications()).map((n) => n.id).sort();
+      expect(rows.length).toBeGreaterThan(0);
+      expect(pushed).toEqual(rows);
+      expect(push.mock.calls.every(([n]) => n.userId === stu.id && n.type === 'verdict')).toBe(true);
     },
     SLOW,
   );

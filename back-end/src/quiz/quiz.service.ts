@@ -25,14 +25,12 @@ export const QUIZ_SELECT = {
   description: true,
   passScorePct: true,
   shuffle: true,
-  topics: { select: { topicId: true }, orderBy: { topicId: 'asc' } },
   questions: { where: { archivedAt: null }, orderBy: { position: 'asc' }, select: QUESTION_SELECT },
 } satisfies Prisma.QuizSelect;
 
-export function toDetail({ topics, questions, ...quiz }: Prisma.QuizGetPayload<{ select: typeof QUIZ_SELECT }>) {
+export function toDetail({ questions, ...quiz }: Prisma.QuizGetPayload<{ select: typeof QUIZ_SELECT }>) {
   return {
     ...quiz,
-    topicIds: topics.map((t) => t.topicId),
     questions: questions.map(({ _count, ...q }) => ({ ...q, answerCount: _count.answers })),
   };
 }
@@ -60,16 +58,7 @@ export class QuizService {
 
   update(courseId: string, userId: string, itemId: string, body: UpdateQuizInput) {
     return this.write(courseId, userId, itemId, async (tx, quizId) => {
-      const { topicIds, ...fields } = body;
-      if (topicIds) {
-        const inCourse = await tx.courseTopic.count({ where: { courseId, topicId: { in: topicIds } } });
-        if (inCourse < topicIds.length) {
-          throw validationError([{ path: ['topicIds'], message: 'Chủ đề không thuộc khoá học' }]);
-        }
-        await tx.quizTopic.deleteMany({ where: { quizId } });
-        await tx.quizTopic.createMany({ data: topicIds.map((topicId) => ({ quizId, topicId })) });
-      }
-      await tx.quiz.update({ where: { id: quizId }, data: fields });
+      await tx.quiz.update({ where: { id: quizId }, data: body });
     });
   }
 

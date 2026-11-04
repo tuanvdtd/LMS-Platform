@@ -108,8 +108,8 @@ vào cùng network Docker rồi bỏ `ports` và đặt `PISTON_URL=http://pisto
 **Tách máy khi có người dùng thật**: `privileged: true` là bắt buộc của Piston, sandbox thủng = root trên host, nên máy chạy code học viên phải riêng.
 Cùng VPC, subnet private, security group chỉ cho API vào cổng 2000; máy Piston không gắn IAM role, không để secret — API chỉ đổi `PISTON_URL`.
 
-`RABBITMQ_CONSUMERS=off` tắt cả consumer chấm bài lẫn `MailConsumer` (không tắt riêng được); tách worker ra instance riêng thì feature notification realtime
-(socket.io) sau này cần Redis adapter để thông báo từ worker tới đúng API instance.
+`RABBITMQ_CONSUMERS=off` tắt cả consumer chấm bài lẫn `MailConsumer` (không tắt riêng được). Thông báo realtime đã có (`src/notifications/notifications.gateway.ts`, socket.io path `/socket.io`, xác thực cookie + kiểm `Origin` = `FE_URL`);
+tách worker / nhiều instance thì thêm `@socket.io/redis-adapter`; reverse proxy / tunnel phía trước API phải cho WebSocket upgrade ở `/socket.io/`. Chạy nhiều instance API thì ngoài redis adapter còn cần sticky session (cho polling) hoặc ép `transports: ['websocket']`. FE và API phải khác origin như cấu hình hiện tại: GET polling cùng origin không mang header `Origin` nên sẽ bị từ chối `forbidden`.
 
 ## Test
 

@@ -11,6 +11,7 @@
 --  object trên, rồi mới `pnpm prisma migrate dev`.
 -- ============================================================================
 
+-- [2026-11-03] Bảng user_topic_mastery đã bị xoá (migration drop_quiz_exercise_topic_mastery).
 ALTER TABLE user_topic_mastery
   ADD CONSTRAINT chk_mastery_score CHECK (score >= 0 AND score <= 1);
 

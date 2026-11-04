@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { CircleCheck, CircleX, Play, RotateCcw } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -42,17 +41,6 @@ export function QuizStart({
           <Stat label="Điểm đạt" value={`${overview.passScorePct}%`} />
           <Stat label="Điểm cao nhất" value={overview.bestScorePct === null ? '—' : `${overview.bestScorePct}%`} />
         </dl>
-
-        {overview.topics.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <h2 className="text-sm font-semibold text-foreground">Kỹ năng đánh giá</h2>
-            <ul className="flex flex-wrap gap-2">
-              {overview.topics.map((t) => (
-                <li key={t.id}><Badge variant="secondary">{t.name}</Badge></li>
-              ))}
-            </ul>
-          </div>
-        )}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
