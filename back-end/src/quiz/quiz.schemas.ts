@@ -8,10 +8,6 @@ export const updateQuizSchema = z
     description: z.string().trim().max(1000, 'Tối đa 1000 ký tự').transform(emptyToNull).nullable(),
     passScorePct: z.int().min(0, 'Từ 0 đến 100').max(100, 'Từ 0 đến 100'),
     shuffle: z.boolean(),
-    topicIds: z
-      .array(z.guid())
-      .max(3, 'Tối đa 3 chủ đề')
-      .refine((l) => new Set(l).size === l.length, 'Chủ đề bị trùng'),
   })
   .partial()
   .strict();

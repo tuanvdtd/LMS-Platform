@@ -83,7 +83,6 @@ model User {
   payouts               Payout[]                @relation("payoutInstructor")
   payoutsPaid           Payout[]                @relation("payoutPayer")
   settingsUpdated       PlatformSetting[]       @relation("settingUpdater")
-  topicMastery          UserTopicMastery[]
   targetTopics          UserTargetTopic[]
   quizAttempts          QuizAttempt[]
   submissions           Submission[]
@@ -94,8 +93,8 @@ model User {
   couponsCreated        Coupon[]
   announcementsAuthored Announcement[]
   qaQuestions           CourseQuestion[]
-  qaAnswers             CourseAnswer[]   @relation("qaAnswerAuthor")
-  qaRepliesReceived     CourseAnswer[]   @relation("qaAnswerReplyTo")
+  qaAnswers             CourseAnswer[]          @relation("qaAnswerAuthor")
+  qaRepliesReceived     CourseAnswer[]          @relation("qaAnswerReplyTo")
   moderatorCategories   ModeratorCategory[]
   notifications         Notification[]
 
@@ -197,16 +196,16 @@ model InstructorApplication {
 
 // Sự tồn tại của bản ghi = "đã được xác minh". Chỉ tạo khi application approved.
 model InstructorProfile {
-  userId     String   @id @db.Uuid
-  headline   String?
-  bio        String?
-  website    String?
-  socials    Json     @default("{}")
+  userId          String   @id @db.Uuid
+  headline        String?
+  bio             String?
+  website         String?
+  socials         Json     @default("{}")
   // Thông tin nhận tiền để chi trả doanh thu. Cả 3 cùng null hoặc cùng có (CHECK sql/07).
   bankBin         String? // mã BIN VietQR, 6 số
   bankAccountNo   String?
   bankAccountName String? // IN HOA không dấu
-  verifiedAt DateTime @default(now())
+  verifiedAt      DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -487,10 +486,10 @@ model Enrollment {
   lastItemId     String?   @db.Uuid // bài mở gần nhất → "Tiếp tục học"
   createdAt      DateTime  @default(now())
 
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course   Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  order    Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  coupon   Coupon?        @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  order    Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  coupon   Coupon?         @relation(fields: [couponId], references: [id], onDelete: SetNull)
   lastItem CurriculumItem? @relation("EnrollmentLastItem", fields: [lastItemId], references: [id], onDelete: SetNull)
   progress ItemProgress[]
   notes    Note[]
@@ -699,7 +698,8 @@ model Payout {
 // Không gắn cứng vào một category: một topic xuất hiện ở nhiều nhánh cấp 2
 // (Python ở cả Khoa học dữ liệu và Ngôn ngữ lập trình). Menu "Chủ đề phổ biến"
 // của từng nhánh được tính từ course_topics của các khoá đã duyệt (published) trong nhánh đó.
-// Đây cũng là đơn vị đo năng lực: mastery, đồ thị tiên quyết, gợi ý tầng 2.
+// Đây cũng là đơn vị đo năng lực (bài đánh giá kỹ năng Elo — chưa làm), đồ thị tiên quyết, gợi ý tầng 2. Quiz / bài code
+// trong khoá chỉ chấm điểm bài đó, không gắn topic.
 model Topic {
   id          String  @id @default(uuid(7)) @db.Uuid
   slug        String  @unique
@@ -711,9 +711,6 @@ model Topic {
   requiredBy    Topic[] @relation("TopicPrereq")
 
   courses     CourseTopic[]
-  quizzes     QuizTopic[]
-  exercises   ExerciseTopic[]
-  mastery     UserTopicMastery[]
   targetedBy  UserTargetTopic[]
   categories  CategoryTopic[]
   occupations OccupationTopic[]
@@ -767,29 +764,12 @@ model CourseTopic {
   @@map("course_topics")
 }
 
-// Mastery tính lại sau mỗi lần nộp quiz: trung bình điểm cao nhất của từng
-// quiz gắn topic, trọng số = số câu. attemptsCount = tổng lượt đã nộp của các quiz đó.
-model UserTopicMastery {
-  userId          String   @db.Uuid
-  topicId         String   @db.Uuid
-  score           Decimal  @default(0) @db.Decimal(4, 3)
-  attemptsCount   Int      @default(0)
-  lastEvaluatedAt DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-
-  @@id([userId, topicId])
-  @@index([userId, score]) // lấy topic score < 0.6
-  @@map("user_topic_mastery")
-}
-
 // Topic học viên TỰ KHAI muốn học ở bước 2 onboarding (kiểu /personalize/skills
 // của Udemy: đa chọn, có ô tìm kiếm và chip gợi ý theo nghề).
 //
-// Khác user_topic_mastery là topic ĐO ĐƯỢC từ bài test. Chênh lệch giữa hai bảng
-// là tín hiệu chính của recommendation tầng 2, và quan trọng hơn: nó cho tầng 2
-// chạy được NGAY NGÀY ĐẦU, khi user_topic_mastery còn rỗng hoàn toàn.
+// Topic ĐO ĐƯỢC sẽ đến từ bài đánh giá kỹ năng Elo (chưa làm). Chênh lệch giữa topic đo được và topic tự khai là
+// tín hiệu chính của recommendation tầng 2, và quan trọng hơn: topic tự khai cho tầng 2
+// chạy được NGAY NGÀY ĐẦU, trước khi có bất kỳ phép đo nào.
 // Chip "Phổ biến với học viên như bạn" = occupation_topics của users.occupation.
 model UserTargetTopic {
   userId    String   @db.Uuid
@@ -860,20 +840,6 @@ model QuestionOption {
   @@map("question_options")
 }
 
-// Tag topic ở cấp QUIZ (không tag từng câu): điểm lần làm quiz cộng vào mastery
-// của mọi topic ở đây. 1–3 topic, phải thuộc course_topics của khoá (kiểm ở service).
-model QuizTopic {
-  quizId  String @db.Uuid
-  topicId String @db.Uuid
-
-  quiz  Quiz  @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-
-  @@id([quizId, topicId])
-  @@index([topicId])
-  @@map("quiz_topics")
-}
-
 // Dùng chung cho item quiz và practice_test (loại lấy từ curriculum_items.type).
 model Quiz {
   id           String   @id @default(uuid(7)) @db.Uuid
@@ -888,7 +854,6 @@ model Quiz {
   item      CurriculumItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
   course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   questions Question[]
-  topics    QuizTopic[]
   attempts  QuizAttempt[]
 
   @@index([courseId])
@@ -910,9 +875,9 @@ model QuizAttempt {
   passScorePct Int // điểm đạt lúc bắt đầu lượt
   shuffle      Boolean // có xáo đáp án không, lúc bắt đầu lượt
 
-  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  answers     QuizAnswer[]
+  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers QuizAnswer[]
 
   @@unique([quizId, userId, attemptNo])
   @@index([userId, submittedAt])
@@ -965,7 +930,6 @@ model Exercise {
   course      Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
   starters    ExerciseStarterCode[]
   testCases   ExerciseTestCase[]
-  topics      ExerciseTopic[]
   submissions Submission[]
   stats       StatExercise?
 
@@ -1000,18 +964,6 @@ model ExerciseTestCase {
 
   @@unique([exerciseId, position])
   @@map("exercise_test_cases")
-}
-
-model ExerciseTopic {
-  exerciseId String @db.Uuid
-  topicId    String @db.Uuid
-
-  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  topic    Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
-
-  @@id([exerciseId, topicId])
-  @@index([topicId])
-  @@map("exercise_topics")
 }
 
 model Submission {
@@ -1086,17 +1038,17 @@ enum NotificationType {
 // ============================================================================
 
 model Certificate {
-  id                 String    @id @default(uuid(7)) @db.Uuid
-  userId             String    @db.Uuid
-  courseId           String    @db.Uuid
-  serialNo           String    @unique // QR trỏ /verify/{serialNo}
-  pdfUrl             String?
-  issuedAt           DateTime  @default(now())
-  revokedAt          DateTime? // thu hồi khi khoá bị gỡ vì vi phạm
-  revokeReason       String?
+  id           String    @id @default(uuid(7)) @db.Uuid
+  userId       String    @db.Uuid
+  courseId     String    @db.Uuid
+  serialNo     String    @unique // QR trỏ /verify/{serialNo}
+  pdfUrl       String?
+  issuedAt     DateTime  @default(now())
+  revokedAt    DateTime? // thu hồi khi khoá bị gỡ vì vi phạm
+  revokeReason String?
 
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
   @@map("certificates")

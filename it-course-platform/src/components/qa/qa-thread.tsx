@@ -8,6 +8,7 @@ import { MarkdownInput } from '@/components/markdown-input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { fullTime, timeAgo } from '@/lib/time-ago';
 import { cn } from '@/lib/utils';
 import { QA_BODY_MAX, type Answer, type QaAuthor, type Question } from '@/types/qa';
 
@@ -17,16 +18,6 @@ export type LocalAnswer = Answer & { key: string; status: QaStatus; replyToAnswe
 export type LocalQuestion = Omit<Question, 'answers'> & { key: string; status: QaStatus; answers: LocalAnswer[] };
 type Comment = { id: string; body: string; createdAt: string; author: QaAuthor; status: QaStatus; canDelete: boolean };
 
-const rtf = new Intl.RelativeTimeFormat('vi', { numeric: 'auto' });
-const STEPS: [Intl.RelativeTimeFormatUnit, number][] = [['year', 31536e3], ['month', 2592e3], ['day', 86400], ['hour', 3600], ['minute', 60]];
-function timeAgo(iso: string) {
-  const seconds = (new Date(iso).getTime() - Date.now()) / 1000;
-  for (const [unit, size] of STEPS) {
-    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
-  }
-  return 'Vừa xong';
-}
-const fullTime = (iso: string) => new Date(iso).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
 const initials = (name: string) =>
   name
     .split(/\s+/)

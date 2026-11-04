@@ -16,7 +16,6 @@ export const updateExerciseSchema = z
     learningObjective: z.string().trim().max(200, 'Tối đa 200 ký tự').transform(emptyToNull).nullable(),
     solutionExplanation: z.string().trim().max(5000, 'Tối đa 5000 ký tự').transform(emptyToNull).nullable(),
     relatedItemId: z.guid().nullable(),
-    topicIds: z.array(z.guid()).max(3, 'Tối đa 3 chủ đề').refine(unique, 'Chủ đề bị trùng'),
   })
   .partial()
   .strict();

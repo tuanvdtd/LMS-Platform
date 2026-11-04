@@ -195,7 +195,7 @@ export function ResultPanel({
             <LoaderCircle className="motion-safe:animate-spin" aria-hidden />
             <AlertTitle>Đang chấm…</AlertTitle>
             <AlertDescription className="flex flex-col items-start gap-2">
-              Bấm Làm mới để xem kết quả, hoặc xem ở tab Lịch sử nộp
+              Kết quả sẽ tự hiện khi chấm xong. Chưa thấy sau 30 giây? Bấm Làm mới.
               <Button variant="outline" size="sm" className="max-md:h-11" isLoading={refreshing} onClick={onRefresh}>
                 <RefreshCw data-icon="inline-start" aria-hidden />
                 Làm mới

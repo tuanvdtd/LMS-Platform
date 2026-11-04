@@ -20,7 +20,6 @@ const EXERCISE_SELECT = {
   languages: true,
   updatedAt: true,
   item: { select: { title: true, isPublished: true } },
-  topics: { select: { topicId: true }, orderBy: { topicId: 'asc' } },
   starters: { select: { language: true, code: true, solutionCode: true }, orderBy: { language: 'asc' } },
   testCases: {
     orderBy: { position: 'asc' },
@@ -28,12 +27,11 @@ const EXERCISE_SELECT = {
   },
 } satisfies Prisma.ExerciseSelect;
 
-function toDetail({ item, topics, testCases, languages, starters, ...e }: Prisma.ExerciseGetPayload<{ select: typeof EXERCISE_SELECT }>) {
+function toDetail({ item, testCases, languages, starters, ...e }: Prisma.ExerciseGetPayload<{ select: typeof EXERCISE_SELECT }>) {
   return {
     ...e,
     title: item.title,
     isPublished: item.isPublished,
-    topicIds: topics.map((t) => t.topicId),
     languages: languages as Language[],
     starters: starters.map((s) => ({ ...s, language: s.language as Language })),
     tests: testCases,
@@ -85,18 +83,11 @@ export class ExerciseService {
 
   update(courseId: string, userId: string, itemId: string, body: UpdateExerciseInput) {
     return this.write(courseId, userId, itemId, async (tx, exerciseId) => {
-      const { topicIds, ...fields } = body;
-      if (fields.relatedItemId) {
-        const ok = await tx.curriculumItem.count({ where: { id: fields.relatedItemId, courseId, type: 'lecture' } });
+      if (body.relatedItemId) {
+        const ok = await tx.curriculumItem.count({ where: { id: body.relatedItemId, courseId, type: 'lecture' } });
         if (!ok) throw validationError([{ path: ['relatedItemId'], message: 'Bài giảng liên quan không hợp lệ' }]);
       }
-      if (topicIds) {
-        const inCourse = await tx.courseTopic.count({ where: { courseId, topicId: { in: topicIds } } });
-        if (inCourse < topicIds.length) throw validationError([{ path: ['topicIds'], message: 'Chủ đề không thuộc khoá học' }]);
-        await tx.exerciseTopic.deleteMany({ where: { exerciseId } });
-        await tx.exerciseTopic.createMany({ data: topicIds.map((topicId) => ({ exerciseId, topicId })) });
-      }
-      await tx.exercise.update({ where: { id: exerciseId }, data: fields });
+      await tx.exercise.update({ where: { id: exerciseId }, data: body });
     });
   }
 

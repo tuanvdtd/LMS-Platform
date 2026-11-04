@@ -138,7 +138,6 @@ export interface QuizDetail {
   description: string | null;
   passScorePct: number;
   shuffle: boolean;
-  topicIds: string[];
   questions: QuizQuestion[];
 }
 
@@ -151,7 +150,6 @@ export interface UpdateQuizPayload {
   description?: string | null;
   passScorePct?: number;
   shuffle?: boolean;
-  topicIds?: string[];
 }
 
 export interface QuestionPayload {

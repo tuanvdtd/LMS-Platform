@@ -2,22 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Bell, BellDot, BookOpen, Code, MessageCircleQuestion, Settings, Star, UserPlus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, BellDot, Code, MessageCircleQuestion, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { MOCK_NOTIFICATIONS, type Notif, type NotifAudience, type NotifType } from '@/lib/mock-notifications';
+import { useNotificationStore } from '@/lib/notification-store';
+import { metaOf, type Audience } from '@/lib/notifications';
+import { fullTime, timeAgo } from '@/lib/time-ago';
+import type { AppNotification, NotificationType } from '@/types/notification';
 
-const ICONS: Record<NotifType, React.ElementType> = {
-  verdict: Code,
-  course: BookOpen,
-  reminder: Bell,
-  system: Settings,
-  enrollment: UserPlus,
-  question: MessageCircleQuestion,
-  review: Star,
-};
+const ICONS: Record<NotificationType, LucideIcon> = { verdict: Code, qa_answer: MessageCircleQuestion };
+// Loại lạ (BE thêm trước FE) → chuông thường.
+export const notificationIcon = (type: string): LucideIcon =>
+  Object.hasOwn(ICONS, type) ? ICONS[type as NotificationType] : Bell;
 
 // Panel chỉ để liếc mấy cái mới nhất; xem hết thì sang /notifications.
 const PANEL_LIMIT = 8;
@@ -40,28 +39,30 @@ function getPeekListHeight(list: HTMLElement, max: number) {
 }
 
 interface NotificationPanelProps {
-  // ponytail: dữ liệu giả mặc định, nối API thì truyền vào + nối hai handler.
-  notifications?: Notif[];
   // Chỉ giảng viên mới có tab Giảng viên; học viên thường thấy một danh sách, không tab.
   isInstructor?: boolean;
-  onMarkAllRead?: () => void;
-  onOpenNotification?: (n: Notif) => void;
+  triggerClassName?: string;
+  sideOffset?: number;
 }
 
-export function NotificationPanel({
-  notifications = MOCK_NOTIFICATIONS,
-  isInstructor = false,
-  onMarkAllRead = () => {},
-  onOpenNotification = () => {},
-}: NotificationPanelProps) {
+export function NotificationPanel({ isInstructor = false, triggerClassName, sideOffset = 20 }: NotificationPanelProps) {
+  const router = useRouter();
+  const items = useNotificationStore((s) => s.items);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<NotifAudience>('student');
+  const [tab, setTab] = useState<Audience>('student');
   const [listHeight, setListHeight] = useState<number>();
 
-  const visible = isInstructor ? notifications : notifications.filter((n) => n.audience === 'student');
-  const unreadCount = visible.filter((n) => !n.read).length;
-  const hasUnread = (a: NotifAudience) => visible.some((n) => n.audience === a && !n.read);
-  const shown = visible.filter((n) => n.audience === tab).slice(0, PANEL_LIMIT);
+  const audienceOf = (n: AppNotification) => metaOf(n.type).audience;
+  const visible = isInstructor ? items : items.filter((n) => audienceOf(n) === 'student');
+  const hasUnread = (a: Audience) => visible.some((n) => audienceOf(n) === a && !n.read);
+  const shown = visible.filter((n) => audienceOf(n) === tab).slice(0, PANEL_LIMIT);
+
+  function openNotification(n: AppNotification) {
+    useNotificationStore.getState().markRead(n);
+    setOpen(false);
+    if (n.link) router.push(n.link);
+  }
 
   // Giữ chiều cao lớn nhất đã đo: đổi sang tab ít mục thì mép dưới không nhảy.
   const measureList = (el: HTMLDivElement | null) => {
@@ -86,7 +87,7 @@ export function NotificationPanel({
           <Button
             variant="ghost"
             size="icon"
-            className="hidden size-10 rounded-full aria-expanded:bg-foreground/5 lg:inline-flex"
+            className={cn('size-10 rounded-full aria-expanded:bg-foreground/5', triggerClassName ?? 'hidden lg:inline-flex')}
             aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : 'Thông báo'}
           />
         }
@@ -94,17 +95,17 @@ export function NotificationPanel({
         <BellIcon size={18} className="text-foreground [&_circle]:fill-current" />
       </PopoverTrigger>
 
-      {/* Nút h-10 giữa header h-16 → đáy nút cách đường kẻ 12px; +8 để mép panel nằm dưới đường kẻ */}
+      {/* Nút h-10 giữa header h-16 → đáy nút cách đường kẻ 12px; +8 để mép panel nằm dưới đường kẻ (header giảng viên h-14 → 16) */}
       <PopoverContent
         align="end"
-        sideOffset={20}
+        sideOffset={sideOffset}
         positionMethod="fixed"
         className="w-96 max-w-[calc(100vw-2rem)] gap-0 rounded-2xl border border-border bg-card p-0 shadow-lg ring-0"
       >
         <div className="flex items-center justify-between pt-3 pl-4 pr-1">
           <h2 className="text-base font-semibold text-foreground">Thông báo</h2>
           {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" className="text-sm" onClick={onMarkAllRead}>
+            <Button variant="ghost" size="sm" className="text-sm" onClick={() => useNotificationStore.getState().markAllRead()}>
               Đánh dấu đã đọc
             </Button>
           )}
@@ -112,7 +113,7 @@ export function NotificationPanel({
 
         {isInstructor ? (
           <div className="border-b border-border px-4 pt-2 pb-3">
-            <Tabs value={tab} onValueChange={(v) => setTab(v as NotifAudience)}>
+            <Tabs value={tab} onValueChange={(v) => setTab(v as Audience)}>
               <TabsList>
                 {(['student', 'instructor'] as const).map((a) => (
                   <TabsTrigger key={a} value={a} className="px-3">
@@ -139,13 +140,13 @@ export function NotificationPanel({
               <p className="py-10 text-center text-sm text-muted-foreground">Chưa có thông báo nào</p>
             ) : (
               shown.map((n) => {
-                const Icon = ICONS[n.type];
+                const Icon = notificationIcon(n.type);
                 return (
                   <button
                     key={n.id}
                     type="button"
                     data-peek-item
-                    onClick={() => onOpenNotification(n)}
+                    onClick={() => openNotification(n)}
                     className="flex w-full gap-3 rounded-lg px-3 py-3 text-left transition-colors outline-none hover:bg-muted focus-visible:bg-muted dark:hover:bg-foreground/5"
                   >
                     <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground dark:bg-foreground/10">
@@ -162,12 +163,17 @@ export function NotificationPanel({
                         >
                           {n.title}
                         </span>
-                        {!n.read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-foreground" aria-label="Chưa đọc" />}
+                        {!n.read && (
+                          <>
+                            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-foreground" aria-hidden />
+                            <span className="sr-only">Chưa đọc</span>
+                          </>
+                        )}
                       </span>
                       <span title={n.body} className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
                         {n.body}
                       </span>
-                      <span className="mt-1 block text-xs text-muted-foreground">{n.time}</span>
+                      <time dateTime={n.createdAt} title={fullTime(n.createdAt)} className="mt-1 block text-xs text-muted-foreground">{timeAgo(n.createdAt)}</time>
                     </span>
                   </button>
                 );

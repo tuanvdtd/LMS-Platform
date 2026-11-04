@@ -4,7 +4,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Bell, BookMarked, LogOut, Menu, MessagesSquare, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
+import { BookMarked, LogOut, Menu, MessagesSquare, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { authClient } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { NotificationPanel } from '@/components/layout/notification-panel';
 import { SignOutDialog } from '@/components/layout/sign-out-dialog';
 import { INSTRUCTOR_NAV } from '@/components/layout/instructor-sidebar';
 
@@ -67,9 +68,7 @@ export default function InstructorHeader() {
           <Link href="/instructor/messages" className={buttonVariants({ variant: 'ghost', size: 'icon' })} aria-label="Tin nhắn học viên">
             <MessagesSquare />
           </Link>
-          <Link href="/notifications" className={buttonVariants({ variant: 'ghost', size: 'icon' })} aria-label="Thông báo">
-            <Bell />
-          </Link>
+          <NotificationPanel isInstructor sideOffset={16} triggerClassName="inline-flex" />
 
           {user && (
             <DropdownMenu>

@@ -70,28 +70,6 @@ describe('Taxonomy — constraint', () => {
       ).rejects.toThrow();
     }));
 
-  it('mastery score nằm trong 0..1', () =>
-    inRollback(async (tx) => {
-      const { user } = await makeCourse(tx);
-      const t = await tx.topic.create({ data: { slug: `t-${uid()}`, name: 't' } });
-      await expect(
-        tx.userTopicMastery.create({ data: { userId: user.id, topicId: t.id, score: 1.5 } }),
-      ).rejects.toThrow();
-    }));
-
-  it('quiz gắn được topic', () =>
-    inRollback(async (tx) => {
-      const { course } = await makeCourse(tx);
-      const t = await tx.topic.create({ data: { slug: `t-${uid()}`, name: 't' } });
-      const section = await tx.section.create({ data: { courseId: course.id, title: 's', position: 1 } });
-      const item = await tx.curriculumItem.create({
-        data: { sectionId: section.id, courseId: course.id, title: 'q', type: 'quiz', position: 1 },
-      });
-      const quiz = await tx.quiz.create({ data: { itemId: item.id, courseId: course.id } });
-      await tx.quizTopic.create({ data: { quizId: quiz.id, topicId: t.id } });
-      expect(await tx.quizTopic.count({ where: { quizId: quiz.id } })).toBe(1);
-    }));
-
   it('có index trigram cho tên topic', async () => {
     const rows = await prisma.$queryRaw<{ indexname: string }[]>`
       SELECT indexname FROM pg_indexes WHERE indexname = 'idx_topics_name_trgm'`;

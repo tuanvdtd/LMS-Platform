@@ -145,6 +145,7 @@ describe('Học viên làm bài code (e2e)', () => {
         bestScore: null,
         languages: ['javascript', 'cpp'],
       });
+      expect(body).not.toHaveProperty('topics');
       expect(body.starters.javascript).toBe('// starter');
       expect(body.publicTests).toHaveLength(1);
       expect(body.publicTests[0]).toMatchObject({ input: '1 2', expectedOutput: '3' });

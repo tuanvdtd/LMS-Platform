@@ -140,6 +140,7 @@ describe('Instructor courses (e2e)', () => {
         thumbnailUrl: null,
         updatedAt: expect.any(String),
         progress: { done: 0, total: 3 },
+        lastReview: null,
       });
     });
 

@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiMessage } from '@/lib/api/checkout';
 import { getLearnExercise, getSubmission, listSubmissions, runCode, submitCode } from '@/lib/api/learn-exercise';
 import { apiErrorCode } from '@/lib/api/learn-quiz';
+import { useNotificationStore } from '@/lib/notification-store';
 import { cn } from '@/lib/utils';
 import {
   isGrading,
@@ -67,7 +68,7 @@ function upsert(list: SubmissionSummary[], s: SubmissionSummary) {
   return [...list, s].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)).slice(0, 20);
 }
 
-// Không poll: lịch sử tải một lần khi vào trang; kết quả chấm lấy qua nút "Làm mới" / link thông báo (?submission=<id>).
+// Không poll: lịch sử tải một lần khi vào trang; kết quả chấm về qua socket (notification:new). Nút "Làm mới" / link thông báo (?submission=<id>) là đường lùi.
 export default function CodeView({ courseSlug, itemId }: { courseSlug: string; itemId: string }) {
   // Bài code cần trọn chiều ngang → mục lục luôn là ngăn trượt.
   useSidebarMode('drawer');
@@ -141,6 +142,29 @@ export default function CodeView({ courseSlug, itemId }: { courseSlug: string; i
     );
     return () => { cancelled = true; };
   }, [ready, submissionParam, courseSlug, itemId, applyDetail]);
+
+  // Kết quả chấm về qua socket → tự hiện như bấm Làm mới. Lấy verdict từ items (cả receive lẫn load đều ghi vào đây):
+  // thông báo khác tới giữa chừng không huỷ lượt tải, verdict lỡ lúc mất kết nối vẫn được khôi phục.
+  // applyDetail đặt grading = null nên không chạy lặp.
+  const gradingId = grading?.id;
+  const verdict = useNotificationStore((s) =>
+    gradingId ? s.items.find((x) => x.type === 'verdict' && x.data.submissionId === gradingId) : undefined,
+  );
+  useEffect(() => {
+    const n = verdict;
+    if (!n || !gradingId) return;
+    let cancelled = false;
+    getSubmission(courseSlug, itemId, gradingId).then(
+      (d) => {
+        if (cancelled) return;
+        applyDetail(d);
+        useNotificationStore.getState().markRead(n);
+        if (d.status === 'accepted') toast.success('Chúc mừng! Bài nộp đã Accepted');
+      },
+      () => {}, // còn nút Làm mới
+    );
+    return () => { cancelled = true; };
+  }, [verdict, gradingId, courseSlug, itemId, applyDetail]);
 
   // Bài Accepted mà bài tập chưa ghi nhận hoàn thành → tải lại để mở lời giải.
   const justAccepted =

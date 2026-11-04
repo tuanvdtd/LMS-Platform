@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CurriculumModule } from '../curriculum/curriculum.module.js';
 import { InstructorCoursesModule } from '../instructor-courses/instructor-courses.module.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { CodeRunner } from './code-runner.js';
 import { ExerciseController } from './exercise.controller.js';
 import { ExerciseService } from './exercise.service.js';
@@ -9,7 +10,7 @@ import { LearnExerciseService } from './learn-exercise.service.js';
 import { SubmissionConsumer } from './submission.consumer.js';
 
 @Module({
-  imports: [InstructorCoursesModule, CurriculumModule],
+  imports: [InstructorCoursesModule, CurriculumModule, NotificationsModule],
   controllers: [ExerciseController, LearnExerciseController],
   providers: [CodeRunner, ExerciseService, LearnExerciseService, SubmissionConsumer],
 })

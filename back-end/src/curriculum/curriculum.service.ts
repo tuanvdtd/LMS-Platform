@@ -107,15 +107,10 @@ export class CurriculumService {
         data: { sectionId, courseId, ...body, position: (_max.position ?? -1) + 1 },
         select: { id: true },
       });
-      // Quiz / bài code 1-1 với item; topic mặc định = topic của khoá.
-      if (body.type === 'quiz' || body.type === 'coding_exercise') {
-        const topics = await tx.courseTopic.findMany({ where: { courseId }, select: { topicId: true } });
-        if (body.type === 'quiz') await tx.quiz.create({ data: { itemId: item.id, courseId, topics: { create: topics } } });
-        else {
-          await tx.exercise.create({
-            data: { itemId: item.id, courseId, instructions: '', languages: ['javascript'], topics: { create: topics } },
-          });
-        }
+      // Quiz / bài code 1-1 với item.
+      if (body.type === 'quiz') await tx.quiz.create({ data: { itemId: item.id, courseId } });
+      else if (body.type === 'coding_exercise') {
+        await tx.exercise.create({ data: { itemId: item.id, courseId, instructions: '', languages: ['javascript'] } });
       }
     });
   }

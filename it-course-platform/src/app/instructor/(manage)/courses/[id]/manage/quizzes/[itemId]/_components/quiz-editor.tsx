@@ -393,7 +393,7 @@ function Editor({
         </TabsContent>
         <TabsContent value="settings" keepMounted className="pt-2">
           <QuizSettings
-            key={`${quiz.description}|${quiz.passScorePct}|${quiz.shuffle}|${quiz.topicIds.join()}`}
+            key={`${quiz.description}|${quiz.passScorePct}|${quiz.shuffle}`}
             quiz={quiz}
             locked={locked}
             onDirtyChange={setSettingsDirty}
@@ -649,7 +649,6 @@ const settingsSchema = z.object({
   description: z.string().max(L.description, `Tối đa ${L.description} ký tự`),
   passScorePct: z.number({ error: 'Nhập số' }).int('Nhập số nguyên').min(0, 'Từ 0 đến 100').max(100, 'Từ 0 đến 100'),
   shuffle: z.boolean(),
-  topicIds: z.array(z.string()),
 });
 type Settings = z.infer<typeof settingsSchema>;
 
@@ -666,7 +665,6 @@ function QuizSettings({
   onDirtyChange: (dirty: boolean) => void;
   onSave: (body: UpdateQuizPayload) => Promise<boolean>;
 }) {
-  const { course } = useCourse();
   const {
     control,
     register,
@@ -679,7 +677,6 @@ function QuizSettings({
       description: quiz.description ?? '',
       passScorePct: quiz.passScorePct,
       shuffle: quiz.shuffle,
-      topicIds: quiz.topicIds,
     },
   });
   useEffect(() => onDirtyChange(isDirty), [isDirty, onDirtyChange]);
@@ -700,32 +697,6 @@ function QuizSettings({
               <FieldLabel htmlFor="quiz-description">Mô tả</FieldLabel>
               <Textarea id="quiz-description" rows={3} maxLength={L.description} {...register('description')} />
               <FieldError errors={[errors.description]} />
-            </Field>
-            <Field>
-              <FieldLabel>Chủ đề đánh giá</FieldLabel>
-              {course.topics.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Khoá học chưa có chủ đề. Thêm ở trang Thông tin cơ bản.</p>
-              ) : (
-                <Controller
-                  control={control}
-                  name="topicIds"
-                  render={({ field }) => (
-                    <div className="flex flex-wrap gap-4">
-                      {course.topics.map((t) => (
-                        <label key={t.id} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={field.value.includes(t.id)}
-                            onCheckedChange={(on) =>
-                              field.onChange(on ? [...field.value, t.id] : field.value.filter((id) => id !== t.id))
-                            }
-                          />
-                          {t.name}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                />
-              )}
             </Field>
             <div className="flex flex-wrap items-end gap-6">
               <Field data-invalid={!!errors.passScorePct} className="w-40">

@@ -108,7 +108,7 @@ describe('Giảng viên soạn bài code (e2e)', () => {
     exItem = await addItem('coding_exercise', 'Tổng hai số');
   }, SLOW);
 
-  // course cascade → exercise/starter/test; mastery cascade theo user.
+  // course cascade → exercise/starter/test.
   afterAll(async () => {
     const owners = [alice, bob].filter(Boolean).map((u) => u.id);
     await prisma?.course.deleteMany({ where: { instructorId: { in: owners } } });
@@ -125,12 +125,12 @@ describe('Giảng viên soạn bài code (e2e)', () => {
         isPublished: false,
         instructions: '',
         languages: ['javascript'],
-        topicIds: [...topicIds].sort(),
         tests: [],
         starters: [],
         hints: [],
         relatedItemId: null,
       });
+      expect(body).not.toHaveProperty('topicIds');
     },
     SLOW,
   );
@@ -145,25 +145,22 @@ describe('Giảng viên soạn bài code (e2e)', () => {
   );
 
   it(
-    'PATCH: lưu đề + kiểm lecture/topic/hints',
+    'PATCH: lưu đề + kiểm lecture/hints; topicIds → 400',
     async () => {
       const { body } = await ex('patch', '', {
         instructions: '# Tổng hai số',
         hints: ['Dùng split'],
         difficulty: 'easy',
         relatedItemId: lectureId,
-        topicIds: [topicIds[0]],
       }).expect(200);
       expect(body.exercise).toMatchObject({
         instructions: '# Tổng hai số',
         hints: ['Dùng split'],
         difficulty: 'easy',
         relatedItemId: lectureId,
-        topicIds: [topicIds[0]],
       });
       await ex('patch', '', { relatedItemId: exItem }).expect(400); // không phải lecture
-      const outside = await prisma.topic.findFirstOrThrow({ where: { id: { notIn: topicIds } }, select: { id: true } });
-      await ex('patch', '', { topicIds: [outside.id] }).expect(400);
+      await ex('patch', '', { topicIds: [topicIds[0]] }).expect(400);
       await ex('patch', '', { hints: ['1', '2', '3', '4', '5', '6'] }).expect(400);
     },
     SLOW,
@@ -342,20 +339,6 @@ describe('Giảng viên soạn bài code (e2e)', () => {
       } finally {
         await redis.del(key);
       }
-    },
-    SLOW,
-  );
-
-  it(
-    'bỏ topic khỏi khoá → dọn exercise_topics, PATCH đề không còn 400 vì topic cũ',
-    async () => {
-      await ex('patch', '', { topicIds }).expect(200);
-      await call('patch', `/api/instructor/courses/${courseId}`, alice.cookie, {
-        topics: [{ id: topicIds[0], isPrimary: true }],
-      }).expect(200);
-      const rows = await prisma.exerciseTopic.findMany({ where: { exercise: { itemId: exItem } }, select: { topicId: true } });
-      expect(rows.map((r) => r.topicId)).toEqual([topicIds[0]]);
-      await ex('patch', '', { learningObjective: 'Mục tiêu mới' }).expect(200);
     },
     SLOW,
   );

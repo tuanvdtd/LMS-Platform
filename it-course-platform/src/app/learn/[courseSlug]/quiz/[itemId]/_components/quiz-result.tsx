@@ -3,7 +3,6 @@ import { BookOpen, ChevronLeft, ChevronRight, CircleCheck, CircleX, Lock, Rotate
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import type { AttemptResult, ResultQuestion } from '@/types/learn-quiz';
 
@@ -22,14 +21,6 @@ export function PassBadge({ passed, labels = ['Đạt', 'Chưa đạt'] }: { pas
     </span>
   );
 }
-
-const level = (pct: number) => (pct < 40 ? 'weak' : pct < 70 ? 'mid' : 'strong');
-const LEVEL_BAR = {
-  weak: '[&_[data-slot=progress-indicator]]:bg-(--skill-weak)',
-  mid: '[&_[data-slot=progress-indicator]]:bg-(--skill-mid)',
-  strong: '[&_[data-slot=progress-indicator]]:bg-(--skill-strong)',
-} as const;
-const LEVEL_LABEL = { weak: 'Yếu', mid: 'Trung bình', strong: 'Vững' } as const;
 
 function formatDuration(sec: number) {
   const m = Math.floor(sec / 60);
@@ -80,28 +71,6 @@ export function QuizResult({
           )}
         </div>
       </section>
-
-      {result.topics.length > 0 && (
-        <section aria-labelledby="mastery-heading" className="mt-6 flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm">
-          <h2 id="mastery-heading" className="text-lg font-semibold text-foreground">Độ thành thạo theo kỹ năng</h2>
-          <ul className="flex flex-col gap-3">
-            {result.topics.map((t) => {
-              const lv = level(t.masteryPct);
-              return (
-                <li key={t.id} className="flex flex-col gap-1.5">
-                  <div className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="min-w-0 truncate font-medium text-foreground">{t.name}</span>
-                    <span className="shrink-0 text-muted-foreground">
-                      {LEVEL_LABEL[lv]} · <span className="font-mono font-semibold text-foreground">{Math.round(t.masteryPct)}%</span>
-                    </span>
-                  </div>
-                  <Progress value={t.masteryPct} aria-label={`${t.name}: ${Math.round(t.masteryPct)}%`} className={LEVEL_BAR[lv]} />
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
 
       <section aria-labelledby="review-heading" className="mt-8 flex flex-col gap-4">
         <h2 id="review-heading" className="text-lg font-semibold text-foreground">Xem lại từng câu</h2>

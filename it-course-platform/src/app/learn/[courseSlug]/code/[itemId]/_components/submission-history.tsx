@@ -2,19 +2,9 @@
 
 import { History, LoaderCircle } from 'lucide-react';
 import { VerdictBadge } from '@/components/shared/product-ui';
+import { fullTime, timeAgo } from '@/lib/time-ago';
 import { cn } from '@/lib/utils';
 import { isGrading, LANGUAGES, type SubmissionSummary, verdictOf } from '@/types/exercise';
-
-const rtf = new Intl.RelativeTimeFormat('vi', { numeric: 'auto' });
-const STEPS: [Intl.RelativeTimeFormatUnit, number][] = [['year', 31536e3], ['month', 2592e3], ['day', 86400], ['hour', 3600], ['minute', 60]];
-function timeAgo(iso: string) {
-  const seconds = (new Date(iso).getTime() - Date.now()) / 1000;
-  for (const [unit, size] of STEPS) {
-    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
-  }
-  return 'Vừa xong';
-}
-const fullTime = (iso: string) => new Date(iso).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
 
 // 20 lần nộp gần nhất. Bấm một dòng → mở chi tiết ở khung Kết quả.
 export function SubmissionHistory({

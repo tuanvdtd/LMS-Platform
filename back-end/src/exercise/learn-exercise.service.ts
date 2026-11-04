@@ -26,7 +26,6 @@ const LEARN_SELECT = {
   solutionExplanation: true,
   item: { select: { title: true } },
   relatedItem: { select: { id: true, title: true, isPublished: true } },
-  topics: { select: { topic: { select: { id: true, name: true } } } },
   starters: { select: { language: true, code: true, solutionCode: true } },
   testCases: { orderBy: { position: 'asc' }, select: { id: true, input: true, expectedOutput: true, isPublic: true } },
 } satisfies Prisma.ExerciseSelect;
@@ -70,7 +69,6 @@ export class LearnExerciseService {
       instructions: ex.instructions,
       difficulty: ex.difficulty,
       learningObjective: ex.learningObjective,
-      topics: ex.topics.map((t) => t.topic),
       relatedItem: ex.relatedItem?.isPublished ? { id: ex.relatedItem.id, title: ex.relatedItem.title } : null,
       languages: ex.languages as Language[],
       starters: Object.fromEntries(ex.starters.map((s) => [s.language, s.code])),

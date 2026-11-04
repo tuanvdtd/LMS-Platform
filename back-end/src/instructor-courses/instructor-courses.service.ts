@@ -137,13 +137,6 @@ export class InstructorCoursesService {
         if (topics === undefined) return;
         // Thay cả bộ: xoá hết rồi tạo lại nên không lúc nào có 2 dòng isPrimary (uq_course_primary_topic).
         await tx.courseTopic.deleteMany({ where: { courseId: id } });
-        // Quiz chỉ gắn topic của khoá: bỏ topic không còn thuộc khoá.
-        await tx.quizTopic.deleteMany({
-          where: { quiz: { courseId: id }, topicId: { notIn: topics.map((t) => t.id) } },
-        });
-        await tx.exerciseTopic.deleteMany({
-          where: { exercise: { courseId: id }, topicId: { notIn: topics.map((t) => t.id) } },
-        });
         await tx.courseTopic.createMany({
           data: topics.map((t) => ({ courseId: id, topicId: t.id, isPrimary: t.isPrimary })),
         });

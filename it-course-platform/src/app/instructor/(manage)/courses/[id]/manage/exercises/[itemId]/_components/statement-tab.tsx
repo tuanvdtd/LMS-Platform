@@ -8,13 +8,11 @@ import { z } from 'zod';
 import '@uiw/react-md-editor/markdown-editor.css';
 import { Markdown } from '@/components/markdown';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import type { CourseTopic } from '@/types/instructor-course';
 import {
   type Difficulty,
   type ExerciseDetail,
@@ -25,7 +23,6 @@ import {
   MAX_SOLUTION_EXPLANATION,
   type UpdateExercisePayload,
 } from '@/types/exercise';
-import { MAX_TOPICS } from '../../../_components/course-topics';
 
 // Editor chỉ chạy ở client (đụng window) → tắt SSR.
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), {
@@ -43,7 +40,6 @@ export const statementSchema = z.object({
   instructions: text(MAX_INSTRUCTIONS),
   learningObjective: text(MAX_OBJECTIVE),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  topicIds: z.array(z.string()).max(MAX_TOPICS, `Tối đa ${MAX_TOPICS} chủ đề`),
   relatedItemId: z.string(),
   hints: z
     .array(z.object({ value: z.string().trim().min(1, 'Nhập gợi ý hoặc xoá ô này').max(MAX_HINT, `Tối đa ${MAX_HINT} ký tự`) }))
@@ -56,7 +52,6 @@ export const toStatementValues = (ex: ExerciseDetail): StatementValues => ({
   instructions: ex.instructions,
   learningObjective: ex.learningObjective ?? '',
   difficulty: ex.difficulty,
-  topicIds: ex.topicIds,
   relatedItemId: ex.relatedItemId ?? NONE,
   hints: ex.hints.map((value) => ({ value })),
   solutionExplanation: ex.solutionExplanation ?? '',
@@ -66,7 +61,6 @@ export const toStatementPayload = (v: StatementValues): UpdateExercisePayload =>
   instructions: v.instructions,
   learningObjective: v.learningObjective.trim() || null,
   difficulty: v.difficulty,
-  topicIds: v.topicIds,
   relatedItemId: v.relatedItemId === NONE ? null : v.relatedItemId,
   hints: v.hints.map((h) => h.value),
   solutionExplanation: v.solutionExplanation.trim() || null,
@@ -79,12 +73,10 @@ export const statementField = (path: string[]): string | null =>
 // Tab "Đề bài" (PATCH): không đổi trạng thái xuất bản.
 export function StatementTab({
   form,
-  topics,
   lectures,
   locked,
 }: {
   form: UseFormReturn<StatementValues>;
-  topics: CourseTopic[];
   lectures: { id: string; title: string }[];
   locked: boolean;
 }) {
@@ -188,36 +180,6 @@ export function StatementTab({
           <FieldError errors={[errors.relatedItemId]} />
         </Field>
       </div>
-
-      <FieldSet data-invalid={!!errors.topicIds}>
-        <FieldLegend variant="label">Chủ đề đánh giá</FieldLegend>
-        <FieldDescription>Điểm bài này tính vào mức thành thạo của học viên ở các chủ đề được chọn (tối đa {MAX_TOPICS}).</FieldDescription>
-        {topics.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Khoá học chưa có chủ đề. Thêm ở trang Thông tin cơ bản.</p>
-        ) : (
-          <Controller
-            control={control}
-            name="topicIds"
-            render={({ field }) => (
-              <div className="flex flex-wrap gap-x-6">
-                {topics.map((t) => (
-                  <label key={t.id} className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={field.value.includes(t.id)}
-                      disabled={locked || (!field.value.includes(t.id) && field.value.length >= MAX_TOPICS)}
-                      onCheckedChange={(on) =>
-                        field.onChange(on ? [...field.value, t.id] : field.value.filter((id) => id !== t.id))
-                      }
-                    />
-                    {t.name}
-                  </label>
-                ))}
-              </div>
-            )}
-          />
-        )}
-        <FieldError errors={[errors.topicIds]} />
-      </FieldSet>
 
       <FieldSet>
         <FieldLegend variant="label">
