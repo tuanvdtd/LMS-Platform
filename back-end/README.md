@@ -25,7 +25,7 @@ Có object viết tay mà Prisma không biết (danh sách đầy đủ ở đ�
 - **Luôn xuất hiện trong mọi `migrate dev --create-only`/`migrate diff`, phải xoá tay:**
   `DROP INDEX uq_sections_position`, `uq_items_position`, `uq_questions_position`.
 - **Prisma không nhìn thấy (partial index, CHECK `chk_*`, MV `mv_*`) nên sẽ không sinh lệnh cho chúng —
-  đừng viết SQL động vào chúng:** `idx_courses_embedding`, `uq_course_primary_topic`, `idx_qa_unanswered`,
+  đừng viết SQL động vào chúng:** `idx_courses_embedding`, `uq_course_primary_topic`, `idx_qa_unanswered`, `uq_skill_attempt_in_progress`, `idx_skill_questions_active`,
   các partial index ở init (`idx_certificates_active`,
   `idx_submissions_inflight`, `uq_submissions_inflight_user`, `idx_reports_open`, `idx_payment_events_unprocessed`), các CHECK `chk_*` và
   materialized view `mv_*`.
@@ -110,6 +110,11 @@ Cùng VPC, subnet private, security group chỉ cho API vào cổng 2000; máy P
 
 `RABBITMQ_CONSUMERS=off` tắt cả consumer chấm bài lẫn `MailConsumer` (không tắt riêng được). Thông báo realtime đã có (`src/notifications/notifications.gateway.ts`, socket.io path `/socket.io`, xác thực cookie + kiểm `Origin` = `FE_URL`);
 tách worker / nhiều instance thì thêm `@socket.io/redis-adapter`; reverse proxy / tunnel phía trước API phải cho WebSocket upgrade ở `/socket.io/`. Chạy nhiều instance API thì ngoài redis adapter còn cần sticky session (cho polling) hoặc ép `transports: ['websocket']`. FE và API phải khác origin như cấu hình hiện tại: GET polling cùng origin không mang header `Origin` nên sẽ bị từ chối `forbidden`.
+
+## Ngân hàng câu kỹ năng
+
+`pnpm seed:skills` (sau `pnpm db:deploy`, **ở mọi môi trường kể cả prod**) nạp câu hỏi đánh giá kỹ năng từ `prisma/skill-bank/data/*.ts`.
+Chỉ chèn cho topic chưa có câu nào, chạy lại vô hại; sửa câu đã nạp thì sửa qua màn admin `/admin/skill-bank`, không sửa file seed.
 
 ## Test
 

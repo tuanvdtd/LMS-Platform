@@ -45,17 +45,22 @@ export function useCourse(): CourseContextValue {
 // Huỷ trả Promise, resolve sau khi commit render isDirty=false: cacheComponents ẩn trang cũ bằng React Activity ngay
 // khi chuyển trang, lúc đó effect của react-hook-form (useFieldArray) bị dừng → phải đợi reset áp xong mới navigate.
 export function useDirtySync(isDirty: boolean, save: SaveFn, discard: () => void) {
-  const { setDirty, saveRef, discardRef } = useCourse();
+  // Ngoài CourseProvider (vd. ngân hàng câu admin) thì không có điều hướng có canh → bỏ qua.
+  const ctx = use(CourseContext);
   const discarded = useRef<(() => void) | null>(null);
   useEffect(() => {
+    if (!ctx) return;
+    const { setDirty } = ctx;
     setDirty(isDirty);
     if (!isDirty) {
       discarded.current?.();
       discarded.current = null;
     }
     return () => setDirty(false);
-  }, [isDirty, setDirty]);
+  }, [isDirty, ctx]);
   useEffect(() => {
+    if (!ctx) return;
+    const { saveRef, discardRef } = ctx;
     saveRef.current = save;
     discardRef.current = () =>
       new Promise<void>((resolve) => {

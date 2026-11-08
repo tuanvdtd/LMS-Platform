@@ -1,6 +1,9 @@
 import { isPriceTier } from '../../src/revenue/price-guard.ts';
 import type { PrismaClient } from '@prisma/client';
 import type { SeedData } from './data/types.ts';
+import { SKILL_ABILITIES } from './data/skill-abilities.ts';
+import { SKILL_BANK_TOPICS } from '../skill-bank/types.ts';
+import { MIN_ACTIVE_QUESTIONS } from '../../src/skills/skill-elo.ts';
 
 export const SEED_EMAIL_DOMAIN = '@skillpath.test';
 export const MIN_VIDEO_SEC = 120;
@@ -71,6 +74,18 @@ export function validateData({ users, courses }: SeedData): string[] {
   return errors;
 }
 
+// Tách khỏi validateData vì spec của validateData dùng bộ user giả, không chứa email trong SKILL_ABILITIES.
+export function validateSkillAbilities({ users }: SeedData): string[] {
+  const emails = new Set(users.map((u) => u.email));
+  const errors: string[] = [];
+  for (const [email, abilities] of Object.entries(SKILL_ABILITIES)) {
+    if (!emails.has(email)) errors.push(`SKILL_ABILITIES: ${email} không có trong SEED_DATA.users`);
+    for (const slug of Object.keys(abilities))
+      if (!(SKILL_BANK_TOPICS as readonly string[]).includes(slug)) errors.push(`SKILL_ABILITIES: ${email} có topic "${slug}" ngoài ngân hàng câu kỹ năng`);
+  }
+  return errors;
+}
+
 export function validateCoverage({ courses }: SeedData, occupationTopicSlugs: string[]): string[] {
   const covered = new Set(courses.filter((c) => c.status === 'published').flatMap((c) => c.topics.map((t) => t.slug)));
   return occupationTopicSlugs.filter((s) => !covered.has(s)).map((s) => `topic nghề "${s}" chưa có khoá published`);
@@ -94,6 +109,11 @@ export async function validateDb(prisma: PrismaClient, data: SeedData): Promise<
     errors.push(`DB không có video ready dài ≥ ${MIN_VIDEO_SEC}s để gắn bài giảng`);
   if (!(await prisma.platformSetting.findUnique({ where: { key: 'revenue_share_pct' } }))) errors.push('Thiếu platform_settings.revenue_share_pct');
   for (const v of R2_ENV) if (!process.env[v]) errors.push(`Thiếu biến môi trường ${v}`);
+
+  for (const slug of SKILL_BANK_TOPICS) {
+    const n = await prisma.skillQuestion.count({ where: { archivedAt: null, topic: { slug } } });
+    if (n < MIN_ACTIVE_QUESTIONS) errors.push(`Topic "${slug}" chỉ có ${n} câu kỹ năng chưa ẩn. Chưa nạp ngân hàng câu kỹ năng — chạy pnpm seed:skills`);
+  }
 
   const occ = await prisma.occupationTopic.findMany({ select: { topic: { select: { slug: true } } } });
   errors.push(...validateCoverage(data, [...new Set(occ.map((o) => o.topic.slug))]));

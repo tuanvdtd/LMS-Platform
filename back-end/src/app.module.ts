@@ -28,12 +28,13 @@ import { InstructorApplicationsModule } from './instructor-applications/instruct
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { RevenueModule } from './revenue/revenue.module.js';
 import { TopicsModule } from './topics/topics.module.js';
+import { SkillsModule } from './skills/skills.module.js';
 
 const isProd = optionalEnv('SENTRY_ENVIRONMENT') === 'production';
 
 @Module({
   // SentryModule đứng đầu theo docs.
-  imports: [SentryModule.forRoot(), InfraModule, RabbitModule, AuthModule, CategoriesModule, TopicsModule, InstructorCoursesModule, AssetsModule, CurriculumModule, PreferencesModule, RevenueModule, InstructorApplicationsModule, QuizModule, ExerciseModule, LearnModule, QaModule, CourseApprovalsModule, ModeratorsModule, CatalogModule, CouponsModule, CartModule, CheckoutModule, RecommendationsModule, NotificationsModule],
+  imports: [SentryModule.forRoot(), InfraModule, RabbitModule, AuthModule, CategoriesModule, TopicsModule, InstructorCoursesModule, AssetsModule, CurriculumModule, PreferencesModule, RevenueModule, InstructorApplicationsModule, QuizModule, ExerciseModule, LearnModule, QaModule, CourseApprovalsModule, ModeratorsModule, CatalogModule, CouponsModule, CartModule, CheckoutModule, RecommendationsModule, NotificationsModule, SkillsModule],
   controllers: [AppController, ...(isProd ? [] : [DebugController])],
   // Chỉ gửi lỗi không phải HttpException; response giữ như BaseExceptionFilter.
   providers: [AppService, { provide: APP_FILTER, useClass: SentryGlobalFilter }],

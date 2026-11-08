@@ -28,8 +28,9 @@
     "s3:check": "node --experimental-strip-types scripts/s3-check.ts",
     "cloudfront:check": "node --experimental-strip-types scripts/cloudfront-check.ts",
     "hls:check": "node --experimental-strip-types scripts/hls-check.ts",
-    "seed:demo": "node --env-file=.env --experimental-strip-types prisma/seed-demo/index.ts seed",
-    "seed:demo:clean": "node --env-file=.env --experimental-strip-types prisma/seed-demo/index.ts clean",
+    "seed:demo": "node --env-file-if-exists=.env --experimental-strip-types prisma/seed-demo/index.ts seed",
+    "seed:demo:clean": "node --env-file-if-exists=.env --experimental-strip-types prisma/seed-demo/index.ts clean",
+    "seed:skills": "node --env-file-if-exists=.env --experimental-strip-types prisma/skill-bank/index.ts",
     "hls:backfill": "nest build && node dist/hls/backfill.js"
   },
   "dependencies": {

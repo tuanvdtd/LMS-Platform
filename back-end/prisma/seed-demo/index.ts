@@ -1,10 +1,12 @@
 import prismaPkg from '@prisma/client';
 import type { Occupation } from '@prisma/client';
 import { SEED_DATA } from './data/index.ts';
-import { validateData, validateDb, MIN_VIDEO_SEC } from './validate.ts';
+import { validateData, validateDb, validateSkillAbilities, MIN_VIDEO_SEC } from './validate.ts';
 import { mulberry32 } from './rng.ts';
 import { writeUsers } from './users.ts';
 import { courseSlug, writeCourse, type SeededCourse } from './courses.ts';
+import { SKILL_ABILITIES } from './data/skill-abilities.ts';
+import { planSkillHistory, writeSkillHistory } from './skills.ts';
 import { planActivity, writeActivity } from './activity.ts';
 import { renderThumbnail, r2 as makeR2, type R2 } from './thumbnails.ts';
 import { coverageReport, recomputeStats } from './stats.ts';
@@ -28,7 +30,7 @@ async function main() {
     await cleanSeed(prisma, r2, log);
     if (cmd === 'clean') return;
 
-    const errors = [...validateData(SEED_DATA), ...(await validateDb(prisma, SEED_DATA))];
+    const errors = [...validateData(SEED_DATA), ...validateSkillAbilities(SEED_DATA), ...(await validateDb(prisma, SEED_DATA))];
     if (errors.length || !r2) throw new Error(`Dữ liệu seed chưa hợp lệ:\n- ${errors.join('\n- ')}`);
 
     const rng = mulberry32(SEED);
@@ -77,6 +79,21 @@ async function main() {
     }, rng);
     await writeActivity(prisma, plan);
     log(`✓ ${plan.enrollments.length} ghi danh, ${plan.orders.length} đơn, ${plan.progress.length} item đã học, ${plan.reviews.length} đánh giá`);
+
+    const skillQs = await prisma.skillQuestion.findMany({
+      where: { archivedAt: null }, select: { id: true, topicId: true, rating: true, answerCount: true, correctCount: true },
+    });
+    const byTopic = new Map<string, typeof skillQs>();
+    for (const q of skillQs) byTopic.set(q.topicId, [...(byTopic.get(q.topicId) ?? []), q]);
+    const skillPlan = planSkillHistory({
+      now,
+      learners: Object.entries(SKILL_ABILITIES).flatMap(([email, abilities]) =>
+        Object.entries(abilities).map(([slug, ability]) => ({ userId: users.get(email)!.id, topicId: topicIdBySlug.get(slug)!, ability })),
+      ),
+      questions: byTopic,
+    }, rng);
+    await writeSkillHistory(prisma, skillPlan);
+    log(`✓ ${skillPlan.attempts.length} lượt đánh giá kỹ năng của ${Object.keys(SKILL_ABILITIES).length} học viên`);
 
     await recomputeStats(prisma);
     const cov = await coverageReport(prisma);

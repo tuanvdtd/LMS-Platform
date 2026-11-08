@@ -40,6 +40,9 @@ export async function cleanSeed(prisma: PrismaClient, r2: R2 | null, log: (s: st
     const assets = await tx.$executeRawUnsafe(`DELETE FROM assets WHERE "ownerId" IN (${U})`);
     if (assets) log(`⚠ Đã xoá ${assets} asset do user seed tải lên; file trên storage không được xoá.`);
     await tx.$executeRawUnsafe(`DELETE FROM "user" WHERE id IN (${U})`);
+    // Seed demo hiệu chỉnh R của câu → clean đưa về mốc nhãn để seed lại xác định. Chỉ chạy ở dev (index.ts chặn production).
+    await tx.$executeRawUnsafe(`UPDATE skill_questions SET "answerCount" = 0, "correctCount" = 0,
+      rating = CASE difficulty WHEN 'easy' THEN 1050 WHEN 'medium' THEN 1200 ELSE 1350 END`);
   }, { timeout: 120_000 });
 
   if (r2) for (const { url } of thumbs) await r2.removeUrl(url).catch((e) => log(`⚠ Không xoá được ảnh ${url}: ${String(e)}`));
