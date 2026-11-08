@@ -1,60 +1,94 @@
 'use client';
 
+import { useState } from 'react';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer,
-  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from 'recharts';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import type { SkillsOverview } from '@/types/skills';
 
-const HISTORY_DATA = [
-  { date: 'T7/24', overall: 45, hooks: 20, sql: 30 },
-  { date: 'T8/24', overall: 52, hooks: 25, sql: 35 },
-  { date: 'T9/24', overall: 58, hooks: 30, sql: 38 },
-  { date: 'T10/24', overall: 62, hooks: 33, sql: 40 },
-  { date: 'T11/24', overall: 65, hooks: 35, sql: 42 },
-  { date: 'T12/24', overall: 68, hooks: 35, sql: 45 },
-];
+const TOOLTIP_STYLE = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8 };
+const TICK = { fontSize: 11, fill: 'var(--muted-foreground)' };
+const fmtDay = (iso: string) => {
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
 
-const RADAR_DATA = [
-  { subject: 'Frontend', score: 65 },
-  { subject: 'Backend', score: 45 },
-  { subject: 'DevOps', score: 20 },
-  { subject: 'Data', score: 30 },
-  { subject: 'Mobile', score: 15 },
-];
+export function SkillsCharts({ topics, history }: Pick<SkillsOverview, 'topics' | 'history'>) {
+  const measured = topics.filter((t) => t.pct !== null);
+  const radarData = measured.map((t) => ({ subject: t.name, score: t.pct }));
 
-export function SkillsCharts() {
+  // Chỉ topic có lịch sử mới chọn được; mặc định topic có lần làm mới nhất.
+  const withHistory = topics.filter((t) => history.some((h) => h.topicId === t.id));
+  const latest = [...history].sort((a, b) => b.at.localeCompare(a.at))[0];
+  const [picked, setPicked] = useState<string | null>(null);
+  const activeId = withHistory.some((t) => t.id === picked) ? picked : latest?.topicId;
+  const points = history
+    .filter((h) => h.topicId === activeId)
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .map((h) => ({ date: fmtDay(h.at), pct: h.pct }));
+  const activeName = topics.find((t) => t.id === activeId)?.name ?? '';
+
   return (
-    <div className="grid md:grid-cols-2 gap-6">
-      {/* Radar Chart */}
-      <div className="border rounded-2xl p-5" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-        <h2 className="font-bold mb-4" style={{ color: 'var(--foreground)' }}>Tổng quan theo track</h2>
-        <ResponsiveContainer width="100%" height={240}>
-          <RadarChart data={RADAR_DATA}>
-            <PolarGrid stroke="var(--border)" />
-            <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-            <Radar name="Năng lực" dataKey="score" stroke="#2563eb" fill="#2563eb" fillOpacity={0.25} />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
+    <div className="grid gap-6 md:grid-cols-2">
+      <section className="rounded-2xl border border-border bg-card p-5" aria-labelledby="radar-title">
+        <h2 id="radar-title" className="mb-4 font-bold text-foreground">Tổng quan kỹ năng</h2>
+        {measured.length < 3 ? (
+          <p className="flex h-60 items-center justify-center text-center text-sm text-muted-foreground">
+            Đo ít nhất 3 kỹ năng để xem biểu đồ tổng quan.
+          </p>
+        ) : (
+          <div
+            role="img"
+            aria-label={`Biểu đồ radar: ${measured.map((t) => `${t.name} ${t.pct}%`).join(', ')}`}
+          >
+            <ResponsiveContainer width="100%" height={240}>
+              <RadarChart data={radarData}>
+                <PolarGrid stroke="var(--border)" />
+                <PolarAngleAxis dataKey="subject" tick={TICK} />
+                <Radar name="Năng lực" dataKey="score" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.25} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: 'var(--foreground)', fontWeight: 600 }} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </section>
 
-      {/* Progress over time */}
-      <div className="border rounded-2xl p-5" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-        <h2 className="font-bold mb-4" style={{ color: 'var(--foreground)' }}>Lịch sử tiến bộ</h2>
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={HISTORY_DATA}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
-            <YAxis tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} domain={[0, 100]} />
-            <Tooltip
-              contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8 }}
-              labelStyle={{ color: 'var(--foreground)', fontWeight: 600 }}
-            />
-            <Line type="monotone" dataKey="overall" stroke="#2563eb" strokeWidth={2} dot={false} name="Tổng thể" />
-            <Line type="monotone" dataKey="hooks" stroke="#ef4444" strokeWidth={2} dot={false} name="React Hooks" />
-            <Line type="monotone" dataKey="sql" stroke="#f97316" strokeWidth={2} dot={false} name="SQL Join" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {points.length > 0 && (
+        <section className="rounded-2xl border border-border bg-card p-5" aria-labelledby="history-title">
+          <h2 id="history-title" className="mb-3 font-bold text-foreground">Lịch sử tiến bộ</h2>
+          <ToggleGroup
+            variant="outline"
+            size="sm"
+            aria-label="Chọn kỹ năng"
+            className="mb-3 w-full flex-wrap"
+            value={activeId ? [activeId] : []}
+            onValueChange={(v) => v[0] && setPicked(v[0])}
+          >
+            {withHistory.map((t) => (
+              <ToggleGroupItem key={t.id} value={t.id} className="min-h-11 sm:min-h-9">{t.name}</ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <div
+            role="img"
+            aria-label={`Điểm ${activeName} qua các lần làm: ${points.map((p) => `${p.date} ${p.pct}%`).join(', ')}`}
+          >
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={points}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="date" tick={TICK} />
+                <YAxis tick={TICK} domain={[0, 100]} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: 'var(--foreground)', fontWeight: 600 }} />
+                <ReferenceLine y={40} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
+                <ReferenceLine y={70} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
+                <Line type="monotone" dataKey="pct" name={activeName} stroke="var(--primary)" strokeWidth={2} dot />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Đường nét đứt: mốc 40% và 70%.</p>
+        </section>
+      )}
     </div>
   );
 }

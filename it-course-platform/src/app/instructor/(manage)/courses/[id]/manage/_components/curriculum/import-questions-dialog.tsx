@@ -12,25 +12,33 @@ import { type CsvError, csvToQuestions } from './quiz-csv';
 
 const MAX_BYTES = 1024 * 1024;
 
-type Parsed = { fileName: string; questions: QuestionPayload[]; rows: number[]; errors: CsvError[] };
+type Parsed<Q> = { fileName: string; questions: Q[]; rows: number[]; errors: CsvError[] };
 
 // Nhập câu hỏi từ CSV: đọc + kiểm tra ngay trên trình duyệt, xem trước (chỉ đọc), nhập tất cả hoặc không câu nào.
-export function ImportQuestionsDialog({
+export function ImportQuestionsDialog<Q extends QuestionPayload = QuestionPayload>({
   open,
   onOpenChange,
   current,
   disabled,
   onImport,
+  parse = csvToQuestions as (text: string) => { questions: Q[]; rows: number[]; errors: CsvError[] },
+  max = QUIZ_LIMITS.maxQuestions,
+  templateHref = '/templates/quiz-questions.csv',
+  scope = 'quiz',
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   current: number; // số câu đang có trong quiz
   disabled: boolean;
-  onImport: (questions: QuestionPayload[]) => Promise<boolean>;
+  onImport: (questions: Q[]) => Promise<boolean>;
+  parse?: (text: string) => { questions: Q[]; rows: number[]; errors: CsvError[] }; // mặc định: CSV quiz
+  max?: number; // số câu tối đa (quiz: theo QUIZ_LIMITS; ngân hàng câu: mỗi lần nhập)
+  templateHref?: string;
+  scope?: 'quiz' | 'bank'; // quyết định lời mô tả + thông báo hết chỗ
 }) {
-  const [parsed, setParsed] = useState<Parsed | null>(null);
+  const [parsed, setParsed] = useState<Parsed<Q> | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const room = QUIZ_LIMITS.maxQuestions - current;
+  const room = max - current;
   const n = parsed?.questions.length ?? 0;
   const over = n > room;
   const canImport = !!parsed && !parsed.errors.length && n > 0 && !over && !disabled && !submitting;
@@ -47,7 +55,7 @@ export function ImportQuestionsDialog({
       setParsed({ fileName: file.name, questions: [], rows: [], errors: [{ row: 0, message: 'File lớn hơn 1 MB' }] });
       return;
     }
-    setParsed({ fileName: file.name, ...csvToQuestions(await file.text()) });
+    setParsed({ fileName: file.name, ...parse(await file.text()) });
   }
 
   async function submit() {
@@ -64,12 +72,12 @@ export function ImportQuestionsDialog({
         <DialogHeader>
           <DialogTitle>Nhập câu hỏi từ CSV</DialogTitle>
           <DialogDescription>
-            Câu hỏi được thêm vào cuối quiz (tối đa {QUIZ_LIMITS.maxQuestions} câu/quiz). Sửa file bằng Excel thì lưu
-            lại bằng kiểu <strong>CSV UTF-8</strong>.
+            {scope === 'quiz' ? `Câu hỏi được thêm vào cuối quiz (tối đa ${max} câu/quiz).` : `Câu hỏi được thêm vào topic này (tối đa ${max} câu mỗi lần nhập).`} Sửa file
+            bằng Excel thì lưu lại bằng kiểu <strong>CSV UTF-8</strong>.
           </DialogDescription>
         </DialogHeader>
         <a
-          href="/templates/quiz-questions.csv"
+          href={templateHref}
           download
           className={buttonVariants({ variant: 'outline', size: 'sm', className: 'h-11 self-start sm:h-8' })}
         >
@@ -107,8 +115,9 @@ export function ImportQuestionsDialog({
         {over && (
           <Alert variant="destructive">
             <AlertDescription>
-              Quiz đang có {current} câu, chỉ còn chỗ cho {Math.max(0, room)} câu, nhưng file có {n} câu. Bớt câu trong
-              file hoặc xoá câu cũ rồi nhập lại.
+              {scope === 'quiz'
+                ? `Quiz đang có ${current} câu, chỉ còn chỗ cho ${Math.max(0, room)} câu, nhưng file có ${n} câu. Bớt câu trong file hoặc xoá câu cũ rồi nhập lại.`
+                : `File có ${n} câu, nhiều hơn mức tối đa ${max} câu mỗi lần nhập. Chia file thành nhiều lần.`}
             </AlertDescription>
           </Alert>
         )}

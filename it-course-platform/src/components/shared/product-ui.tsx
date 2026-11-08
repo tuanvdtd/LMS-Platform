@@ -1,5 +1,6 @@
-import { Star, TrendingUp, TrendingDown, Minus, CheckCircle, XCircle, Clock, AlertCircle, Loader2, Info } from 'lucide-react';
-import type { CourseStatus, SkillMastery, Verdict } from '@/types';
+import { Star, TrendingUp, TrendingDown, Minus, CheckCircle, XCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import type { CourseStatus, Verdict } from '@/types';
+import { MASTERY_COLOR, MASTERY_LABEL, masteryLevel } from '@/lib/skills';
 import { Button } from '@/components/ui/button';
 
 // ─── RatingStars ──────────────────────────────────────────────────────────────
@@ -83,42 +84,32 @@ export function SkillTagBadge({ name, mastery }: { name: string; mastery?: numbe
 }
 
 // ─── SkillMasteryBar ──────────────────────────────────────────────────────────
-export function SkillMasteryBar({ skill }: { skill: SkillMastery }) {
-  const color =
-    skill.mastery < 40 ? 'var(--skill-weak)' : skill.mastery < 70 ? 'var(--skill-mid)' : 'var(--skill-strong)';
-  const label = skill.mastery < 40 ? 'Yếu' : skill.mastery < 70 ? 'Trung bình' : 'Vững';
+export function SkillMasteryBar({ name, pct, trend }: { name: string; pct: number; trend?: 'up' | 'down' | 'stable' }) {
+  const level = masteryLevel(pct);
+  const color = MASTERY_COLOR[level];
 
   return (
     <div className="flex items-center gap-3">
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-1">
-          <span className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
-            {skill.skillName}
-          </span>
+          <span className="text-sm font-medium truncate text-foreground">{name}</span>
           <div className="flex items-center gap-1.5 ml-2 shrink-0">
-            {skill.trend === 'up' && <TrendingUp size={12} className="text-success" />}
-            {skill.trend === 'down' && <TrendingDown size={12} className="text-danger" />}
-            {skill.trend === 'stable' && <Minus size={12} style={{ color: 'var(--muted-foreground)' }} />}
-            <span className="text-xs font-mono font-bold" style={{ color }}>
-              {skill.mastery}%
-            </span>
-            <span className="text-xs" style={{ color }}>
-              {label}
-            </span>
+            {trend === 'up' && <TrendingUp size={12} className="text-success" aria-hidden />}
+            {trend === 'down' && <TrendingDown size={12} className="text-danger" aria-hidden />}
+            {trend === 'stable' && <Minus size={12} className="text-muted-foreground" aria-hidden />}
+            <span className="text-xs font-mono font-bold text-foreground">{pct}%</span>
+            <span className="text-xs text-foreground">{MASTERY_LABEL[level]}</span>
           </div>
         </div>
         <div
-          className="h-1.5 rounded-full overflow-hidden"
-          style={{ background: 'var(--secondary)' }}
-          role="progressbar"
-          aria-valuenow={skill.mastery}
+          className="h-1.5 rounded-full overflow-hidden bg-secondary"
+          role="meter"
+          aria-valuenow={pct}
           aria-valuemin={0}
           aria-valuemax={100}
+          aria-label={name}
         >
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${skill.mastery}%`, background: color }}
-          />
+          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} />
         </div>
       </div>
     </div>

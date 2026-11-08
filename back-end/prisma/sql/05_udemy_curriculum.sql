@@ -12,7 +12,7 @@
 --    (unique DEFERRABLE, Prisma thấy như index lạ).
 --  (b) Prisma không nhìn thấy (partial index, CHECK chk_*, MV mv_*) nên sẽ không sinh lệnh cho chúng
 --      — đừng viết SQL động vào chúng:
---    idx_courses_embedding, uq_course_primary_topic, idx_qa_unanswered,
+--    idx_courses_embedding, uq_course_primary_topic, idx_qa_unanswered, uq_skill_attempt_in_progress, idx_skill_questions_active,
 --    idx_certificates_active,
 --    idx_submissions_inflight, idx_reports_open, idx_payment_events_unprocessed (partial index ở init),
 --    các CHECK chk_* (Prisma không quản lý CHECK), mv_* (materialized view).

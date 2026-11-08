@@ -90,6 +90,8 @@ model User {
   riskScores            StatStudentRisk[]
   emailLogs             EmailLog[]
   assets                Asset[]
+  skillAttempts         SkillAttempt[]
+  topicSkills           UserTopicSkill[]
   couponsCreated        Coupon[]
   announcementsAuthored Announcement[]
   qaQuestions           CourseQuestion[]
@@ -698,7 +700,7 @@ model Payout {
 // Không gắn cứng vào một category: một topic xuất hiện ở nhiều nhánh cấp 2
 // (Python ở cả Khoa học dữ liệu và Ngôn ngữ lập trình). Menu "Chủ đề phổ biến"
 // của từng nhánh được tính từ course_topics của các khoá đã duyệt (published) trong nhánh đó.
-// Đây cũng là đơn vị đo năng lực (bài đánh giá kỹ năng Elo — chưa làm), đồ thị tiên quyết, gợi ý tầng 2. Quiz / bài code
+// Đây cũng là đơn vị đo năng lực (bài đánh giá kỹ năng Elo, bảng skill_*), đồ thị tiên quyết, gợi ý tầng 2. Quiz / bài code
 // trong khoá chỉ chấm điểm bài đó, không gắn topic.
 model Topic {
   id          String  @id @default(uuid(7)) @db.Uuid
@@ -714,6 +716,10 @@ model Topic {
   targetedBy  UserTargetTopic[]
   categories  CategoryTopic[]
   occupations OccupationTopic[]
+
+  skillQuestions SkillQuestion[]
+  skillAttempts  SkillAttempt[]
+  userSkills     UserTopicSkill[]
 
   // Autocomplete ô "Tìm kiếm topic" ở bước 2 onboarding (name % $1). Cần extension pg_trgm.
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_topics_name_trgm")
@@ -1034,6 +1040,114 @@ enum NotificationType {
   qa_answer
   course_review
   instructor_application
+}
+
+// ============================================================================
+//  7b. BÀI ĐÁNH GIÁ KỸ NĂNG (Elo thích ứng) — spec 2026-11-04-skill-assessment-elo
+//  Nguồn DUY NHẤT của độ thành thạo topic. Câu do nền tảng soạn, không thuộc quiz nào.
+// ============================================================================
+
+enum SkillDifficulty {
+  easy
+  medium
+  hard
+}
+
+// rating = độ khó Elo hiện tại (khởi tạo theo difficulty, tự hiệu chỉnh khi có người trả lời).
+model SkillQuestion {
+  id           String          @id @default(uuid(7)) @db.Uuid
+  topicId      String          @db.Uuid
+  type         QuestionType
+  stem         String // Markdown
+  difficulty   SkillDifficulty
+  rating       Float
+  answerCount  Int             @default(0)
+  correctCount Int             @default(0)
+  archivedAt   DateTime? // ẩn thay vì xoá — skill_answers vẫn tham chiếu
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  topic   Topic                 @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  options SkillQuestionOption[]
+  answers SkillAnswer[]
+
+  @@index([topicId])
+  @@map("skill_questions")
+}
+
+model SkillQuestionOption {
+  id          String  @id @default(uuid(7)) @db.Uuid
+  questionId  String  @db.Uuid
+  content     String
+  isCorrect   Boolean @default(false)
+  explanation String? // chỉ admin thấy (kết quả không lộ đáp án)
+  position    Int
+
+  question SkillQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, position])
+  @@map("skill_question_options")
+}
+
+// Một lượt = 1 topic, ≤ 12 câu, hạn startedAt + 15 phút (không lưu cột). Mỗi user + topic chỉ 1 lượt in_progress
+// (partial unique uq_skill_attempt_in_progress ở sql/11).
+model SkillAttempt {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  userId       String        @db.Uuid
+  topicId      String        @db.Uuid
+  status       AttemptStatus @default(in_progress)
+  startedAt    DateTime      @default(now())
+  finishedAt   DateTime?
+  ratingBefore Float
+  ratingAfter  Float?
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic   Topic         @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  answers SkillAnswer[]
+
+  @@index([userId, topicId, startedAt])
+  @@map("skill_attempts")
+}
+
+// Dòng tạo NGAY lúc phát câu (answeredAt null) → câu đang hiện = dòng chưa trả lời, không cần cột "câu hiện tại".
+model SkillAnswer {
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  attemptId            String    @db.Uuid
+  questionId           String    @db.Uuid
+  position             Int // 1..12
+  servedAt             DateTime  @default(now())
+  answeredAt           DateTime?
+  selectedOptionIds    String[]  @default([]) @db.Uuid
+  isCorrect            Boolean?
+  skipped              Boolean   @default(false) // "Tôi không biết"
+  userRatingBefore     Float?
+  userRatingAfter      Float?
+  questionRatingBefore Float?
+  questionRatingAfter  Float?
+
+  attempt  SkillAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question SkillQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([attemptId, position])
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+  @@map("skill_answers")
+}
+
+// Elo hiện tại của học viên theo topic. answerCount = 0 → "Chưa đo".
+model UserTopicSkill {
+  userId        String   @db.Uuid
+  topicId       String   @db.Uuid
+  rating        Float
+  answerCount   Int      @default(0)
+  lastStartedAt DateTime // mốc tính thời gian chờ 24h
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([userId, topicId])
+  @@index([topicId])
+  @@map("user_topic_skills")
 }
 
 // ============================================================================

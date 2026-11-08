@@ -26,7 +26,7 @@ Thành công nghĩa là buổi demo trước hội đồng chạy trơn tru và 
 
 Ba điểm khác Udemy, cùng một cơ chế kiểm duyệt:
 
-1. **Đánh giá năng lực tự động:** trắc nghiệm được chấm ngay. Bài code chạy trong sandbox cô lập, trả về Accepted / Wrong Answer / Time Limit / Runtime Error / Compile Error và điểm theo số test đạt. Quiz và bài code trong khoá chỉ chấm điểm bài đó, **không dùng để tính độ thành thạo topic**. Độ thành thạo topic đo bằng **bài đánh giá kỹ năng do nền tảng soạn**: ngân hàng câu hỏi theo topic, moderator duyệt, chấm bằng Elo.
+1. **Đánh giá năng lực tự động:** trắc nghiệm được chấm ngay. Bài code chạy trong sandbox cô lập, trả về Accepted / Wrong Answer / Time Limit / Runtime Error / Compile Error và điểm theo số test đạt. Quiz và bài code trong khoá chỉ chấm điểm bài đó, **không dùng để tính độ thành thạo topic**. Độ thành thạo topic đo bằng **bài đánh giá kỹ năng do nền tảng soạn**: ngân hàng câu hỏi theo topic (admin/moderator soạn, không qua khâu duyệt), câu hỏi thích ứng, chấm bằng Elo.
 2. **Gợi ý lộ trình cá nhân hoá, luôn kèm lý do**, ví dụ "Gợi ý vì bạn đạt 35% ở topic React JS". Gợi ý dựa trên năng lực thực tế, không chỉ dựa trên lịch sử mua.
 3. **Dashboard phân tích sâu cho giảng viên:** doanh thu, phễu chuyển đổi, giữ chân video, chất lượng câu hỏi, kỹ năng yếu của lớp, học viên có nguy cơ bỏ học.
 4. **Kiểm duyệt theo chủ đề:** moderator là chuyên gia theo danh mục, duyệt mọi khoá và hồ sơ xác minh. Người gửi và người duyệt không bao giờ là cùng một người.
@@ -43,7 +43,7 @@ Ba điểm khác Udemy, cùng một cơ chế kiểm duyệt:
 - Frontend `it-course-platform/` (Next.js App Router, React 19, Tailwind, shadcn/base-ui, Recharts, lucide). Backend NestJS `back-end/`. Xác thực bằng Better Auth (cookie session).
 - Ngôn ngữ giao diện: **tiếng Việt**, tiền `₫`, ngày `dd/MM/yyyy`. Key, enum và status trong code viết tiếng Anh, tiếng Việt chỉ có ở label.
 - Video: HLS 1080/720/480 qua MediaConvert, phát bằng Video.js qua CloudFront có ký. Video dọc và video dưới 720p bị chặn. Asset đang `processing` vẫn gắn vào bài được.
-- Gợi ý chia hai giai đoạn. Giai đoạn 1 (đã có): gợi ý theo mục tiêu tự khai và theo nghề, kèm lý do, cùng "Bài cần ôn" trong outline trang học. Giai đoạn 2 (chưa làm): bài đánh giá kỹ năng của nền tảng, chấm bằng Elo, để nuôi `/skills` và gợi ý theo lỗ hổng topic. Đây là nguồn duy nhất của độ thành thạo topic. Giao diện không được hiện % thành thạo suy ra từ quiz hay bài code trong khoá.
+- Gợi ý chia hai giai đoạn. Giai đoạn 1 (đã có): gợi ý theo mục tiêu tự khai và theo nghề, kèm lý do, cùng "Bài cần ôn" trong outline trang học. Bài đánh giá kỹ năng (đã có): 12 câu thích ứng / 15 phút, chấm Elo, nuôi `/skills`; đây là nguồn duy nhất của độ thành thạo topic. Giai đoạn 2 (chưa làm): gợi ý theo lỗ hổng topic dựa trên kết quả bài đánh giá. Giao diện không được hiện % thành thạo suy ra từ quiz hay bài code trong khoá.
 - Chưa quyết: gợi ý tầng 3 (collaborative filtering) và tầng 4 (pgvector) trong đề xuất chưa có kế hoạch triển khai.
 
 ## Brand Commitments

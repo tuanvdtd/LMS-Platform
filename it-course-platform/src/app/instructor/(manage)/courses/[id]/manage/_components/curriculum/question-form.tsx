@@ -50,16 +50,18 @@ export function QuestionForm({
   after,
   onSave,
   onSkip,
+  dirty,
 }: {
   question?: QuizQuestion;
   newType?: QuestionType; // loại mặc định của câu mới; câu đã lưu không đổi loại được (BE chặn)
-  lectures: { id: string; title: string }[];
+  lectures?: { id: string; title: string }[]; // undefined → ẩn ô "Bài giảng liên quan" (ngân hàng câu kỹ năng không gắn bài giảng)
   locked: boolean;
   title: string;
   actions: React.ReactNode;
   after: 'question' | 'new' | null;
   onSave: (body: QuestionPayload, advance: boolean) => Promise<boolean>;
   onSkip: () => void; // sang câu sau khi không có gì để lưu
+  dirty?: boolean; // thay đổi nằm ngoài form này (vd Select độ khó của ngân hàng kỹ năng) → vẫn cho lưu
 }) {
   const { resolvedTheme } = useTheme();
   const [openExplain, setOpenExplain] = useState<Set<number>>(new Set());
@@ -83,7 +85,7 @@ export function QuestionForm({
   useDirtySync(isDirty, submitToPromise(handleSubmit, (v) => submit(v, false)), () => reset());
 
   const save = handleSubmit((v) => submit(v, false));
-  const pending = isDirty || !question; // câu mới luôn phải lưu mới sang câu sau
+  const pending = isDirty || !!dirty || !question; // câu mới luôn phải lưu mới sang câu sau
   const advance = () => (pending ? void handleSubmit((v) => submit(v, true))() : onSkip());
   const advanceLabel =
     after === 'question' ? (pending ? 'Lưu & câu tiếp' : 'Câu tiếp') : after === 'new' ? (pending ? 'Lưu & thêm câu' : 'Thêm câu') : null;
@@ -111,7 +113,7 @@ export function QuestionForm({
       return n;
     });
   const optionsError = errors.options?.message ?? errors.options?.root?.message;
-  const lectureItems = [{ value: NONE, label: 'Không chọn' }, ...lectures.map((l) => ({ value: l.id, label: l.title }))];
+  const lectureItems = [{ value: NONE, label: 'Không chọn' }, ...(lectures ?? []).map((l) => ({ value: l.id, label: l.title }))];
 
   return (
     <form onSubmit={save} onKeyDown={onKeyDown} noValidate className="flex flex-col gap-4">
@@ -250,28 +252,30 @@ export function QuestionForm({
               </div>
             </Field>
 
-            <Field>
-              <FieldLabel>Bài giảng liên quan</FieldLabel>
-              <Controller
-                control={control}
-                name="relatedItemId"
-                render={({ field }) => (
-                  <Select items={lectureItems} value={field.value} onValueChange={(v) => v && field.onChange(v)}>
-                    <SelectTrigger className="w-full sm:w-80">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {lectureItems.map((l) => (
-                        <SelectItem key={l.value} value={l.value}>
-                          {l.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              <FieldDescription>Học viên thấy liên kết tới bài giảng này khi xem lại câu hỏi.</FieldDescription>
-            </Field>
+            {lectures && (
+              <Field>
+                <FieldLabel>Bài giảng liên quan</FieldLabel>
+                <Controller
+                  control={control}
+                  name="relatedItemId"
+                  render={({ field }) => (
+                    <Select items={lectureItems} value={field.value} onValueChange={(v) => v && field.onChange(v)}>
+                      <SelectTrigger className="w-full sm:w-80">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {lectureItems.map((l) => (
+                          <SelectItem key={l.value} value={l.value}>
+                            {l.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FieldDescription>Học viên thấy liên kết tới bài giảng này khi xem lại câu hỏi.</FieldDescription>
+              </Field>
+            )}
           </fieldset>
         </CardContent>
       </Card>
@@ -279,8 +283,8 @@ export function QuestionForm({
       {!locked && (
         <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-end gap-2 rounded-xl border bg-card p-2.5 shadow-lg">
           <span className="mr-auto flex items-center gap-2 pl-1.5 text-sm text-muted-foreground">
-            {isDirty && <span className="size-2 shrink-0 rounded-full bg-brand-accent" aria-hidden />}
-            {isDirty ? 'Có thay đổi chưa lưu' : question ? 'Chưa có thay đổi' : 'Câu mới, chưa lưu'}
+            {(isDirty || dirty) && <span className="size-2 shrink-0 rounded-full bg-brand-accent" aria-hidden />}
+            {isDirty || dirty ? 'Có thay đổi chưa lưu' : question ? 'Chưa có thay đổi' : 'Câu mới, chưa lưu'}
             {advanceLabel && <span className="hidden lg:inline">· Ctrl + Enter: {advanceLabel.toLowerCase()}</span>}
           </span>
           {isDirty && question && (
