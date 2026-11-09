@@ -12,11 +12,14 @@ export const setLastItem = (slug: string, itemId: string) =>
 
 export const getLecture = (slug: string, itemId: string) => data<Lecture>(api.get(`${base(slug)}/lectures/${itemId}`));
 
-export const sendProgress = (slug: string, itemId: string, body: { positionSec: number; buckets: number[] }) =>
-  data<ProgressResult>(api.post(`${base(slug)}/lectures/${itemId}/progress`, body));
+export const sendProgress = (slug: string, itemId: string, positionSec: number) =>
+  api.post(`${base(slug)}/lectures/${itemId}/progress`, { positionSec }).then(() => undefined);
 
 export const completeLecture = (slug: string, itemId: string) =>
   data<ProgressResult>(api.post(`${base(slug)}/lectures/${itemId}/complete`));
+
+export const uncompleteLecture = (slug: string, itemId: string) =>
+  data<ProgressResult>(api.delete(`${base(slug)}/lectures/${itemId}/complete`));
 
 export const getResourceUrl = (slug: string, resourceId: string) =>
   data<{ url: string }>(api.get(`${base(slug)}/resources/${resourceId}`)).then((r) => r.url);

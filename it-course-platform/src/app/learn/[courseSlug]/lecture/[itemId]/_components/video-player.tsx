@@ -14,7 +14,7 @@ export function VideoPlayer({
   courseSlug,
   lecture,
   videoRef,
-  onCompleted,
+  onFinished,
   onRefreshUrl,
   onEndedChange,
   children,
@@ -22,7 +22,7 @@ export function VideoPlayer({
   courseSlug: string;
   lecture: Lecture;
   videoRef: RefObject<HTMLVideoElement | null>;
-  onCompleted: (progressPct: number) => void;
+  onFinished: () => void; // phát tới cuối → bài tự hoàn thành
   onRefreshUrl: () => Promise<string | null>;
   onEndedChange: (ended: boolean) => void; // hết video → lớp phủ "Bài tiếp"; phát lại → ẩn
   children?: React.ReactNode; // lớp phủ đặt trên khung video
@@ -32,14 +32,7 @@ export function VideoPlayer({
   const retried = useRef(false);
   const startSec = lecture.progress.lastPositionSec < lecture.durationSec - 5 ? lecture.progress.lastPositionSec : 0;
   const resumeAt = useRef(startSec);
-  const tracking = useVideoProgress({
-    courseSlug,
-    itemId: lecture.id,
-    enabled: !lecture.manualComplete,
-    completed: lecture.progress.completed,
-    startPositionSec: startSec,
-    onCompleted,
-  });
+  const tracking = useVideoProgress({ courseSlug, itemId: lecture.id, startPositionSec: startSec });
 
   async function recover() {
     if (retried.current) {
@@ -86,9 +79,10 @@ export function VideoPlayer({
         onPlay={() => onEndedChange(false)}
         onError={() => void recover()}
         {...tracking}
+        // pause luôn chạy trước ended → vị trí cuối đã được gửi.
         onEnded={() => {
-          tracking.onEnded();
           onEndedChange(true);
+          onFinished();
         }}
       />
       {children}

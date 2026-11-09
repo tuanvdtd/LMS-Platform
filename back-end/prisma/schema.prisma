@@ -504,16 +504,13 @@ model Enrollment {
   @@map("enrollments")
 }
 
-// Heartbeat video (30s) ghi thẳng vào đây; đoạn đã xem là bitmap 10s/bit.
+// Vị trí xem dở (học tiếp) và mốc hoàn thành của từng bài theo từng lượt ghi danh.
 model ItemProgress {
   enrollmentId    String    @db.Uuid
   itemId          String    @db.Uuid
-  watchedSec      Int       @default(0)
   lastPositionSec Int       @default(0)
-  watchedBuckets  Bytes? // bit i = giây [10i, 10i+10) đã phát thật (src/learn/watch-bitmap.ts)
   completedAt     DateTime?
-  createdAt       DateTime  @default(now()) // mốc bắt đầu xem → trần chống gian lận
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime  @default(now()) // bắt đầu học bài lúc nào
 
   enrollment Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   item       CurriculumItem @relation(fields: [itemId], references: [id], onDelete: Cascade)

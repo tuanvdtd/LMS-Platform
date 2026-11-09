@@ -120,8 +120,8 @@ export async function writeActivity(prisma: PrismaClient, plan: ActivityPlan) {
       lastAccessedAt: e.lastAccessedAt, lastItemId: e.lastItemId, createdAt: e.at,
     })) });
     await tx.itemProgress.createMany({ data: plan.progress.map((p) => ({
-      enrollmentId: p.enrollmentId, itemId: p.itemId, watchedSec: p.durationSec, lastPositionSec: p.durationSec,
-      completedAt: p.completedAt, createdAt: p.completedAt, updatedAt: p.completedAt,
+      enrollmentId: p.enrollmentId, itemId: p.itemId, lastPositionSec: p.durationSec,
+      completedAt: p.completedAt, createdAt: p.completedAt,
     })) });
     await tx.courseReview.createMany({ data: plan.reviews.map((r) => ({ ...r, updatedAt: r.instructorRepliedAt ?? r.createdAt })) });
   }, { timeout: 120_000 });

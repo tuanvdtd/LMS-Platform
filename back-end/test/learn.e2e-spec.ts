@@ -35,7 +35,7 @@ describe('Học viên học bài giảng (e2e)', () => {
   let enrollmentId: string;
   let videoId: string; // video 600s = 60 đoạn
   let pdfId: string; // PDF, cho tải
-  let zeroId: string; // video durationSec 0 → đánh dấu tay
+  let zeroId: string; // video durationSec 0
   let hiddenId: string; // bài giảng chưa xuất bản
   let resourceId: string;
   let hiddenResourceId: string;
@@ -167,7 +167,7 @@ describe('Học viên học bài giảng (e2e)', () => {
   );
 
   it(
-    'bài giảng: 404 trước 403; video có link + tài liệu; PDF có link tải; video 0s đánh dấu tay',
+    'bài giảng: 404 trước 403; video có link + tài liệu; PDF có link tải',
     async () => {
       for (const id of [hiddenId, randomUUID(), 'abc']) {
         expect((await learn('get', `/lectures/${id}`).expect(404)).body.code).toBe('LECTURE_NOT_FOUND');
@@ -183,19 +183,16 @@ describe('Học viên học bài giảng (e2e)', () => {
         durationSec: 600,
         mediaUrl: `https://fake.r2/video/${keys.video}?signed=1`,
         downloadUrl: null,
-        manualComplete: false,
         resources: [{ id: resourceId, title: 'Slide', fileName: 'slide.pdf', sizeBytes: 2048 }],
-        progress: { lastPositionSec: 0, watchedSec: 0, completed: false },
+        progress: { lastPositionSec: 0, completed: false },
       });
       const pdf = (await learn('get', `/lectures/${pdfId}`).expect(200)).body;
       expect(pdf).toMatchObject({
         lectureKind: 'document',
         mediaUrl: `https://fake.r2/private/${keys.pdf}?signed=1`,
         downloadUrl: `https://fake.r2/private/${keys.pdf}?signed=1&download=bai-doc.pdf`,
-        manualComplete: true,
         resources: [],
       });
-      expect((await learn('get', `/lectures/${zeroId}`).expect(200)).body.manualComplete).toBe(true);
     },
     SLOW,
   );
@@ -232,30 +229,23 @@ describe('Học viên học bài giảng (e2e)', () => {
   );
 
   it(
-    'tiến độ: PDF → 409; trần 2x; lọc ngoài khoảng/trùng; hoàn thành ở 90%; xem lại giữ mốc',
+    'vị trí xem: PDF → 409; body lạ → 400; chưa ghi danh → 403; kẹp theo thời lượng; video 0s nhận nguyên',
     async () => {
-      const post = (body: object, item = videoId) => learn('post', `/lectures/${item}/progress`, stu, body);
-      expect((await post({ positionSec: 0, buckets: [0] }, pdfId).expect(409)).body.code).toBe('PROGRESS_NOT_TRACKED');
-      expect((await post({ positionSec: 0, buckets: [0] }, zeroId).expect(409)).body.code).toBe('PROGRESS_NOT_TRACKED');
-      await post({ positionSec: 1, buckets: [-1] }).expect(400);
-      expect((await learn('post', `/lectures/${videoId}/progress`, carol, { positionSec: 0, buckets: [] }).expect(403)).body.code)
-        .toBe('NOT_ENROLLED');
-      // Lần đầu: ân hạn 60s → trần ceil(60 × 2 / 10) = 12 đoạn; 60 nằm ngoài (600s = 60 đoạn); vị trí kẹp 600.
-      const all = Array.from({ length: 60 }, (_, i) => i);
-      expect((await post({ positionSec: 9999, buckets: [...all, 60, 3, 3] }).expect(200)).body).toEqual({
-        completed: false,
-        progressPct: 0,
+      const post = (body: object, item = videoId, user = stu) => learn('post', `/lectures/${item}/progress`, user, body);
+      expect((await post({ positionSec: 0 }, pdfId).expect(409)).body.code).toBe('PROGRESS_NOT_TRACKED');
+      await post({ positionSec: 1, buckets: [0] }).expect(400);
+      await post({ positionSec: -1 }).expect(400);
+      expect((await post({ positionSec: 0 }, videoId, carol).expect(403)).body.code).toBe('NOT_ENROLLED');
+      await post({ positionSec: 9999 }).expect(204);
+      expect(await progressRow()).toMatchObject({ lastPositionSec: 600, completedAt: null });
+      await post({ positionSec: 120 }).expect(204);
+      expect((await progressRow()).lastPositionSec).toBe(120);
+      await post({ positionSec: 9999 }, zeroId).expect(204);
+      const zero = await prisma.itemProgress.findUniqueOrThrow({
+        where: { enrollmentId_itemId: { enrollmentId, itemId: zeroId } },
       });
-      expect(await progressRow()).toMatchObject({ watchedSec: 120, lastPositionSec: 600, completedAt: null });
-      // Giả lập đã mở bài 10 phút → trần 132 đoạn.
-      await prisma.$executeRaw`UPDATE item_progress SET "createdAt" = now() - interval '10 minutes'
-        WHERE "enrollmentId" = ${enrollmentId}::uuid AND "itemId" = ${videoId}::uuid`;
-      expect((await post({ positionSec: 300, buckets: all.slice(12, 53) }).expect(200)).body.completed).toBe(false); // 53 < 54
-      expect((await post({ positionSec: 310, buckets: [53] }).expect(200)).body).toEqual({ completed: true, progressPct: 33.33 });
-      const first = (await progressRow()).completedAt;
-      expect(first).not.toBeNull();
-      await post({ positionSec: 20, buckets: [54] }).expect(200);
-      expect(await progressRow()).toMatchObject({ lastPositionSec: 20, watchedSec: 550, completedAt: first });
+      expect(zero.lastPositionSec).toBe(9999);
+      expect((await learn('get', `/lectures/${videoId}`).expect(200)).body.progress).toEqual({ lastPositionSec: 120, completed: false });
     },
     SLOW,
   );
@@ -264,7 +254,7 @@ describe('Học viên học bài giảng (e2e)', () => {
     'tiến độ: quá 30 lần/phút → 429',
     async () => {
       await redis.set(`rl:learn-progress:${stu.id}`, 30, 'EX', 60);
-      expect((await learn('post', `/lectures/${videoId}/progress`, stu, { positionSec: 1, buckets: [] }).expect(429)).body.code)
+      expect((await learn('post', `/lectures/${videoId}/progress`, stu, { positionSec: 1 }).expect(429)).body.code)
         .toBe('RATE_LIMITED');
       await redis.del(`rl:learn-progress:${stu.id}`);
     },
@@ -272,24 +262,44 @@ describe('Học viên học bài giảng (e2e)', () => {
   );
 
   it(
-    'resume: chưa có lastItemId → bài đầu chưa xong (video đã xong → PDF)',
+    'hoàn thành / bỏ hoàn thành: mọi bài giảng tick tay; tick lại giữ mốc; bỏ tick tính lại %, gỡ hoàn thành khoá; quiz → 404',
     async () => {
-      const { body } = await learn('get').expect(200);
-      expect(body.resumeItemId).toBe(pdfId);
-      expect(body.sections[0].items[0].completed).toBe(true);
+      // Quiz đã xuất bản tạm thời: không phải bài giảng → 404. Xoá ngay để không đổi mẫu số %.
+      const quiz = await prisma.curriculumItem.create({
+        data: { sectionId, courseId, title: 'Quiz tạm', type: 'quiz', position: 99, isPublished: true },
+        select: { id: true },
+      });
+      for (const m of ['post', 'delete'] as const) {
+        expect((await learn(m, `/lectures/${quiz.id}/complete`).expect(404)).body.code).toBe('LECTURE_NOT_FOUND');
+      }
+      await prisma.curriculumItem.delete({ where: { id: quiz.id } });
+
+      const enrollmentDoneAt = async () => (await prisma.enrollment.findUniqueOrThrow({ where: { id: enrollmentId } })).completedAt;
+      expect((await learn('post', `/lectures/${videoId}/complete`).expect(200)).body).toEqual({ completed: true, progressPct: 33.33 });
+      const first = (await progressRow()).completedAt;
+      expect(first).not.toBeNull();
+      await learn('post', `/lectures/${videoId}/complete`).expect(200);
+      expect(await progressRow()).toMatchObject({ completedAt: first, lastPositionSec: 120 });
+      expect((await learn('post', `/lectures/${pdfId}/complete`).expect(200)).body).toEqual({ completed: true, progressPct: 66.67 });
+      expect((await learn('post', `/lectures/${zeroId}/complete`).expect(200)).body).toEqual({ completed: true, progressPct: 100 });
+      expect(await enrollmentDoneAt()).not.toBeNull();
+
+      expect((await learn('delete', `/lectures/${zeroId}/complete`).expect(200)).body).toEqual({ completed: false, progressPct: 66.67 });
+      expect(await enrollmentDoneAt()).toBeNull();
+      expect((await learn('delete', `/lectures/${zeroId}/complete`).expect(200)).body).toEqual({ completed: false, progressPct: 66.67 });
+      expect((await learn('get', `/lectures/${zeroId}`).expect(200)).body.progress.completed).toBe(false);
+      expect((await learn('delete', `/lectures/${pdfId}/complete`, carol).expect(403)).body.code).toBe('NOT_ENROLLED');
+      expect((await learn('post', `/lectures/${pdfId}/complete`, carol).expect(403)).body.code).toBe('NOT_ENROLLED');
     },
     SLOW,
   );
 
   it(
-    'hoàn thành tay: video có thời lượng → 409; PDF + video 0s → 200, gọi lại vẫn 200; xong hết → completedAt',
+    'resume: chưa có lastItemId → bài đầu chưa xong (video, PDF đã xong → video 0s)',
     async () => {
-      expect((await learn('post', `/lectures/${videoId}/complete`).expect(409)).body.code).toBe('AUTO_COMPLETE_ONLY');
-      expect((await learn('post', `/lectures/${pdfId}/complete`).expect(200)).body).toEqual({ completed: true, progressPct: 66.67 });
-      await learn('post', `/lectures/${pdfId}/complete`).expect(200);
-      expect((await learn('post', `/lectures/${zeroId}/complete`).expect(200)).body).toEqual({ completed: true, progressPct: 100 });
-      expect((await prisma.enrollment.findUniqueOrThrow({ where: { id: enrollmentId } })).completedAt).not.toBeNull();
-      expect((await learn('post', `/lectures/${pdfId}/complete`, carol).expect(403)).body.code).toBe('NOT_ENROLLED');
+      const { body } = await learn('get').expect(200);
+      expect(body.resumeItemId).toBe(zeroId);
+      expect(body.sections[0].items.map((i: { completed: boolean }) => i.completed)).toEqual([true, true, false]);
     },
     SLOW,
   );

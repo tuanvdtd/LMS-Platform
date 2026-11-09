@@ -23,7 +23,7 @@ import { StateMessage } from './state-message';
 type SidebarMode = 'docked' | 'drawer';
 type Shell = {
   outline: LearnOutline;
-  markCompleted: (itemId: string, progressPct?: number) => void;
+  markCompleted: (itemId: string, progressPct?: number, completed?: boolean) => void; // completed=false: bỏ tick
   reloadOutline: () => void;
   setSidebarMode: (mode: SidebarMode) => void;
 };
@@ -87,12 +87,12 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
   }, [ready, courseSlug, itemId]);
 
   const markCompleted = useCallback(
-    (id: string, progressPct?: number) => {
+    (id: string, progressPct?: number, completed = true) => {
       setOutline((o) =>
         o && {
           ...o,
           progressPct: progressPct ?? o.progressPct,
-          sections: o.sections.map((s) => ({ ...s, items: s.items.map((i) => (i.id === id ? { ...i, completed: true } : i)) })),
+          sections: o.sections.map((s) => ({ ...s, items: s.items.map((i) => (i.id === id ? { ...i, completed } : i)) })),
         },
       );
       // Quiz/code không trả % → tải lại mục lục để lấy % thật.
