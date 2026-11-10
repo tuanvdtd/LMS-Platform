@@ -20,7 +20,7 @@ const context = (q: LocalQuestion) => (
 const ALL = 'all';
 type Filter = 'unanswered' | 'all';
 
-// Hỏi đáp của giảng viên (spec 2026-10-20-course-qa §5): mặc định câu chưa có giảng viên trả lời, lọc theo khoá.
+// Hỏi đáp của giảng viên: mặc định câu chưa có giảng viên trả lời, lọc theo khoá.
 export function QAView() {
   const [filter, setFilter] = useState<Filter>('unanswered');
   const [courseId, setCourseId] = useState(ALL);

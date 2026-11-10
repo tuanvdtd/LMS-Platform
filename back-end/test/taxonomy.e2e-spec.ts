@@ -115,19 +115,19 @@ describe('Taxonomy — seed', () => {
     expect(ml?.name).toBe('Học máy');
   });
 
-  it('cạnh tiên quyết đúng chiều: css cần html, react cần javascript', async () => {
-    const css = await prisma.topic.findUnique({
-      where: { slug: 'css' },
-      include: { prerequisites: true },
-    });
-    expect(css?.prerequisites.map((t) => t.slug)).toEqual(['html']);
-    const react = await prisma.topic.findUnique({
-      where: { slug: 'react' },
-      include: { prerequisites: true, requiredBy: true },
-    });
-    expect(react?.prerequisites.map((t) => t.slug)).toEqual(['javascript']);
+  it('cạnh tiên quyết đúng chiều: css cần html, javascript cần html, react cần javascript', async () => {
+    const prereqsOf = async (slug: string) =>
+      (await prisma.topic.findUnique({ where: { slug }, include: { prerequisites: true } }))?.prerequisites
+        .map((t) => t.slug)
+        .sort();
+    expect(await prereqsOf('css')).toEqual(['html']);
+    // JavaScript không cần CSS: người học back-end yếu JavaScript không nên bị đẩy về khoá CSS.
+    expect(await prereqsOf('javascript')).toEqual(['html']);
+    expect(await prereqsOf('react')).toEqual(['javascript']);
+    expect(await prereqsOf('springai')).toEqual(['large-language-models', 'spring-framework']);
+    const react = await prisma.topic.findUnique({ where: { slug: 'react' }, include: { requiredBy: true } });
     expect(react?.requiredBy.map((t) => t.slug).sort()).toEqual(['nextjs', 'react-native']);
     const [{ n }] = await prisma.$queryRaw<{ n: bigint }[]>`SELECT count(*) n FROM "_TopicPrereq"`;
-    expect(n).toBe(17n);
+    expect(n).toBe(69n);
   });
 });

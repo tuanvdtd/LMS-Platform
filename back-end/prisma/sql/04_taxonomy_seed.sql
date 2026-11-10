@@ -250,7 +250,7 @@ ON CONFLICT (slug) DO NOTHING;
 INSERT INTO "_TopicPrereq" ("A", "B")
 SELECT a.id, b.id
 FROM (VALUES
-  ('css', 'html'), ('javascript', 'css'), ('typescript', 'javascript'),
+  ('css', 'html'), ('javascript', 'html'), ('typescript', 'javascript'),
   ('react', 'javascript'), ('nextjs', 'react'), ('nodejs', 'javascript'),
   ('data-analysis', 'python'), ('machine-learning', 'data-analysis'),
   ('deep-learning', 'machine-learning'),

@@ -8,7 +8,7 @@ import { QaService } from './qa.service.js';
 
 type User = AuthSession['user'];
 
-// Hỏi đáp phía học viên (spec 2026-10-20-course-qa §4). Ghi danh kiểm trong service.
+// Hỏi đáp phía học viên. Ghi danh kiểm trong service.
 @Controller('learn/:courseSlug')
 export class QaLearnController {
   constructor(private readonly qa: QaService) {}

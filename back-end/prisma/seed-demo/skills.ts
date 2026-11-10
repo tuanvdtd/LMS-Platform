@@ -15,7 +15,7 @@ export type SkillPlan = {
 
 // Mô phỏng học viên làm bài qua đúng engine thật. Thuần (rng có seed, id sinh bằng rng) → test được, chạy lại ra y hệt.
 export function planSkillHistory(
-  input: { now: Date; learners: { userId: string; topicId: string; ability: number }[]; questions: Map<string, Q[]> },
+  input: { now: Date; learners: { userId: string; topicId: string; ability: number; attempts?: number }[]; questions: Map<string, Q[]> },
   rng: Rng,
 ): SkillPlan {
   const qs = new Map([...input.questions.values()].flat().map((q) => [q.id, { ...q }]));
@@ -26,7 +26,8 @@ export function planSkillHistory(
     const seen = new Map<string, number>();
     let rating = START_RATING;
     let n = 0;
-    const k = 1 + Math.floor(rng() * 3);
+    // Không truyền attempts thì ngẫu nhiên 1–3 lượt (dữ liệu demo); phép đo gợi ý cần cố định số lượt.
+    const k = l.attempts ?? 1 + Math.floor(rng() * 3);
     let lastStartedAt = input.now;
     for (let i = 0; i < k; i++) {
       // Lượt i cách nhau ~3 ngày, lượt cuối cách hiện tại ≥ 2 ngày → không vướng thời gian chờ 24h.
