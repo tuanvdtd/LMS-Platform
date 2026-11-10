@@ -1,0 +1,16 @@
+# Chỉ gửi vào build context những gì cần để cài và build; tuyệt đối không gửi bí mật.
+.git
+.DS_Store
+node_modules
+dist
+coverage
+*.tsbuildinfo
+.env*
+.keys
+.claude
+test
+docs
+piston
+scripts
+deploy
+README.md
