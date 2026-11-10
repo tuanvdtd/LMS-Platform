@@ -1,0 +1,35 @@
+# Chạy trên EC2 tại /opt/skillpath. CI ghi đè file này mỗi lần deploy — sửa ở repo, đừng sửa trên máy.
+# .env cùng thư mục: biến cho app (env_file) và TUNNEL_TOKEN (interpolation).
+name: skillpath
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
+services:
+  api:
+    image: ghcr.io/tuanvdtd/skillpath-api:latest
+    env_file: .env
+    environment:
+      PORT: '4000'
+    # Chỉ bind loopback: cloudflared (host network) và deploy.sh gọi qua localhost; ngoài máy không vào được.
+    ports:
+      - 127.0.0.1:4000:4000
+    mem_limit: 1200m
+    restart: unless-stopped
+    logging: *logging
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.7
+    # Host network để localhost:4000 trỏ đúng cổng api đã publish — cùng đích với tunnel khi chạy trên Mac.
+    network_mode: host
+    command: tunnel --no-autoupdate run --url http://localhost:4000
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?thiếu TUNNEL_TOKEN trong .env}
+    depends_on:
+      - api
+    mem_limit: 128m
+    restart: unless-stopped
+    logging: *logging
