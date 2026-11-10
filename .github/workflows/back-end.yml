@@ -68,17 +68,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Quét lỗ hổng trước khi deploy. Hiện chỉ báo cáo lên tab Security (exit-code 0);
+  # Quét lỗ hổng trước khi deploy, in bảng kết quả vào log. Hiện chỉ cảnh báo (exit-code 0);
   # muốn chặn deploy khi có lỗ hổng CRITICAL/HIGH thì đổi exit-code thành '1'.
   scan:
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       packages: read
-      security-events: write
     steps:
-      - uses: actions/checkout@v7
       - name: Trivy scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:
@@ -89,15 +86,6 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '0'
-          format: sarif
-          # Không có dòng này thì định dạng sarif bỏ qua `severity`, tab Security hiện cả LOW/MEDIUM.
-          limit-severities-for-sarif: true
-          output: trivy.sarif
-      # always(): vẫn gửi báo cáo lên tab Security khi Trivy chặn (exit-code 1).
-      - uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: trivy.sarif
 
   deploy:
     needs: scan

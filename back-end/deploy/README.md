@@ -44,12 +44,14 @@ IAM → Roles → Create role → Custom trust policy:
     "Condition": {
       "StringEquals": {
         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-        "token.actions.githubusercontent.com:sub": "repo:tuanvdtd/LMS-Platform:ref:refs/heads/main"
+        "token.actions.githubusercontent.com:sub": "repo:tuanvdtd@170083923/LMS-Platform@1384577349:ref:refs/heads/main"
       }
     }
   }]
 }
 ```
+`sub` của GitHub gồm cả ID cố định của owner và repo (`owner@<id>/repo@<id>`). Nếu AssumeRole báo `Not authorized`, xem giá trị thật ở CloudTrail → Event history → `AssumeRoleWithWebIdentity` → cột User name.
+
 Không gắn managed policy → tên `skillpath-github-deploy` → Create. Mở role → Add permissions → Create inline policy (JSON):
 ```json
 {
@@ -132,4 +134,4 @@ Lần đầu phải deploy lúc máy đang chạy: trước đó máy chưa có 
   - app: `sudo docker compose -f /opt/skillpath/compose.yaml logs -f api`
   - deploy lúc boot: `sudo journalctl -u skillpath`
   - RAM: `sudo docker stats --no-stream`
-- Lỗ hổng image: tab Security → Code scanning (Trivy, chỉ báo cáo).
+- Lỗ hổng image: Actions → run → job `scan` → bước Trivy scan (bảng CRITICAL/HIGH, chỉ cảnh báo).
