@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { BookOpen, ChevronDown, ChevronRight, SearchX, X } from 'lucide-react';
-import { CatalogCourseCard } from '@/components/shared/catalog-course-card';
+import { CatalogCourseCard, COURSE_GRID_WITH_SIDEBAR } from '@/components/shared/catalog-course-card';
 import { EmptyState } from '@/components/shared/product-ui';
 import { CatalogResultsSkeleton } from '@/components/skeletons/catalog-listing-skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -72,7 +72,7 @@ export function CatalogListing({
       {nav}
       {/* Dải đầu trang phẳng, tint nhạt của màu brand: tách khỏi header site mà không cần gradient hay hoạ tiết. */}
       <section className="border-b bg-(--primary-light)/60">
-        <div className="mx-auto max-w-screen-xl px-4 pt-6 pb-8 md:pt-8 md:pb-10">
+        <div className="mx-auto max-w-screen-xl px-4 pt-4 pb-6 sm:pt-6 sm:pb-8 md:pt-8 md:pb-10">
           <nav aria-label="Breadcrumb">
             <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
               <li>
@@ -100,7 +100,8 @@ export function CatalogListing({
           <h1 className="mt-4 max-w-3xl text-2xl font-bold tracking-tight break-words text-balance text-foreground md:text-[2rem]">
             {title}
           </h1>
-          {description && <p className="mt-2 max-w-2xl text-base text-pretty text-muted-foreground">{description}</p>}
+          {/* Mô tả ẩn trên điện thoại: tiêu đề + số liệu đủ ngữ cảnh, danh sách khoá lên sớm hơn. */}
+          {description && <p className="mt-2 hidden max-w-2xl text-base text-pretty text-muted-foreground sm:block">{description}</p>}
 
           {/* Số liệu là một dòng chữ dưới tiêu đề, không phải ô thẻ: vài con số không đáng chiếm một hàng tile. */}
           {shownStats && shownStats.length > 0 && (
@@ -272,7 +273,7 @@ async function CatalogResults({ base, params, category, topic }: Scope) {
               />
             )
           ) : (
-            <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <ul className={COURSE_GRID_WITH_SIDEBAR}>
               {data.items.map((c) => (
                 <li key={c.id}>
                   <CatalogCourseCard course={c} />

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import { CatalogCourseCard } from '@/components/shared/catalog-course-card';
+import { CatalogCourseCard, COURSE_GRID } from '@/components/shared/catalog-course-card';
 import { listCourses } from '@/lib/api/catalog';
 
 // Khối "Khoá nổi bật". Bỏ tab track (track đã bỏ khỏi domain).
@@ -20,7 +20,7 @@ export default async function FeaturedCourses() {
           Xem tất cả <ChevronRight className="size-3.5" aria-hidden />
         </Link>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={COURSE_GRID}>
         {data.items.map((c) => (
           <CatalogCourseCard key={c.id} course={c} />
         ))}

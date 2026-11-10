@@ -68,8 +68,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Quét lỗ hổng trước khi deploy, in bảng kết quả vào log. Hiện chỉ cảnh báo (exit-code 0);
-  # muốn chặn deploy khi có lỗ hổng CRITICAL/HIGH thì đổi exit-code thành '1'.
+  # Quét lỗ hổng trước khi deploy, in bảng kết quả vào log. Có lỗ hổng CRITICAL/HIGH thì hiện cảnh báo
+  # vàng trên trang run nhưng vẫn deploy; muốn chặn deploy thì bỏ `continue-on-error`.
   scan:
     needs: build
     runs-on: ubuntu-latest
@@ -77,6 +77,8 @@ jobs:
       packages: read
     steps:
       - name: Trivy scan
+        id: trivy
+        continue-on-error: true
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:
           TRIVY_USERNAME: ${{ github.actor }}
@@ -85,7 +87,9 @@ jobs:
           image-ref: ${{ env.IMAGE }}:${{ github.sha }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '0'
+          exit-code: '1'
+      - if: steps.trivy.outcome == 'failure'
+        run: echo "::warning title=Trivy::Image có lỗ hổng CRITICAL/HIGH đã có bản vá, xem bảng ở bước Trivy scan của job scan."
 
   deploy:
     needs: scan

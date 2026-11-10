@@ -14,6 +14,7 @@ import { getRecommendations } from '@/lib/api/recommendations';
 import type { MyEnrollment } from '@/types/checkout';
 import { OCCUPATION_LABEL, type Preferences } from '@/types/preferences';
 import type { RecommendationGroup } from '@/types/recommendations';
+import { COURSE_GRID } from '@/components/shared/catalog-course-card';
 
 const CONTINUE_LIMIT = 4;
 
@@ -79,7 +80,7 @@ export function PersonalHome() {
       {groups === null && (
         <section role="status" aria-busy="true" aria-label="Đang tải gợi ý">
           <Skeleton className="mb-4 h-7 w-64" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={COURSE_GRID}>
             {Array.from({ length: 4 }, (_, i) => <CourseCardSkeleton key={i} />)}
           </div>
         </section>
@@ -88,7 +89,7 @@ export function PersonalHome() {
       {groups?.map((g) => (
         <section key={g.type} aria-labelledby={`rec-${g.type}`}>
           <h2 id={`rec-${g.type}`} className="mb-4 text-xl font-bold text-foreground">{title(g)}</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={COURSE_GRID}>
             {g.courses.map((c) => <RecommendationCourseCard key={c.id} course={c} />)}
           </div>
         </section>

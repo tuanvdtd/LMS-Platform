@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { BookOpen, Globe, Users } from 'lucide-react';
-import { CatalogCourseCard } from '@/components/shared/catalog-course-card';
+import { CatalogCourseCard, COURSE_GRID } from '@/components/shared/catalog-course-card';
 import { InstructorProfileSkeleton } from '@/components/skeletons/instructor-profile-skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { buttonVariants } from '@/components/ui/button';
@@ -97,7 +97,7 @@ async function Body({ params }: PageProps<'/instructors/[id]'>) {
       <section>
         <h2 className="mb-4 text-lg font-bold text-foreground">Khoá học ({ins.courses.length})</h2>
         {ins.courses.length ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={COURSE_GRID}>
             {ins.courses.map((c) => (
               <CatalogCourseCard key={c.id} course={c} />
             ))}

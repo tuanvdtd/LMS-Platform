@@ -40,7 +40,7 @@ function CourseCarousel({ items }: { items: React.ReactNode[] }) {
         className="-mx-4 -my-3 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pt-3 pb-5 [scrollbar-width:none] motion-reduce:scroll-auto md:-mx-3 md:scroll-px-3 md:px-3"
       >
         {items.map((item, i) => (
-          <li key={i} className="w-[78%] shrink-0 snap-start sm:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-3rem)/4)]">
+          <li key={i} className="w-[calc((100%-2rem)/3)] shrink-0 snap-start lg:w-[calc((100%-3rem)/4)]">
             {item}
           </li>
         ))}

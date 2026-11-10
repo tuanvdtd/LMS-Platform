@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BookOpen, ChevronRight, RotateCw, WifiOff } from 'lucide-react';
-import { CatalogCourseCard } from '@/components/shared/catalog-course-card';
+import { CatalogCourseCard, COURSE_GRID } from '@/components/shared/catalog-course-card';
 import { CourseCardSkeleton } from '@/components/skeletons/course-card-skeleton';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,7 +16,17 @@ type TabState = CourseCard[] | 'loading' | 'error';
 // Khối 4 trang chủ khách. Tab "Tất cả" có sẵn từ server; tab danh mục tải khi bấm, nhớ kết quả.
 export function FeaturedTabs({ initial, categories }: { initial: CourseCard[] | null; categories: { slug: string; name: string }[] }) {
   const [tab, setTab] = useState(ALL);
-  const [byTab, setByTab] = useState<Record<string, TabState>>({ [ALL]: initial ?? 'error' });
+  const [byTab, setByTab] = useState<Record<string, TabState>>({ [ALL]: initial ?? 'loading' });
+
+  // Trang tĩnh có thể được dựng đúng lúc BE tắt (initial = null) và giữ bản lỗi tới lần revalidate sau
+  // → gọi lại BE từ trình duyệt thay vì hiện lỗi ngay.
+  useEffect(() => {
+    if (initial) return;
+    listPopularCourses().then(
+      (d) => setByTab((m) => ({ ...m, [ALL]: d.items })),
+      () => setByTab((m) => ({ ...m, [ALL]: 'error' })),
+    );
+  }, [initial]);
 
   function load(slug: string) {
     setByTab((m) => ({ ...m, [slug]: 'loading' }));
@@ -58,7 +68,7 @@ export function FeaturedTabs({ initial, categories }: { initial: CourseCard[] | 
           {/* Một panel cho tab đang chọn → aria-controls của tab trỏ đúng vùng lưới. mb-2.5 + gap-2 của Tabs = 18px như wireframe. */}
           <TabsContent value={tab} className="text-base">
             {state === 'loading' ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" role="status" aria-busy="true" aria-label="Đang tải">
+              <div className={COURSE_GRID} role="status" aria-busy="true" aria-label="Đang tải">
                 {Array.from({ length: 4 }, (_, i) => <CourseCardSkeleton key={i} />)}
               </div>
             ) : state === 'error' ? (
@@ -80,7 +90,7 @@ export function FeaturedTabs({ initial, categories }: { initial: CourseCard[] | 
                 <Link href="/courses" className={buttonVariants({ variant: 'outline' })}>Xem tất cả khoá học</Link>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className={COURSE_GRID}>
                 {state.map((c) => <CatalogCourseCard key={c.id} course={c} />)}
               </div>
             )}

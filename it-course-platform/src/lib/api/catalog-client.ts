@@ -9,7 +9,7 @@ export async function getPreviewUrl(slug: string, itemId: string) {
 }
 
 // Tab "Khoá học nổi bật" trên trang chủ khách đổi danh mục ở client.
-export async function listPopularCourses(category: string) {
+export async function listPopularCourses(category?: string) {
   const { data } = await api.get<CourseList>('/courses', { params: { category, sort: 'popular', limit: 8, page: 1 } });
   return data;
 }

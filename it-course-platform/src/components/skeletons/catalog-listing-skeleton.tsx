@@ -1,7 +1,9 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { CourseCardSkeleton } from '@/components/skeletons/course-card-skeleton';
+import { COURSE_GRID_WITH_SIDEBAR } from '@/components/shared/catalog-course-card';
+import { cn } from '@/lib/utils';
 
-// Khớp khu kết quả của CatalogListing: thanh công cụ (lọc · tổng số | sắp xếp), cột bộ lọc (lg), lưới 1/2/3 cột.
+// Khớp khu kết quả của CatalogListing: thanh công cụ (lọc · tổng số | sắp xếp), cột bộ lọc (lg), lưới card dùng chung.
 export function CatalogResultsSkeleton() {
   return (
     <div role="status" aria-busy="true" aria-label="Đang tải khoá học">
@@ -23,7 +25,7 @@ export function CatalogResultsSkeleton() {
           ))}
         </div>
 
-        <div className="grid min-w-0 flex-1 content-start gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className={cn(COURSE_GRID_WITH_SIDEBAR, 'min-w-0 flex-1 content-start')}>
           {Array.from({ length: 6 }, (_, i) => (
             <CourseCardSkeleton key={i} />
           ))}
@@ -38,7 +40,7 @@ export function CatalogListingSkeleton() {
   return (
     <div>
       <div className="border-b bg-(--primary-light)/60">
-        <div className="mx-auto max-w-screen-xl px-4 pt-6 pb-8 md:pt-8 md:pb-10">
+        <div className="mx-auto max-w-screen-xl px-4 pt-4 pb-6 sm:pt-6 sm:pb-8 md:pt-8 md:pb-10">
           <Skeleton className="h-5 w-64 max-w-full" />
           <Skeleton className="mt-4 h-8 w-80 max-w-full md:h-10" />
           <Skeleton className="mt-3 h-5 w-40" />
