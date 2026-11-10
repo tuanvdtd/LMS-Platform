@@ -9,7 +9,9 @@ export interface Answer {
   createdAt: string;
   author: QaAuthor;
   isInstructor: boolean;
-  replyTo: { id: string; name: string } | null; // trả lời một câu trả lời khác → "Trả lời <tên>"
+  // Trả lời một câu trả lời khác → "@Tên". id/name: người được trả lời.
+  // answerId: bình luận được trả lời (bấm "@Tên" để cuộn tới); null = đã bị xoá hoặc dữ liệu cũ chỉ lưu người.
+  replyTo: { id: string; name: string; answerId: string | null } | null;
   canDelete: boolean;
 }
 

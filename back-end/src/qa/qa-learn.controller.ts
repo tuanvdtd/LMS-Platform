@@ -8,7 +8,7 @@ import { QaService } from './qa.service.js';
 
 type User = AuthSession['user'];
 
-// Hỏi đáp phía học viên (spec 2026-10-20-course-qa §4). Ghi danh kiểm trong service.
+// Hỏi đáp phía học viên. Quyền (ghi danh hoặc chủ khoá) kiểm trong service.
 @Controller('learn/:courseSlug')
 export class QaLearnController {
   constructor(private readonly qa: QaService) {}
@@ -20,6 +20,11 @@ export class QaLearnController {
     @Query(new ZodValidationPipe(learnQuestionsQuery)) q: LearnQuestionsQuery,
   ) {
     return this.qa.listForLearner(slug, user.id, q);
+  }
+
+  @Get('questions/:questionId')
+  one(@CurrentUser() user: User, @Param('courseSlug') slug: string, @Param('questionId') id: string) {
+    return this.qa.getForLearner(slug, user.id, id);
   }
 
   @Post('questions')

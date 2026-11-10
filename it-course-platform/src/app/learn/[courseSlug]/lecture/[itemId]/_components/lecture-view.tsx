@@ -34,7 +34,19 @@ function placeOf(outline: LearnOutline, id: string) {
 
 // Trang bài giảng: video / PDF → dải bài học (tên, vị trí, trạng thái, chuyển bài) → tab dính khi cuộn.
 // Page key theo itemId → state mới mỗi bài.
-export default function LectureView({ courseSlug, itemId }: { courseSlug: string; itemId: string }) {
+export default function LectureView({
+  courseSlug,
+  itemId,
+  tab,
+  question,
+  answer,
+}: {
+  courseSlug: string;
+  itemId: string;
+  tab?: string;
+  question?: string;
+  answer?: string;
+}) {
   useSidebarMode('docked');
   const { outline, markCompleted } = useLearnShell();
   const [lecture, setLecture] = useState<Lecture | null>(null);
@@ -43,6 +55,15 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
   const [busy, setBusy] = useState(false);
   const [ended, setEnded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [tabValue, setTabValue] = useState(tab === 'qa' ? 'qa' : 'overview');
+  // Bấm thông báo Hỏi đáp khác khi đang ở bài này: server render lại với query mới → về tab Hỏi đáp.
+  // So cả câu trả lời: 2 thông báo cùng câu hỏi khác câu trả lời vẫn phải mở lại tab.
+  const focusKey = question ? `${question}:${answer ?? ''}` : '';
+  const [seenFocus, setSeenFocus] = useState(focusKey);
+  if (focusKey !== seenFocus) {
+    setSeenFocus(focusKey);
+    if (focusKey) setTabValue('qa');
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -160,7 +181,7 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="gap-0">
+      <Tabs value={tabValue} onValueChange={(v) => setTabValue(String(v))} className="gap-0">
         {/* Dính dưới header khi cuộn: đọc hỏi đáp dài vẫn đổi tab được. Cao 52px → mỗi tab ≥ 44px. */}
         {/* bg-card liền mặt với header + dải bài học (theme tối background ≠ card). Đệm px-px / sm:px-2.25 + 3px của
             TabsList + 12px của tab = 16 / 24px → chữ tab đầu thẳng hàng tên bài (px-4 / sm:px-6). */}
@@ -195,7 +216,7 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
             <LectureNotes courseSlug={courseSlug} itemId={itemId} videoRef={isVideo ? videoRef : null} />
           </TabsContent>
           <TabsContent value="qa" keepMounted tabIndex={-1} className={PANEL}>
-            <LectureQa courseSlug={courseSlug} itemId={itemId} />
+            <LectureQa courseSlug={courseSlug} itemId={itemId} question={question} answer={answer} />
           </TabsContent>
         </div>
       </Tabs>

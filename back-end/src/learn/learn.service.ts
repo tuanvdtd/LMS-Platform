@@ -8,6 +8,7 @@ import { PrismaService } from '../infra/prisma.service.js';
 import { RedisService, rateLimit } from '../infra/redis.js';
 import { StorageService } from '../infra/storage.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
+import { ownerEnrollment } from './enrollment.js';
 import type { ProgressInput } from './learn.schemas.js';
 
 const MEDIA_TTL = 3600; // hết hạn giữa chừng → FE gọi lại GET bài giảng
@@ -58,11 +59,13 @@ export class LearnService {
   ) {}
 
   async outline(slug: string, userId: string) {
-    const [course, enrollment] = await Promise.all([
-      this.prisma.course.findUnique({ where: { slug }, select: { id: true, slug: true, title: true } }),
-      this.findEnrollment(slug, userId, { progressPct: true, completedAt: true, lastItemId: true }),
+    const ENROLLMENT = { progressPct: true, completedAt: true, lastItemId: true } as const;
+    const [course, found] = await Promise.all([
+      this.prisma.course.findUnique({ where: { slug }, select: { id: true, slug: true, title: true, instructorId: true } }),
+      this.findEnrollment(slug, userId, ENROLLMENT),
     ]);
     if (!course) throw courseNotFound();
+    const enrollment = found ?? (await ownerEnrollment(this.prisma, slug, userId, ENROLLMENT));
     if (!enrollment) throw notEnrolled();
     const [sections, done, wrongRows] = await Promise.all([
       this.prisma.section.findMany({
@@ -119,7 +122,8 @@ export class LearnService {
     // "Tiếp tục học": bài mở gần nhất → bài đầu chưa xong → bài đầu.
     const resume = items.find((i) => i.id === enrollment.lastItemId) ?? items.find((i) => !i.completed) ?? items[0];
     return {
-      course,
+      course: { id: course.id, slug: course.slug, title: course.title },
+      isOwner: course.instructorId === userId,
       progressPct: Number(enrollment.progressPct),
       completedAt: enrollment.completedAt,
       resumeItemId: resume?.id ?? null,
@@ -129,11 +133,12 @@ export class LearnService {
   }
 
   async setLastItem(slug: string, userId: string, itemId: string) {
-    const [item, enrollment] = await Promise.all([
+    const [item, found] = await Promise.all([
       this.prisma.curriculumItem.findFirst({ where: { id: itemId, isPublished: true, course: { slug } }, select: { id: true } }),
       this.findEnrollment(slug, userId),
     ]);
     if (!item) throw itemNotFound();
+    const enrollment = found ?? (await ownerEnrollment(this.prisma, slug, userId));
     if (!enrollment) throw notEnrolled();
     await this.prisma.enrollment.update({
       where: { id: enrollment.id },
@@ -182,7 +187,7 @@ export class LearnService {
 
   async resource(slug: string, userId: string, resourceId: string) {
     if (!isGuid(resourceId)) throw resourceNotFound();
-    const [res, enrollment] = await Promise.all([
+    const [res, found] = await Promise.all([
       this.prisma.lectureResource.findFirst({
         where: { id: resourceId, item: { isPublished: true, course: { slug } } },
         select: { asset: { select: { kind: true, storageKey: true, fileName: true, status: true } } },
@@ -190,6 +195,7 @@ export class LearnService {
       this.findEnrollment(slug, userId),
     ]);
     if (!res || res.asset.status !== 'ready') throw resourceNotFound();
+    const enrollment = found ?? (await ownerEnrollment(this.prisma, slug, userId));
     if (!enrollment) throw notEnrolled();
     const { kind, storageKey, fileName } = res.asset;
     return { url: await this.storage.presignGet(bucketOf(kind), storageKey, RESOURCE_TTL, { fileName }) };
@@ -198,7 +204,7 @@ export class LearnService {
   // Bài giảng đã xuất bản + có nội dung, trước ghi danh (404 trước 403); 2 query song song (DB xa).
   async loadLecture(slug: string, userId: string, itemId: string) {
     if (!isGuid(itemId)) throw lectureNotFound();
-    const [item, enrollment] = await Promise.all([
+    const [item, found] = await Promise.all([
       this.prisma.curriculumItem.findFirst({
         where: { id: itemId, type: 'lecture', isPublished: true, course: { slug } },
         select: LECTURE_SELECT,
@@ -206,6 +212,7 @@ export class LearnService {
       this.findEnrollment(slug, userId),
     ]);
     if (!item?.lectureKind) throw lectureNotFound();
+    const enrollment = found ?? (await ownerEnrollment(this.prisma, slug, userId));
     if (!enrollment) throw notEnrolled();
     return { item, enrollment };
   }

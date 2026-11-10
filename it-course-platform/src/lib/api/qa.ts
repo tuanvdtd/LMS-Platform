@@ -10,6 +10,8 @@ const learn = (slug: string) => `/learn/${encodeURIComponent(slug)}`;
 // Học viên
 export const listQuestions = (slug: string, params: { itemId?: string; cursor?: string }) =>
   data<QuestionPage>(api.get(`${learn(slug)}/questions`, { params }));
+export const getQuestion = (slug: string, questionId: string) =>
+  data<Question>(api.get(`${learn(slug)}/questions/${questionId}`));
 export const askQuestion = (slug: string, body: { body: string; itemId?: string }) =>
   data<Question>(api.post(`${learn(slug)}/questions`, body));
 export const postAnswer = (slug: string, questionId: string, body: AnswerBody) =>

@@ -104,7 +104,13 @@ describe('Hỏi đáp khoá học (e2e)', () => {
     await app?.close();
   });
 
-  type AnswerDto = { id: string; body: string; createdAt: string; canDelete: boolean; replyTo: { id: string; name: string } | null };
+  type AnswerDto = {
+    id: string;
+    body: string;
+    createdAt: string;
+    canDelete: boolean;
+    replyTo: { id: string; name: string; answerId: string | null } | null;
+  };
   // Trả lời đi kèm danh sách câu hỏi (không còn GET riêng).
   const answersOf = async (questionId: string, user = stu): Promise<AnswerDto[]> =>
     (await learn('get', '/questions', user).expect(200)).body.items.find((q: { id: string }) => q.id === questionId).answers;
@@ -141,6 +147,18 @@ describe('Hỏi đáp khoá học (e2e)', () => {
       });
       q1 = a.id;
       q2 = (await learn('post', '/questions', stu2, { body: '```js\n1\n```' }).expect(201)).body.id;
+      // Giảng viên được báo khi có câu hỏi mới; câu không gắn bài dẫn về trang khoá.
+      const asked = await prisma.notification.findMany({ where: { userId: alice.id }, orderBy: { createdAt: 'asc' } });
+      expect(asked).toMatchObject([
+        {
+          type: 'qa_question',
+          title: 'E2E đã đặt câu hỏi trong Khoá e2e hỏi đáp A',
+          body: 'Vì sao lỗi?',
+          link: `/learn/${slug}/lecture/${lecId}?tab=qa&question=${q1}`,
+          data: { questionId: q1 },
+        },
+        { type: 'qa_question', link: `/learn/${slug}`, data: { questionId: q2 } },
+      ]);
 
       const byLecture = (await learn('get', `/questions?itemId=${lecId}`).expect(200)).body;
       expect(byLecture.items.map((q: { id: string }) => q.id)).toEqual([q1]);
@@ -178,13 +196,23 @@ describe('Hỏi đáp khoá học (e2e)', () => {
         type: 'qa_answer',
         title: 'Có câu trả lời mới',
         body: 'Câu hỏi "Vì sao lỗi?"', // xuống dòng gom thành 1 dấu cách
-        link: `/learn/${slug}/lecture/${lecId}`,
+        link: `/learn/${slug}/lecture/${lecId}?tab=qa&question=${q1}&answer=${a1.id}`,
         data: { questionId: q1, answerId: a1.id },
       });
 
       // Trả lời một câu trả lời → replyTo là người viết câu đó; tự trả lời câu của mình không báo.
       const { body: r1 } = await learn('post', `/questions/${q1}/answers`, stu, { body: 'Cảm ơn', replyToAnswerId: a1.id }).expect(201);
-      expect(r1.replyTo).toEqual({ id: stu2.id, name: 'E2E' });
+      expect(r1.replyTo).toEqual({ id: stu2.id, name: 'E2E', answerId: a1.id });
+      // Người được trả lời (stu2) nhận thông báo riêng, nội dung là câu trả lời mới.
+      expect(await prisma.notification.findMany({ where: { userId: stu2.id } })).toMatchObject([
+        {
+          type: 'qa_answer',
+          title: 'E2E đã trả lời bình luận của bạn',
+          body: 'Cảm ơn',
+          link: `/learn/${slug}/lecture/${lecId}?tab=qa&question=${q1}&answer=${r1.id}`,
+          data: { questionId: q1, answerId: r1.id },
+        },
+      ]);
       expect(await prisma.notification.count({ where: { userId: stu.id } })).toBe(1);
       const otherQ = (await learn('post', '/questions', stu2, { body: 'câu khác' }).expect(201)).body.id;
       expect(
@@ -199,7 +227,11 @@ describe('Hỏi đáp khoá học (e2e)', () => {
       expect(after.answerCount).toBe(3);
       expect(after.instructorAnsweredAt?.toISOString()).toBe(i1.createdAt);
       const { body: i2 } = await inst('post', `/${q1}/answers`, alice, { body: 'Bổ sung', replyToAnswerId: a1.id }).expect(201);
-      expect(i2.replyTo).toEqual({ id: stu2.id, name: 'E2E' });
+      expect(i2.replyTo).toEqual({ id: stu2.id, name: 'E2E', answerId: a1.id });
+      // 3 người: người hỏi (stu) và người được @ (stu2) mỗi người 1 thông báo, nội dung khác nhau.
+      const lastOf = (userId: string) => prisma.notification.findFirstOrThrow({ where: { userId }, orderBy: { createdAt: 'desc' } });
+      expect(await lastOf(stu.id)).toMatchObject({ title: 'Có câu trả lời mới', data: { questionId: q1, answerId: i2.id } });
+      expect(await lastOf(stu2.id)).toMatchObject({ title: 'E2E đã trả lời bình luận của bạn', body: 'Bổ sung', data: { answerId: i2.id } });
       expect((await question(q1)).instructorAnsweredAt?.toISOString()).toBe(i1.createdAt);
 
       const list = await answersOf(q1, stu2);
@@ -210,6 +242,38 @@ describe('Hỏi đáp khoá học (e2e)', () => {
       await learn('post', `/questions/${q1}/answers`, stu, { body: ' ' }).expect(400);
       await learn('post', `/questions/${q1}/answers`, stu, { body: 'a'.repeat(2001) }).expect(400);
       expect((await learn('post', `/questions/${randomUUID()}/answers`, stu, { body: 'x' }).expect(404)).body.code).toBe('QUESTION_NOT_FOUND');
+    },
+    SLOW,
+  );
+
+  it(
+    'trả lời qua lại: gộp 1 thông báo khi người được @ là người hỏi; xoá bình luận đích → answerId null; GET 1 câu hỏi',
+    async () => {
+      const q3 = (await learn('post', '/questions', stu, { body: 'Câu q3', itemId: lecId }).expect(201)).body.id as string;
+      const b1 = (await learn('post', `/questions/${q3}/answers`, stu2, { body: 'Gợi ý' }).expect(201)).body;
+      const b2 = (await learn('post', `/questions/${q3}/answers`, stu, { body: 'Chưa được', replyToAnswerId: b1.id }).expect(201)).body;
+      const before = await prisma.notification.count({ where: { userId: stu.id } });
+      // stu2 trả lời bình luận của stu trong câu hỏi của stu → stu chỉ nhận 1 thông báo, loại "trả lời bình luận".
+      const b3 = (await learn('post', `/questions/${q3}/answers`, stu2, { body: 'Thử lại xem', replyToAnswerId: b2.id }).expect(201))
+        .body;
+      const fresh = await prisma.notification.findMany({ where: { userId: stu.id }, orderBy: { createdAt: 'desc' }, take: 2 });
+      expect(await prisma.notification.count({ where: { userId: stu.id } })).toBe(before + 1);
+      expect(fresh[0]).toMatchObject({ title: 'E2E đã trả lời bình luận của bạn', data: { questionId: q3, answerId: b3.id } });
+
+      // GET 1 câu hỏi: học viên + chủ khoá được; id lạ 404; chưa ghi danh 403.
+      const one = (await learn('get', `/questions/${q3}`).expect(200)).body;
+      expect(one).toMatchObject({ id: q3, answerCount: 3 });
+      expect(one.answers.map((x: AnswerDto) => x.replyTo?.answerId ?? null)).toEqual([null, b1.id, b2.id]);
+      await learn('get', `/questions/${q3}`, alice).expect(200);
+      expect((await learn('get', `/questions/${randomUUID()}`).expect(404)).body.code).toBe('QUESTION_NOT_FOUND');
+      expect((await learn('get', '/questions/abc').expect(404)).body.code).toBe('QUESTION_NOT_FOUND');
+      expect((await learn('get', `/questions/${q3}`, carol).expect(403)).body.code).toBe('NOT_ENROLLED');
+
+      // Xoá bình luận đích → trả lời trỏ tới nó còn tên, mất answerId.
+      await learn('delete', `/answers/${b1.id}`, stu2).expect(204);
+      const after = (await learn('get', `/questions/${q3}`).expect(200)).body.answers as AnswerDto[];
+      expect(after.find((x) => x.id === b2.id)?.replyTo).toEqual({ id: stu2.id, name: 'E2E', answerId: null });
+      await learn('delete', `/questions/${q3}`, stu).expect(204);
     },
     SLOW,
   );

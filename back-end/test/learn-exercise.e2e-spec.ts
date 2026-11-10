@@ -128,6 +128,7 @@ describe('Học viên làm bài code (e2e)', () => {
       expect((await learn('get', '', carol).expect(403)).body.code).toBe('NOT_ENROLLED');
       expect((await learn('get', '', stu, undefined, draftItem).expect(404)).body.code).toBe('EXERCISE_NOT_FOUND');
       await learn('get', '', stu, undefined, 'abc').expect(404);
+      await learn('get', '', alice).expect(200); // chủ khoá xem trước được
     },
     SLOW,
   );

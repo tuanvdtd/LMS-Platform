@@ -340,4 +340,29 @@ describe('Học viên học bài giảng (e2e)', () => {
     },
     SLOW,
   );
+
+  it(
+    'xem trước: chủ khoá tự có ghi danh (không cộng số học viên, không vào "Học tập của tôi"); người lạ vẫn 403',
+    async () => {
+      const rows = () => prisma.enrollment.count({ where: { userId: alice.id, courseId } });
+      // Bài không tồn tại → 404, chưa sinh ghi danh.
+      expect((await learn('get', `/lectures/${randomUUID()}`, alice).expect(404)).body.code).toBe('LECTURE_NOT_FOUND');
+      expect(await rows()).toBe(0);
+      // Vào thẳng bài giảng + mục lục song song: đều 200, chỉ 1 dòng ghi danh.
+      const [outline] = await Promise.all([
+        learn('get', '', alice).expect(200),
+        learn('get', `/lectures/${videoId}`, alice).expect(200),
+      ]);
+      expect(outline.body.isOwner).toBe(true);
+      expect(outline.body.course).toEqual({ id: courseId, slug, title: 'Khoá e2e học bài giảng' });
+      expect(await rows()).toBe(1);
+      const course = await prisma.course.findUniqueOrThrow({ where: { id: courseId }, select: { enrollmentCount: true } });
+      expect(course.enrollmentCount).toBe(0);
+      const mine = (await call('get', '/api/me/enrollments', alice.cookie).expect(200)).body as { course: { id: string } }[];
+      expect(mine.some((e) => e.course.id === courseId)).toBe(false);
+      expect((await learn('get', '', stu).expect(200)).body.isOwner).toBe(false);
+      expect((await learn('get', '', carol).expect(403)).body.code).toBe('NOT_ENROLLED');
+    },
+    SLOW,
+  );
 });

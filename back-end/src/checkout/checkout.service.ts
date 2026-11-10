@@ -268,7 +268,8 @@ export class CheckoutService {
 
   myEnrollments(userId: string) {
     return this.prisma.enrollment.findMany({
-      where: { userId },
+      // Khoá do chính mình dạy (ghi danh lúc xem trước) không phải "Học tập của tôi".
+      where: { userId, course: { instructorId: { not: userId } } },
       orderBy: { createdAt: 'desc' },
       select: {
         createdAt: true,

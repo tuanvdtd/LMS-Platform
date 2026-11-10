@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { isGuid } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
@@ -17,6 +17,7 @@ const ANSWER_SELECT = {
   userId: true,
   user: AUTHOR,
   replyTo: { select: { id: true, name: true } },
+  replyToAnswerId: true,
 } satisfies Prisma.CourseAnswerSelect;
 // Kiểm quyền + trả lời/xoá: không cần kéo theo danh sách trả lời.
 const QUESTION_REF_SELECT = {
@@ -65,7 +66,8 @@ const presentAnswer = (a: AnswerRow, viewerId: string, instructorId: string) => 
   createdAt: a.createdAt,
   author: a.user,
   isInstructor: a.isInstructor,
-  replyTo: a.replyTo,
+  // answerId null: bình luận đích đã bị xoá hoặc dữ liệu cũ chỉ lưu người → FE hiện "@Tên" không bấm được.
+  replyTo: a.replyTo && { ...a.replyTo, answerId: a.replyToAnswerId },
   canDelete: a.userId === viewerId || instructorId === viewerId,
 });
 
@@ -88,7 +90,13 @@ const excerpt = (s: string) => {
   return line.length > 80 ? `${line.slice(0, 79)}…` : line;
 };
 
-// Hỏi đáp khoá học (spec 2026-10-20-course-qa). Học viên: theo slug + ghi danh; giảng viên: khoá có instructorId = mình.
+// Mở đúng tab Hỏi đáp của bài, ghim câu hỏi, cuộn tới câu trả lời (nếu có). Câu không gắn bài → trang khoá.
+const qaLink = (slug: string, itemId: string | null, questionId: string, answerId?: string) =>
+  itemId
+    ? `/learn/${slug}/lecture/${itemId}?tab=qa&question=${questionId}${answerId ? `&answer=${answerId}` : ''}`
+    : `/learn/${slug}`;
+
+// Hỏi đáp khoá học. Học viên: theo slug + ghi danh (chủ khoá cũng vào được khi xem trước); giảng viên: khoá có instructorId = mình.
 // Không có quyền / khác khoá → 404, không lộ bài có tồn tại.
 @Injectable()
 export class QaService {
@@ -99,18 +107,19 @@ export class QaService {
 
   // ---- tìm + kiểm quyền --------------------------------------------------------------------------------
 
+  // Học viên đã ghi danh hoặc chủ khoá (xem trước khoá của mình).
   async learnerCourse(slug: string, userId: string) {
     const course = await this.prisma.course.findUnique({
       where: { slug },
-      select: { id: true, enrollments: { where: { userId }, select: { id: true } } },
+      select: { id: true, slug: true, title: true, instructorId: true, enrollments: { where: { userId }, select: { id: true } } },
     });
     if (!course) throw courseNotFound();
-    if (!course.enrollments.length) throw notEnrolled();
-    return course.id;
+    if (!course.enrollments.length && course.instructorId !== userId) throw notEnrolled();
+    return course;
   }
 
   async learnerQuestion(slug: string, userId: string, questionId: string) {
-    const courseId = await this.learnerCourse(slug, userId);
+    const { id: courseId } = await this.learnerCourse(slug, userId);
     return this.findQuestion({ id: questionId, courseId }, questionId);
   }
 
@@ -119,7 +128,7 @@ export class QaService {
   }
 
   async learnerAnswer(slug: string, userId: string, answerId: string) {
-    const courseId = await this.learnerCourse(slug, userId);
+    const { id: courseId } = await this.learnerCourse(slug, userId);
     return this.findAnswer({ id: answerId, question: { courseId } }, answerId);
   }
 
@@ -142,8 +151,18 @@ export class QaService {
   // ---- câu hỏi -------------------------------------------------------------------------------------------
 
   async listForLearner(slug: string, userId: string, q: LearnQuestionsQuery) {
-    const courseId = await this.learnerCourse(slug, userId);
+    const { id: courseId } = await this.learnerCourse(slug, userId);
     return this.page({ courseId, ...(q.itemId && { itemId: q.itemId }) }, q.cursor, userId);
+  }
+
+  // Một câu hỏi (mở từ thông báo khi câu đó không nằm trong trang đầu danh sách).
+  async getForLearner(slug: string, userId: string, questionId: string) {
+    const { id: courseId } = await this.learnerCourse(slug, userId);
+    const q = isGuid(questionId)
+      ? await this.prisma.courseQuestion.findFirst({ where: { id: questionId, courseId }, select: QUESTION_SELECT })
+      : null;
+    if (!q) throw questionNotFound();
+    return presentQuestion(q, userId);
   }
 
   listForInstructor(userId: string, q: InstructorQuestionsQuery) {
@@ -175,18 +194,37 @@ export class QaService {
   }
 
   async create(slug: string, userId: string, body: CreateQuestionInput) {
-    const courseId = await this.learnerCourse(slug, userId);
+    const course = await this.learnerCourse(slug, userId);
     if (body.itemId) {
       const ok = await this.prisma.curriculumItem.count({
-        where: { id: body.itemId, courseId, type: 'lecture', isPublished: true },
+        where: { id: body.itemId, courseId: course.id, type: 'lecture', isPublished: true },
       });
       if (!ok) throw itemNotFound();
     }
-    const q = await this.prisma.courseQuestion.create({
-      data: { courseId, userId, itemId: body.itemId ?? null, body: body.body },
-      select: QUESTION_SELECT,
-    });
-    return presentQuestion(q, userId);
+    const { question, notification } = await this.prisma.$transaction(async (tx) => {
+      const q = await tx.courseQuestion.create({
+        data: { courseId: course.id, userId, itemId: body.itemId ?? null, body: body.body },
+        select: QUESTION_SELECT,
+      });
+      // Giảng viên biết có câu hỏi mới mà không phải tự mở trang Hỏi đáp.
+      const notification =
+        userId !== course.instructorId
+          ? await tx.notification.create({
+              data: {
+                userId: course.instructorId,
+                type: 'qa_question',
+                title: `${q.user.name} đã đặt câu hỏi trong ${course.title}`,
+                body: excerpt(q.body),
+                link: qaLink(course.slug, q.item?.id ?? null, q.id),
+                data: { questionId: q.id },
+              },
+            })
+          : null;
+      return { question: presentQuestion(q, userId), notification };
+    }, TX_OPTIONS);
+    // Đẩy sau commit (xem SubmissionConsumer).
+    if (notification) this.notifications.push(notification);
+    return question;
   }
 
   // Quyền xem đã kiểm ở learnerQuestion/instructorQuestion; xoá chỉ tác giả hoặc chủ khoá.
@@ -197,19 +235,32 @@ export class QaService {
 
   // ---- câu trả lời ---------------------------------------------------------------------------------------
 
-  // Bộ đếm + mốc giảng viên + notification trong cùng transaction (spec §3).
+  // Bộ đếm + mốc giảng viên + notification trong cùng transaction: lỗi giữa chừng không để lệch số.
   async answer(q: QuestionRef, userId: string, { body, replyToAnswerId }: AnswerInput) {
     const isInstructor = userId === q.course.instructorId;
-    // Câu được trả lời phải nằm trong cùng câu hỏi; lấy người viết để FE ghi "Trả lời <tên>".
+    // Bình luận đích phải nằm trong cùng câu hỏi; lưu cả người viết để còn tên khi bình luận đó bị xoá.
     const target = replyToAnswerId
-      ? await this.prisma.courseAnswer.findFirst({ where: { id: replyToAnswerId, questionId: q.id }, select: { userId: true } })
+      ? await this.prisma.courseAnswer.findFirst({ where: { id: replyToAnswerId, questionId: q.id }, select: { id: true, userId: true } })
       : null;
     if (replyToAnswerId && !target) throw answerNotFound();
-    const { answer, notification } = await this.prisma.$transaction(async (tx) => {
-      const a = await tx.courseAnswer.create({
-        data: { questionId: q.id, userId, body, isInstructor, replyToUserId: target?.userId ?? null },
-        select: ANSWER_SELECT,
-      });
+    const { answer, notifications } = await this.prisma.$transaction(async (tx) => {
+      const a = await tx.courseAnswer
+        .create({
+          data: {
+            questionId: q.id,
+            userId,
+            body,
+            isInstructor,
+            replyToUserId: target?.userId ?? null,
+            replyToAnswerId: target?.id ?? null,
+          },
+          select: ANSWER_SELECT,
+        })
+        .catch((e: unknown) => {
+          // Bình luận đích bị xoá giữa lúc tra và lúc ghi → FK hỏng: báo 404 như khi không tìm thấy, không 500.
+          if (target && e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2003') throw answerNotFound();
+          throw e;
+        });
       await tx.courseQuestion.update({ where: { id: q.id }, data: { answerCount: { increment: 1 } } });
       if (isInstructor) {
         // Điều kiện IS NULL: 2 câu trả lời giảng viên song song vẫn giữ mốc sớm nhất.
@@ -218,23 +269,25 @@ export class QaService {
           data: { instructorAnsweredAt: a.createdAt },
         });
       }
-      const notification =
-        userId !== q.userId
-          ? await tx.notification.create({
-              data: {
-                userId: q.userId,
-                type: 'qa_answer',
-                title: 'Có câu trả lời mới',
-                body: `Câu hỏi "${excerpt(q.body)}"`,
-                link: q.item ? `/learn/${q.course.slug}/lecture/${q.item.id}` : `/learn/${q.course.slug}`,
-                data: { questionId: q.id, answerId: a.id },
-              },
-            })
-          : null;
-      return { answer: presentAnswer(a, userId, q.course.instructorId), notification };
+      // Mỗi người tối đa 1 thông báo; người được @ cũng là người hỏi → dùng dòng "trả lời bình luận" (cụ thể hơn).
+      const notices: { userId: string; title: string; body: string }[] = [];
+      if (target && target.userId !== userId) {
+        notices.push({ userId: target.userId, title: `${a.user.name} đã trả lời bình luận của bạn`, body: excerpt(body) });
+      }
+      if (q.userId !== userId && q.userId !== target?.userId) {
+        notices.push({ userId: q.userId, title: 'Có câu trả lời mới', body: `Câu hỏi "${excerpt(q.body)}"` });
+      }
+      const link = qaLink(q.course.slug, q.item?.id ?? null, q.id, a.id);
+      const notifications = [];
+      for (const n of notices) {
+        notifications.push(
+          await tx.notification.create({ data: { ...n, type: 'qa_answer', link, data: { questionId: q.id, answerId: a.id } } }),
+        );
+      }
+      return { answer: presentAnswer(a, userId, q.course.instructorId), notifications };
     }, TX_OPTIONS);
     // Đẩy sau commit (xem SubmissionConsumer).
-    if (notification) this.notifications.push(notification);
+    for (const n of notifications) this.notifications.push(n);
     return answer;
   }
 
