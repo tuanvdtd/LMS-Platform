@@ -49,9 +49,8 @@ export interface Lecture {
   durationSec: number;
   mediaUrl: string | null;
   downloadUrl: string | null;
-  manualComplete: boolean;
   resources: LectureResource[];
-  progress: { lastPositionSec: number; watchedSec: number; completed: boolean };
+  progress: { lastPositionSec: number; completed: boolean };
 }
 
 export interface ProgressResult {

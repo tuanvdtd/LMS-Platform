@@ -36,7 +36,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <NotificationSocket />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
-          <Toaster />
+          {/* Góc trên phải, hạ xuống dưới header (h-14/h-16) để không che chuông thông báo và menu tài khoản. */}
+          <Toaster position="top-right" closeButton offset={{ top: 72 }} mobileOffset={{ top: 64 }} />
         </ThemeProvider>
       </body>
     </html>

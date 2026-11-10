@@ -38,20 +38,26 @@ export class LearnController {
   }
 
   @Post('lectures/:itemId/progress')
-  @HttpCode(200)
-  progress(
+  @HttpCode(204)
+  async progress(
     @CurrentUser() user: User,
     @Param('courseSlug') slug: string,
     @Param('itemId') itemId: string,
     @Body(new ZodValidationPipe(progressSchema)) body: ProgressInput,
-  ) {
-    return this.learn.progress(slug, user.id, itemId, body);
+  ): Promise<void> {
+    await this.learn.progress(slug, user.id, itemId, body);
   }
 
   @Post('lectures/:itemId/complete')
   @HttpCode(200)
   complete(@CurrentUser() user: User, @Param('courseSlug') slug: string, @Param('itemId') itemId: string) {
     return this.learn.complete(slug, user.id, itemId);
+  }
+
+  @Delete('lectures/:itemId/complete')
+  @HttpCode(200)
+  uncomplete(@CurrentUser() user: User, @Param('courseSlug') slug: string, @Param('itemId') itemId: string) {
+    return this.learn.uncomplete(slug, user.id, itemId);
   }
 
   @Get('resources/:resourceId')

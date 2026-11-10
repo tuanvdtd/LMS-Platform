@@ -1,15 +1,14 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import type { LectureKind, Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { bucketOf, videoUrl } from '../assets/assets.service.js';
 import { isGuid } from '../common/zod.pipe.js';
-import { completeItem } from '../curriculum/progress.js';
+import { completeItem, uncompleteItem } from '../curriculum/progress.js';
 import { tooManyRequests } from '../exercise/exercise.service.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { RedisService, rateLimit } from '../infra/redis.js';
 import { StorageService } from '../infra/storage.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
 import type { ProgressInput } from './learn.schemas.js';
-import { BUCKET_SEC, bucketCount, isWatched, mergeBuckets, popcount, watchBudget } from './watch-bitmap.js';
 
 const MEDIA_TTL = 3600; // hết hạn giữa chừng → FE gọi lại GET bài giảng
 const RESOURCE_TTL = 300;
@@ -46,13 +45,7 @@ const resourceNotFound = () =>
 // Transaction ~6 query; DB dev ~1-2s/query → 15s của TX_OPTIONS không đủ (như quiz).
 const PROGRESS_TX = { ...TX_OPTIONS, timeout: 60_000 };
 const notTracked = () =>
-  new ConflictException({ statusCode: 409, code: 'PROGRESS_NOT_TRACKED', message: 'Bài này không theo dõi thời lượng xem' });
-const autoOnly = () =>
-  new ConflictException({ statusCode: 409, code: 'AUTO_COMPLETE_ONLY', message: 'Bài này tự hoàn thành khi xem đủ 90%' });
-
-// PDF, hoặc video không có thời lượng (upload báo 0) → không tính được 90%, đánh dấu tay.
-export const isManual = (item: { lectureKind: LectureKind | null; durationSec: number }) =>
-  item.lectureKind === 'document' || item.durationSec === 0;
+  new ConflictException({ statusCode: 409, code: 'PROGRESS_NOT_TRACKED', message: 'Chỉ bài video mới lưu vị trí xem' });
 
 // Học viên học bài giảng. Không @Roles, kiểm ghi danh ở đây.
 // Lọc khoá bằng slug (không lọc published) như quiz/code: đã ghi danh thì vẫn học khi khoá bị gỡ.
@@ -155,7 +148,7 @@ export class LearnService {
     const [progress, mediaUrl, downloadUrl] = await Promise.all([
       this.prisma.itemProgress.findUnique({
         where: { enrollmentId_itemId: { enrollmentId: enrollment.id, itemId } },
-        select: { lastPositionSec: true, watchedSec: true, completedAt: true },
+        select: { lastPositionSec: true, completedAt: true },
       }),
       asset?.status !== 'ready'
         ? null
@@ -174,7 +167,6 @@ export class LearnService {
       durationSec: item.durationSec,
       mediaUrl,
       downloadUrl,
-      manualComplete: isManual(item),
       resources: item.resources.map((r) => ({
         id: r.id,
         title: r.title,
@@ -183,7 +175,6 @@ export class LearnService {
       })),
       progress: {
         lastPositionSec: progress?.lastPositionSec ?? 0,
-        watchedSec: progress?.watchedSec ?? 0,
         completed: !!progress?.completedAt,
       },
     };
@@ -219,50 +210,32 @@ export class LearnService {
     return { item, enrollment };
   }
 
-  // Heartbeat video. Khoá dòng item_progress: 2 tab cùng xem không ghi đè bitmap của nhau.
-  // ponytail: ghi DB mỗi heartbeat (~2 lần/phút/người đang xem); DB nặng → đệm Redis, flush định kỳ.
-  // Mất mạng lâu rồi gửi dồn thì phần vượt trần chống gian lận (không xem nhanh hơn thời gian thực) bị bỏ, học viên xem lại đoạn đó.
-  async progress(slug: string, userId: string, itemId: string, body: ProgressInput) {
+  // Vị trí xem dở của video. 1 câu upsert: 2 request đầu song song không đụng unique như upsert của Prisma.
+  async progress(slug: string, userId: string, itemId: string, { positionSec }: ProgressInput) {
     if (!(await rateLimit(this.redis, `rl:learn-progress:${userId}`, 30, 60))) throw tooManyRequests();
     const { item, enrollment } = await this.loadLecture(slug, userId, itemId);
-    if (item.lectureKind !== 'video' || isManual(item)) throw notTracked();
-    const total = bucketCount(item.durationSec);
-    return this.prisma.$transaction(async (tx) => {
-      // INSERT … ON CONFLICT: 2 heartbeat đầu tiên song song không đụng unique như upsert của Prisma.
-      await tx.$executeRaw`INSERT INTO item_progress ("enrollmentId", "itemId", "updatedAt")
-        VALUES (${enrollment.id}::uuid, ${itemId}::uuid, now()) ON CONFLICT DO NOTHING`;
-      // elapsed tính bằng đồng hồ DB (createdAt cũng do DB đặt) → không lệch giờ DB ↔ Node.
-      // floor: createdAt là TIMESTAMP(3) làm tròn ms nên elapsed lệch vài µs, làm trần nhảy thêm 1 đoạn.
-      const [row] = await tx.$queryRaw<{ watchedBuckets: Uint8Array | null; completedAt: Date | null; elapsed: number }[]>`
-        SELECT "watchedBuckets", "completedAt", floor(EXTRACT(EPOCH FROM now() - "createdAt"))::float8 AS elapsed
-        FROM item_progress
-        WHERE "enrollmentId" = ${enrollment.id}::uuid AND "itemId" = ${itemId}::uuid FOR UPDATE`;
-      const key = { enrollmentId_itemId: { enrollmentId: enrollment.id, itemId } };
-      const now = new Date();
-      const before = row.watchedBuckets ? popcount(row.watchedBuckets) : 0;
-      const bits = mergeBuckets(row.watchedBuckets, body.buckets, total, watchBudget(row.elapsed, before));
-      const watched = popcount(bits);
-      await tx.itemProgress.update({
-        where: key,
-        data: {
-          watchedBuckets: bits,
-          watchedSec: Math.min(watched * BUCKET_SEC, item.durationSec),
-          lastPositionSec: Math.min(body.positionSec, item.durationSec),
-        },
-      });
-      const completed = !!row.completedAt || isWatched(watched, total);
-      if (!row.completedAt && completed) await completeItem(tx, enrollment.id, item.courseId, itemId, now);
-      return { completed, progressPct: await this.progressPct(tx, enrollment.id) };
-    }, PROGRESS_TX);
+    if (item.lectureKind !== 'video') throw notTracked();
+    const pos = item.durationSec > 0 ? Math.min(positionSec, item.durationSec) : positionSec;
+    await this.prisma.$executeRaw`INSERT INTO item_progress ("enrollmentId", "itemId", "lastPositionSec")
+      VALUES (${enrollment.id}::uuid, ${itemId}::uuid, ${pos})
+      ON CONFLICT ("enrollmentId", "itemId") DO UPDATE SET "lastPositionSec" = EXCLUDED."lastPositionSec"`;
   }
 
-  // PDF / video không rõ thời lượng. completeItem giữ mốc hoàn thành đầu tiên → gọi lại vẫn 200.
+  // Tick tay hoặc video phát tới cuối. completeItem giữ mốc hoàn thành đầu tiên → gọi lại vẫn 200.
   async complete(slug: string, userId: string, itemId: string) {
     const { item, enrollment } = await this.loadLecture(slug, userId, itemId);
-    if (!isManual(item)) throw autoOnly();
     return this.prisma.$transaction(async (tx) => {
       await completeItem(tx, enrollment.id, item.courseId, itemId, new Date());
       return { completed: true as const, progressPct: await this.progressPct(tx, enrollment.id) };
+    }, PROGRESS_TX);
+  }
+
+  // Bỏ tick. Bài chưa xong vẫn 200. Quiz/code không vào được: loadLecture chỉ nhận bài giảng.
+  async uncomplete(slug: string, userId: string, itemId: string) {
+    const { item, enrollment } = await this.loadLecture(slug, userId, itemId);
+    return this.prisma.$transaction(async (tx) => {
+      await uncompleteItem(tx, enrollment.id, item.courseId, itemId);
+      return { completed: false as const, progressPct: await this.progressPct(tx, enrollment.id) };
     }, PROGRESS_TX);
   }
 

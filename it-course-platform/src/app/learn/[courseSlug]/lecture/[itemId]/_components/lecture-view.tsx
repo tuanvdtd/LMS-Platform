@@ -3,13 +3,13 @@
 
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, CircleCheck, CircleDashed, FileQuestion, RotateCcw, TriangleAlert } from 'lucide-react';
+import { ChevronRight, CircleCheck, FileQuestion, LoaderCircle, RotateCcw, TriangleAlert, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LearnLectureSkeleton } from '@/components/skeletons/learn-lecture-skeleton';
 import { apiMessage } from '@/lib/api/checkout';
-import { completeLecture, getLecture } from '@/lib/api/learn';
+import { completeLecture, getLecture, uncompleteLecture } from '@/lib/api/learn';
 import { apiErrorCode } from '@/lib/api/learn-quiz';
 import { formatDuration } from '@/types/curriculum';
 import type { LearnItem, LearnOutline, Lecture } from '@/types/learn';
@@ -40,7 +40,7 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
   const [lecture, setLecture] = useState<Lecture | null>(null);
   const [error, setError] = useState<{ code?: string; message: string } | null>(null);
   const [nonce, setNonce] = useState(0);
-  const [completing, setCompleting] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [ended, setEnded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -53,7 +53,7 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
     return () => { cancelled = true; };
   }, [courseSlug, itemId, nonce]);
 
-  // Một chỗ báo hoàn thành cho cả tự hoàn thành (xem đủ 90%) lẫn bấm tay.
+  // Một chỗ báo hoàn thành cho cả tick tay lẫn video phát tới cuối.
   const markDone = useCallback(
     (progressPct: number) => {
       setLecture((l) => l && { ...l, progress: { ...l.progress, completed: true } });
@@ -65,20 +65,33 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
     [itemId, markCompleted],
   );
 
+  const markUndone = useCallback(
+    (progressPct: number) => {
+      setLecture((l) => l && { ...l, progress: { ...l.progress, completed: false } });
+      markCompleted(itemId, progressPct, false);
+      toast.success('Đã bỏ hoàn thành bài này', { description: `Tiến độ khoá học: ${Math.round(progressPct)}%` });
+    },
+    [itemId, markCompleted],
+  );
+
   // Link ký hết hạn → lấy bản mới (giữ progress từ server).
   const refreshUrl = useCallback(
     () => getLecture(courseSlug, itemId).then((l) => { setLecture(l); return l.mediaUrl; }),
     [courseSlug, itemId],
   );
 
-  async function complete() {
-    setCompleting(true);
+  // Tick / bỏ tick theo trạng thái hiện tại; busy chặn bấm 2 lần và chặn tự tick khi đang gửi.
+  async function toggle() {
+    if (!lecture || busy) return;
+    const done = lecture.progress.completed;
+    setBusy(true);
     try {
-      markDone((await completeLecture(courseSlug, itemId)).progressPct);
+      if (done) markUndone((await uncompleteLecture(courseSlug, itemId)).progressPct);
+      else markDone((await completeLecture(courseSlug, itemId)).progressPct);
     } catch (e) {
-      toast.error(apiMessage(e, 'Không đánh dấu được, thử lại'));
+      toast.error(apiMessage(e, 'Không cập nhật được, thử lại'));
     } finally {
-      setCompleting(false);
+      setBusy(false);
     }
   }
 
@@ -103,7 +116,9 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
           courseSlug={courseSlug}
           lecture={lecture}
           videoRef={videoRef}
-          onCompleted={markDone}
+          onFinished={() => {
+            if (!lecture.progress.completed) void toggle();
+          }}
           onRefreshUrl={refreshUrl}
           onEndedChange={setEnded}
         >
@@ -122,23 +137,22 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
               {placeOf(outline, itemId)} ·{' '}
               {isVideo ? <span className="font-mono tabular-nums">{formatDuration(lecture.durationSec)}</span> : 'Tài liệu PDF'}
             </span>
-            {lecture.progress.completed ? (
+            {lecture.progress.completed && (
               <span className="inline-flex h-6 items-center gap-1 rounded-full bg-success-soft px-2.5 font-semibold text-success">
                 <CircleCheck className="size-3.5" aria-hidden /> Đã hoàn thành
               </span>
-            ) : (
-              !lecture.manualComplete && (
-                <span className="inline-flex h-6 items-center gap-1 rounded-full bg-secondary px-2.5 font-medium text-secondary-foreground">
-                  <CircleDashed className="size-3.5" aria-hidden /> Xem đủ 90% để hoàn thành
-                </span>
-              )
             )}
           </div>
         </div>
         <div className="flex shrink-0 items-center justify-end gap-2">
-          {!lecture.progress.completed && lecture.manualComplete && (
-            <Button className="mr-auto h-11 md:mr-0" onClick={complete} disabled={completing}>
-              <CircleCheck data-icon="inline-start" />
+          {lecture.progress.completed ? (
+            <Button variant="outline" className="mr-auto h-11 md:mr-0" onClick={toggle} disabled={busy}>
+              {busy ? <LoaderCircle data-icon="inline-start" className="motion-safe:animate-spin" /> : <Undo2 data-icon="inline-start" />}
+              Bỏ hoàn thành
+            </Button>
+          ) : (
+            <Button className="mr-auto h-11 md:mr-0" onClick={toggle} disabled={busy}>
+              {busy ? <LoaderCircle data-icon="inline-start" className="motion-safe:animate-spin" /> : <CircleCheck data-icon="inline-start" />}
               {isVideo ? 'Đánh dấu hoàn thành' : 'Đánh dấu đã đọc'}
             </Button>
           )}

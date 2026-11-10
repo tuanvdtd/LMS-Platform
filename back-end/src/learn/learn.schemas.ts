@@ -12,13 +12,8 @@ const noteBody = z
 export const lastItemSchema = z.object({ itemId: z.guid('Bài học không hợp lệ') }).strict();
 export type LastItemInput = z.output<typeof lastItemSchema>;
 
-// Heartbeat video. Buckets ngoài khoảng/trùng lọc ở watch-bitmap.ts.
-export const progressSchema = z
-  .object({
-    positionSec: z.int().min(0).max(24 * 3600),
-    buckets: z.array(z.int().min(0)).max(500),
-  })
-  .strict();
+// Vị trí xem dở của video (giây), để học tiếp.
+export const progressSchema = z.object({ positionSec: z.int().min(0).max(24 * 3600) }).strict();
 export type ProgressInput = z.output<typeof progressSchema>;
 
 export const createNoteSchema = z.object({ positionSec: z.int().min(0).max(24 * 3600), body: noteBody }).strict();
