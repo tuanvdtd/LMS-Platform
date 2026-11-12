@@ -1,5 +1,5 @@
 import { mulberry32 } from '../seed-demo/rng.ts';
-import { type Catalog, evaluate, makeLearners, precisionAtK, rootGaps, runEval } from './simulate.ts';
+import { type Catalog, evaluate, followInvites, makeLearners, precisionAtK, rootGaps, runEval } from './simulate.ts';
 
 const T = (id: string) => ({ id, slug: id, name: id });
 const bank = (t: string) =>
@@ -58,6 +58,22 @@ describe('makeLearners', () => {
   });
 });
 
+describe('followInvites', () => {
+  const learner = (id: string, r: number) => ({
+    id,
+    ability: new Map(IDS.map((t) => [t, r])),
+    occupation: catalog.occupations[0],
+    targets: ['a', 'b'],
+    measured: ['c'],
+  });
+  // Người vững lấy năng lực rất cao: chỉ một lượt đo thì điểm Elo còn nhiễu, người vững vừa phải có thể bị đo ra hụt.
+  it('topic đo ra hụt → đo tiếp ngược lên các topic tiên quyết; topic vững thì dừng', () => {
+    const out = followInvites(catalog, [learner('weak', WEAK), learner('strong', 2400)], 1).learners;
+    expect(out[0].measured).toEqual(['c', 'b', 'a']);
+    expect(out[1].measured).toEqual(['c']);
+  });
+});
+
 describe('evaluate', () => {
   it('học viên không có lỗ hổng gốc bị loại khỏi phép tính', () => {
     const strong = { id: 's', ability: new Map(IDS.map((t) => [t, STRONG])), occupation: catalog.occupations[0], targets: ['a', 'b'], measured: [] };
@@ -78,7 +94,7 @@ describe('runEval', () => {
   });
   it('gợi ý theo lỗ hổng có đồ thị trúng hơn mốc nền mục tiêu + nghề', () => {
     const r = runEval(catalog, 200);
-    expect(r.table1).toHaveLength(3);
+    expect(r.table1).toHaveLength(4);
     expect(r.table2.map((x) => x.attempts)).toEqual([1, 2, 3]);
     expect(r.table1[2].p[3]).toBeGreaterThan(r.table1[0].p[3]);
   });

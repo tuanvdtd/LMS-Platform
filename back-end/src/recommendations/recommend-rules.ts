@@ -149,20 +149,25 @@ function gapPicks({ topics, skills, prereqs, courses }: RecommendInput): RecPick
           Number(fits(b.c)) - Number(fits(a.c)) ||
           b.c.ratingAvg - a.c.ratingAvg,
       )
-      .map(({ c }): RecPick => ({ courseId: c.id, reason }));
+      .map(({ c, primary }) => ({ primary, pick: { courseId: c.id, reason } satisfies RecPick }));
   });
-  // Xoay vòng giữa các đích để một topic nhiều khoá không chiếm hết chỗ của nhóm.
+  // Xoay vòng giữa các đích để một topic nhiều khoá không chiếm hết chỗ của nhóm. Khoá dạy đúng topic hụt
+  // (topic chính) của MỌI đích đi trước; khoá chỉ nhắc tới topic đó như topic phụ xếp sau cùng, vì nó dạy
+  // thứ khác là chính (khoá React gắn phụ JavaScript không vá được lỗ hổng JavaScript).
   const picks: RecPick[] = [];
   const used = new Set<string>();
-  for (let more = true; more; ) {
-    more = false;
-    for (const q of queues) {
-      while (q.length && used.has(q[0].courseId)) q.shift();
-      const p = q.shift();
-      if (!p) continue;
-      used.add(p.courseId);
-      picks.push(p);
-      more = true;
+  for (const primary of [true, false]) {
+    const qs = queues.map((q) => q.filter((x) => x.primary === primary).map((x) => x.pick));
+    for (let more = true; more; ) {
+      more = false;
+      for (const q of qs) {
+        while (q.length && used.has(q[0].courseId)) q.shift();
+        const p = q.shift();
+        if (!p) continue;
+        used.add(p.courseId);
+        picks.push(p);
+        more = true;
+      }
     }
   }
   return picks;

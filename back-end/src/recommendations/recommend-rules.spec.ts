@@ -163,6 +163,12 @@ describe('recommend — nhóm gap', () => {
     expect(ids(g, 'gap')).toEqual(['r1', 's1', 'r2', 's2', 'r3', 's3', 'r4', 's4']);
   });
 
+  it('khoá topic chính của mọi đích đứng trước khoá chỉ gắn topic đó làm phụ', () => {
+    const sub = (id: string, topicId: string) => course(id, topicId, { topics: [{ topicId, isPrimary: false }] });
+    const g = run({ react: 10, sql: 20 }, [sub('rSub', 'react'), one('r1', 'react'), one('s1', 'sql'), one('s2', 'sql'), sub('sSub', 'sql')]);
+    expect(ids(g, 'gap')).toEqual(['r1', 's1', 's2', 'rSub', 'sSub']);
+  });
+
   it('trong một đích: topic chính → hợp mức đo được → rating', () => {
     const courses = [
       course('sub', 'react', { ratingAvg: 5, topics: [{ topicId: 'react', isPrimary: false }] }),
