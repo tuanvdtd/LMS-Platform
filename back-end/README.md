@@ -1,6 +1,6 @@
 # SkillPath — back-end
 
-NestJS 12 + Prisma 6 + Better Auth. Thiết kế auth: `../docs/superpowers/specs/2026-09-28-auth-better-auth-design.md`.
+NestJS 12 + Prisma 6 + Better Auth.
 
 ## Chạy lần đầu
 
@@ -75,7 +75,7 @@ Prod: bắt buộc `COOKIE_DOMAIN` (vd `.skillpath.tuandt.me`) — FE (`proxy.ts
 
 Mail đi qua queue `mail.send` → `MailConsumer` (cùng process) → Brevo. Lỗi tạm (429/5xx/mạng) chờ 60s ở
 `mail.retry` rồi thử lại, tối đa 4 lần; hỏng hẳn vào `mail.dead` (giữ 3 ngày) + Sentry. Không publish được thì
-gửi thẳng Brevo. Thiết kế: `../docs/superpowers/specs/2026-10-16-rabbitmq-mail-queue-design.md`.
+gửi thẳng Brevo.
 
 - `RABBITMQ_URL` bắt buộc ở mọi môi trường boot `AppModule` (kể cả e2e/CI). Dev dùng instance CloudAMQP riêng.
 - Xem mail hỏng: CloudAMQP → RabbitMQ Manager → Queues → `mail.dead` → Get messages.
@@ -86,7 +86,7 @@ gửi thẳng Brevo. Thiết kế: `../docs/superpowers/specs/2026-10-16-rabbitm
 
 ## Chạy Piston (chấm bài code)
 
-Bài tập code chạy trong [Piston](https://github.com/engineer-man/piston) (tự host, không mạng, giới hạn CPU/RAM/số tiến trình). Thiết kế: `../docs/superpowers/specs/2026-10-19-coding-exercise-design.md`.
+Bài tập code chạy trong [Piston](https://github.com/engineer-man/piston) (tự host, không mạng, giới hạn CPU/RAM/số tiến trình).
 
 ```bash
 docker compose -f piston/docker-compose.yml up -d   # image pin theo digest, bind 127.0.0.1:2000

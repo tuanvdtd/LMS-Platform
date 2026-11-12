@@ -88,7 +88,7 @@ const excerpt = (s: string) => {
   return line.length > 80 ? `${line.slice(0, 79)}…` : line;
 };
 
-// Hỏi đáp khoá học (spec 2026-10-20-course-qa). Học viên: theo slug + ghi danh; giảng viên: khoá có instructorId = mình.
+// Hỏi đáp khoá học. Học viên: theo slug + ghi danh; giảng viên: khoá có instructorId = mình.
 // Không có quyền / khác khoá → 404, không lộ bài có tồn tại.
 @Injectable()
 export class QaService {
@@ -197,7 +197,7 @@ export class QaService {
 
   // ---- câu trả lời ---------------------------------------------------------------------------------------
 
-  // Bộ đếm + mốc giảng viên + notification trong cùng transaction (spec §3).
+  // Bộ đếm + mốc giảng viên + notification trong cùng transaction để không lệch nhau khi một bước lỗi.
   async answer(q: QuestionRef, userId: string, { body, replyToAnswerId }: AnswerInput) {
     const isInstructor = userId === q.course.instructorId;
     // Câu được trả lời phải nằm trong cùng câu hỏi; lấy người viết để FE ghi "Trả lời <tên>".

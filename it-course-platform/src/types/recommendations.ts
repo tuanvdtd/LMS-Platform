@@ -8,6 +8,7 @@ export interface TopicRef {
 }
 // Khớp back-end/src/recommendations/recommend-rules.ts.
 export type Reason =
+  | { type: 'gap'; topic: TopicRef; pct: number; blockedTopic?: TopicRef; unmeasuredPrereqs: TopicRef[] }
   | { type: 'goal'; topic: TopicRef }
   | { type: 'occupation'; occupation: Occupation; topics: TopicRef[] };
 export type RecommendedCourse = CourseCard & { reason: Reason };

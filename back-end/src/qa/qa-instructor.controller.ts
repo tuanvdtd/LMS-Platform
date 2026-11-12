@@ -8,7 +8,7 @@ import { QaService } from './qa.service.js';
 
 type User = AuthSession['user'];
 
-// Hỏi đáp phía giảng viên: mọi khoá có instructorId = mình (spec 2026-10-20-course-qa §4).
+// Hỏi đáp phía giảng viên: mọi khoá có instructorId = mình.
 @Roles('instructor')
 @Controller('instructor/questions')
 export class QaInstructorController {
