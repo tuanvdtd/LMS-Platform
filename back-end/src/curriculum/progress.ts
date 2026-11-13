@@ -1,22 +1,26 @@
 import type { Prisma } from '@prisma/client';
+import { issueCertificate } from '../certificates/issue.js';
 
-// Hoàn thành item (bài giảng tick tay / hết video, quiz đạt, bài code accepted) + tính lại tiến độ khoá.
-// Giữ mốc hoàn thành đầu tiên của item.
+// Hoàn thành item (bài giảng tick tay / hết video, quiz đạt, bài code accepted) + tính lại tiến độ khoá;
+// khoá hoàn thành mà chưa có chứng chỉ thì cấp luôn và trả mã số chứng chỉ. Giữ mốc hoàn thành đầu tiên của item.
 export async function completeItem(
   tx: Prisma.TransactionClient,
   enrollmentId: string,
   courseId: string,
   itemId: string,
   now: Date,
-) {
+): Promise<string | null> {
   const courseDoneAt = await lockEnrollment(tx, enrollmentId);
   const key = { enrollmentId, itemId };
   await tx.itemProgress.upsert({ where: { enrollmentId_itemId: key }, create: { ...key, completedAt: now }, update: {} });
   await tx.itemProgress.updateMany({ where: { ...key, completedAt: null }, data: { completedAt: now } });
-  await recalcEnrollment(tx, enrollmentId, courseId, courseDoneAt, now);
+  const done = await recalcEnrollment(tx, enrollmentId, courseId, courseDoneAt, now);
+  return done ? issueCertificate(tx, enrollmentId, now) : null;
 }
 
 // Bỏ hoàn thành (học viên tự bỏ tick bài giảng). Item chưa xong / chưa có dòng → chỉ tính lại, không lỗi.
+// Không cấp chứng chỉ ở đường này dù lần tính lại có làm khoá thành hoàn thành: hàm không trả gì cho nơi gọi
+// nên học viên sẽ không được báo; lần hoàn thành bài kế tiếp sẽ cấp.
 export async function uncompleteItem(tx: Prisma.TransactionClient, enrollmentId: string, courseId: string, itemId: string) {
   const courseDoneAt = await lockEnrollment(tx, enrollmentId);
   await tx.itemProgress.updateMany({ where: { enrollmentId, itemId }, data: { completedAt: null } });
@@ -31,13 +35,14 @@ async function lockEnrollment(tx: Prisma.TransactionClient, enrollmentId: string
 }
 
 // % = item đã xong / item đã xuất bản. Chưa đủ → khoá không còn hoàn thành; đủ → giữ mốc cũ nếu có.
+// Trả về khoá có đang hoàn thành không (khoá không có item nào thì không tính là hoàn thành).
 async function recalcEnrollment(
   tx: Prisma.TransactionClient,
   enrollmentId: string,
   courseId: string,
   courseDoneAt: Date | null,
   now: Date,
-) {
+): Promise<boolean> {
   const [done, total] = await Promise.all([
     tx.itemProgress.count({ where: { enrollmentId, completedAt: { not: null }, item: { isPublished: true } } }),
     tx.curriculumItem.count({ where: { courseId, isPublished: true } }),
@@ -49,4 +54,5 @@ async function recalcEnrollment(
       completedAt: done >= total ? (courseDoneAt ?? now) : null,
     },
   });
+  return total > 0 && done >= total;
 }

@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { bucketOf, videoUrl } from '../assets/assets.service.js';
 import { isGuid } from '../common/zod.pipe.js';
 import { completeItem, uncompleteItem } from '../curriculum/progress.js';
-import { tooManyRequests } from '../exercise/exercise.service.js';
+import { tooManyRequests } from '../common/http.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { RedisService, rateLimit } from '../infra/redis.js';
 import { StorageService } from '../infra/storage.service.js';
@@ -225,8 +225,8 @@ export class LearnService {
   async complete(slug: string, userId: string, itemId: string) {
     const { item, enrollment } = await this.loadLecture(slug, userId, itemId);
     return this.prisma.$transaction(async (tx) => {
-      await completeItem(tx, enrollment.id, item.courseId, itemId, new Date());
-      return { completed: true as const, progressPct: await this.progressPct(tx, enrollment.id) };
+      const certificateSerial = await completeItem(tx, enrollment.id, item.courseId, itemId, new Date());
+      return { completed: true as const, progressPct: await this.progressPct(tx, enrollment.id), certificateSerial };
     }, PROGRESS_TX);
   }
 

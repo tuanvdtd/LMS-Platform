@@ -13,9 +13,11 @@ import { LearnShellSkeleton } from '@/components/skeletons/learn-shell-skeleton'
 import { apiMessage } from '@/lib/api/checkout';
 import { getOutline, setLastItem } from '@/lib/api/learn';
 import { apiErrorCode } from '@/lib/api/learn-quiz';
+import { useNotificationStore } from '@/lib/notification-store';
 import { usePointerFocus } from '@/lib/use-pointer-focus';
 import { cn } from '@/lib/utils';
 import type { LearnOutline } from '@/types/learn';
+import { CertificateDialog } from './certificate-dialog';
 import { CourseOutline } from './course-outline';
 import { flatItems, itemHref, neighbors } from './learn-nav';
 import { StateMessage } from './state-message';
@@ -25,6 +27,7 @@ type Shell = {
   outline: LearnOutline;
   markCompleted: (itemId: string, progressPct?: number, completed?: boolean) => void; // completed=false: bỏ tick
   reloadOutline: () => void;
+  celebrate: (serial: string) => void; // mở hộp thoại chúc mừng cho chứng chỉ vừa cấp
   setSidebarMode: (mode: SidebarMode) => void;
 };
 
@@ -106,9 +109,27 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
     getOutline(courseSlug).then(setOutline, () => undefined);
   }, [courseSlug]);
 
+  // Mỗi mã chứng chỉ chỉ mở hộp thoại chúc mừng một lần trong phiên.
+  const [cert, setCert] = useState<{ open: string | null; seen: string[] }>({ open: null, seen: [] });
+  const celebrate = useCallback((serial: string) => {
+    setCert((c) => (c.seen.includes(serial) ? c : { open: serial, seen: [...c.seen, serial] }));
+  }, []);
+
+  // Bài code được chấm ở nền: kết quả chấm tới qua thông báo, bài vừa làm khoá hoàn thành thì kèm mã chứng chỉ.
+  useEffect(
+    () =>
+      useNotificationStore.subscribe((s, prev) => {
+        const n = s.lastReceived;
+        if (!n || n === prev.lastReceived || n.type !== 'verdict') return;
+        const serial = (n.data as { certificateSerial?: string }).certificateSerial;
+        if (serial) celebrate(serial);
+      }),
+    [celebrate],
+  );
+
   const ctx = useMemo(
-    () => (outline ? { outline, markCompleted, reloadOutline, setSidebarMode: setMode } : null),
-    [outline, markCompleted, reloadOutline],
+    () => (outline ? { outline, markCompleted, reloadOutline, celebrate, setSidebarMode: setMode } : null),
+    [outline, markCompleted, reloadOutline, celebrate],
   );
 
   if (!outline || !ctx) {
@@ -281,6 +302,7 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </div>
+        <CertificateDialog serial={cert.open} onClose={() => setCert((c) => ({ ...c, open: null }))} />
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
           <SheetContent side="left" showCloseButton={false} className="max-w-[90vw] gap-0 p-0 data-[side=left]:w-96">
             <SheetClose
