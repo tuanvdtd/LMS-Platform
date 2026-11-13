@@ -27,6 +27,7 @@ describe('Gợi ý khoá theo mục tiêu / nghề (e2e)', () => {
   let alice: TestUser; // giảng viên của mọi khoá test
   let stu: TestUser;
   let empty: TestUser;
+  let gapStu: TestUser;
   let react: string;
   let occTopic: string; // topic của nghề frontend_developer, khác react
   let courseReact: string;
@@ -69,7 +70,7 @@ describe('Gợi ý khoá theo mục tiêu / nghề (e2e)', () => {
     setupApp(app);
     await app.init();
     prisma = app.get(PrismaService);
-    [alice, stu, empty] = await Promise.all([makeUser(), makeUser(), makeUser()]);
+    [alice, stu, empty, gapStu] = await Promise.all([makeUser(), makeUser(), makeUser(), makeUser()]);
     react = (await prisma.topic.findUniqueOrThrow({ where: { slug: 'react' }, select: { id: true } })).id;
     occTopic = (
       await prisma.occupationTopic.findFirstOrThrow({
@@ -129,6 +130,36 @@ describe('Gợi ý khoá theo mục tiêu / nghề (e2e)', () => {
     async () => {
       await call('patch', '/api/me/preferences', alice.cookie, { topicIds: [react] }).expect(200);
       expect(find(await groups(alice), courseReact)).toBeUndefined();
+    },
+    SLOW,
+  );
+
+  it(
+    'đo React thấp → khoá React ở nhóm gap dù chưa chọn nghề hay mục tiêu; JavaScript cũng thấp → chuyển về JavaScript',
+    async () => {
+      const js = (await prisma.topic.findUniqueOrThrow({ where: { slug: 'javascript' }, select: { id: true } })).id;
+      const courseJs = await publishedCourse('E2E gợi ý JavaScript', js);
+      const skill = (topicId: string, rating: number) => ({
+        userId: gapStu.id, topicId, rating, answerCount: 12, lastStartedAt: new Date(),
+      });
+
+      await prisma.userTopicSkill.create({ data: skill(react, 1100) }); // 1100 Elo = 19%
+      let gs = await groups(gapStu);
+      expect(gs[0].type).toBe('gap');
+      const direct = find(gs, courseReact);
+      expect(direct).toMatchObject({
+        type: 'gap',
+        reason: { type: 'gap', topic: { slug: 'react' }, pct: 19, unmeasuredPrereqs: [{ slug: 'javascript' }] },
+      });
+      expect(direct!.reason.blockedTopic).toBeUndefined();
+
+      await prisma.userTopicSkill.create({ data: skill(js, 1000) }); // 1000 Elo = 12%
+      gs = await groups(gapStu);
+      expect(find(gs, courseJs)).toMatchObject({
+        type: 'gap',
+        reason: { type: 'gap', topic: { slug: 'javascript' }, pct: 12, blockedTopic: { slug: 'react' } },
+      });
+      expect(find(gs, courseReact)).toBeUndefined();
     },
     SLOW,
   );
