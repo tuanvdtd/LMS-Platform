@@ -1,4 +1,5 @@
-import { HttpException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { tooManyRequests } from '../common/http.js';
 import type { Prisma } from '@prisma/client';
 import { isGuid, validationError } from '../common/zod.pipe.js';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
@@ -38,8 +39,6 @@ function toDetail({ item, testCases, languages, starters, ...e }: Prisma.Exercis
   };
 }
 
-export const tooManyRequests = () =>
-  new HttpException({ statusCode: 429, code: 'RATE_LIMITED', message: 'Bạn thao tác quá nhanh, thử lại sau ít phút' }, 429);
 export const runnerUnavailable = () =>
   new ServiceUnavailableException({ statusCode: 503, code: 'RUNNER_UNAVAILABLE', message: 'Hệ thống chạy code đang bận, thử lại sau' });
 

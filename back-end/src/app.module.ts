@@ -25,6 +25,7 @@ import { QuizModule } from './quiz/quiz.module.js';
 import { QaModule } from './qa/qa.module.js';
 import { RecommendationsModule } from './recommendations/recommendations.module.js';
 import { InstructorApplicationsModule } from './instructor-applications/instructor-applications.module.js';
+import { CertificatesModule } from './certificates/certificates.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { RevenueModule } from './revenue/revenue.module.js';
 import { TopicsModule } from './topics/topics.module.js';
@@ -34,7 +35,7 @@ const isProd = optionalEnv('SENTRY_ENVIRONMENT') === 'production';
 
 @Module({
   // SentryModule đứng đầu theo docs.
-  imports: [SentryModule.forRoot(), InfraModule, RabbitModule, AuthModule, CategoriesModule, TopicsModule, InstructorCoursesModule, AssetsModule, CurriculumModule, PreferencesModule, RevenueModule, InstructorApplicationsModule, QuizModule, ExerciseModule, LearnModule, QaModule, CourseApprovalsModule, ModeratorsModule, CatalogModule, CouponsModule, CartModule, CheckoutModule, RecommendationsModule, NotificationsModule, SkillsModule],
+  imports: [SentryModule.forRoot(), InfraModule, RabbitModule, AuthModule, CategoriesModule, TopicsModule, InstructorCoursesModule, AssetsModule, CurriculumModule, PreferencesModule, RevenueModule, InstructorApplicationsModule, QuizModule, ExerciseModule, LearnModule, QaModule, CourseApprovalsModule, ModeratorsModule, CatalogModule, CouponsModule, CartModule, CheckoutModule, RecommendationsModule, NotificationsModule, SkillsModule, CertificatesModule],
   controllers: [AppController, ...(isProd ? [] : [DebugController])],
   // Chỉ gửi lỗi không phải HttpException; response giữ như BaseExceptionFilter.
   providers: [AppService, { provide: APP_FILTER, useClass: SentryGlobalFilter }],

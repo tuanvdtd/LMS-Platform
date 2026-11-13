@@ -48,6 +48,7 @@ export interface AttemptResult {
   total: number;
   timeSpentSec: number;
   answersRevealed: boolean;
+  certificateSerial: string | null; // khác null = lượt nộp này vừa làm khoá hoàn thành và được cấp chứng chỉ
   questions: ResultQuestion[];
 }
 

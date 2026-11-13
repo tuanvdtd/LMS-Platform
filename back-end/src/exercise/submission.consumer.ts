@@ -138,8 +138,11 @@ export class SubmissionConsumer implements OnApplicationBootstrap {
         where: { id: submissionId },
         data: { ...summary, totalTests: ex.testCases.length, compileError: compileError === null ? null : excerpt(compileError), gradedAt: now },
       });
-      if (enrollment) await completeItem(tx, enrollment.id, ex.courseId, ex.itemId, now);
-      return tx.notification.create({ data: this.notification(sub, summary.status, summary.score, summary.passedTests, ex.testCases.length) });
+      const certificateSerial = enrollment ? await completeItem(tx, enrollment.id, ex.courseId, ex.itemId, now) : null;
+      const n = this.notification(sub, summary.status, summary.score, summary.passedTests, ex.testCases.length);
+      // Bài được chấm ở nền nên kết quả chỉ tới học viên qua thông báo này: bài vừa làm khoá hoàn thành thì
+      // gửi kèm mã chứng chỉ để trang học mở lời chúc mừng.
+      return tx.notification.create({ data: certificateSerial ? { ...n, data: { ...n.data, certificateSerial } } : n });
     }, GRADE_TX);
     // Đẩy sau commit: đẩy trong tx mà tx rollback thì học viên đã được báo một kết quả không tồn tại.
     if (created) this.notifications.push(created);

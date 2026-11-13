@@ -36,7 +36,7 @@ function placeOf(outline: LearnOutline, id: string) {
 // Page key theo itemId → state mới mỗi bài.
 export default function LectureView({ courseSlug, itemId }: { courseSlug: string; itemId: string }) {
   useSidebarMode('docked');
-  const { outline, markCompleted } = useLearnShell();
+  const { outline, markCompleted, celebrate } = useLearnShell();
   const [lecture, setLecture] = useState<Lecture | null>(null);
   const [error, setError] = useState<{ code?: string; message: string } | null>(null);
   const [nonce, setNonce] = useState(0);
@@ -55,14 +55,16 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
 
   // Một chỗ báo hoàn thành cho cả tick tay lẫn video phát tới cuối.
   const markDone = useCallback(
-    (progressPct: number) => {
+    (progressPct: number, certificateSerial?: string | null) => {
       setLecture((l) => l && { ...l, progress: { ...l.progress, completed: true } });
       markCompleted(itemId, progressPct);
       const pct = Math.round(progressPct);
-      if (pct >= 100) toast.success('Bạn đã hoàn thành toàn bộ khoá học');
+      // Vừa được cấp chứng chỉ → hộp thoại chúc mừng thay cho toast.
+      if (certificateSerial) celebrate(certificateSerial);
+      else if (pct >= 100) toast.success('Bạn đã hoàn thành toàn bộ khoá học');
       else toast.success('Đã hoàn thành bài này', { description: `Tiến độ khoá học: ${pct}%` });
     },
-    [itemId, markCompleted],
+    [itemId, markCompleted, celebrate],
   );
 
   const markUndone = useCallback(
@@ -87,7 +89,10 @@ export default function LectureView({ courseSlug, itemId }: { courseSlug: string
     setBusy(true);
     try {
       if (done) markUndone((await uncompleteLecture(courseSlug, itemId)).progressPct);
-      else markDone((await completeLecture(courseSlug, itemId)).progressPct);
+      else {
+        const r = await completeLecture(courseSlug, itemId);
+        markDone(r.progressPct, r.certificateSerial);
+      }
     } catch (e) {
       toast.error(apiMessage(e, 'Không cập nhật được, thử lại'));
     } finally {
