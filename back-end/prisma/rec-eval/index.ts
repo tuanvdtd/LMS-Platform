@@ -64,6 +64,12 @@ async function main() {
     log(`| --- | ${KS.map(() => '---').join(' | ')} |`);
     for (const row of r.table1) log(`| ${row.name} | ${KS.map((k) => pct(row.p[k])).join(' | ')} |`);
     log();
+    log(`Số topic mỗi học viên đo, trung bình: ${r.avgMeasured.toFixed(1)}; làm theo lời mời: ${r.avgMeasuredInvited.toFixed(1)} (trên ${questions.size} topic đo được).`);
+    log();
+    log(`| Nếu việc đo tốt hơn (có đồ thị tiên quyết) | ${KS.map((k) => `P@${k}`).join(' | ')} |`);
+    log(`| --- | ${KS.map(() => '---').join(' | ')} |`);
+    for (const row of r.table3) log(`| ${row.name} | ${KS.map((k) => pct(row.p[k])).join(' | ')} |`);
+    log();
     log('| Số lượt đo mỗi topic | P@5 (có đồ thị tiên quyết) |');
     log('| --- | --- |');
     for (const row of r.table2) log(`| ${row.attempts} | ${pct(row.p5)} |`);
