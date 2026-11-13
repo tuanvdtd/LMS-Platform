@@ -8,7 +8,7 @@ export type AppNotification = {
   title: string;
   body: string;
   link: string | null;
-  data: Record<string, unknown>; // verdict: { submissionId, status, score }; qa_answer: { questionId, answerId }; qa_question: { questionId }; course_review: { courseId, approvalId, approved }; instructor_application: { applicationId, approved }
+  data: Record<string, unknown>; // verdict: { submissionId, status, score, certificateSerial? }; qa_answer: { questionId, answerId }; qa_question: { questionId }; course_review: { courseId, approvalId, approved }; instructor_application: { applicationId, approved }
   read: boolean;
   createdAt: string;
 };

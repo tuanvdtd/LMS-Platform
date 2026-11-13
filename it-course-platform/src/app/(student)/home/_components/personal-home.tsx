@@ -11,9 +11,11 @@ import { buttonVariants } from '@/components/ui/button';
 import { getMyEnrollments } from '@/lib/api/checkout';
 import { getPreferences } from '@/lib/api/preferences';
 import { getRecommendations } from '@/lib/api/recommendations';
+import { unmeasuredTopics } from '@/lib/recommendations';
 import type { MyEnrollment } from '@/types/checkout';
 import { OCCUPATION_LABEL, type Preferences } from '@/types/preferences';
 import type { RecommendationGroup } from '@/types/recommendations';
+import { COURSE_GRID } from '@/components/shared/catalog-course-card';
 
 const CONTINUE_LIMIT = 4;
 
@@ -39,6 +41,7 @@ export function PersonalHome() {
   // BE không trả nhóm rỗng nên luôn có courses[0].
   const title = (g: RecommendationGroup) => {
     const r = g.courses[0].reason;
+    if (r.type === 'gap') return 'Bù lỗ hổng kỹ năng';
     return r.type === 'occupation' ? `Dành cho ${OCCUPATION_LABEL[r.occupation]}` : 'Theo mục tiêu của bạn';
   };
 
@@ -79,20 +82,35 @@ export function PersonalHome() {
       {groups === null && (
         <section role="status" aria-busy="true" aria-label="Đang tải gợi ý">
           <Skeleton className="mb-4 h-7 w-64" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={COURSE_GRID}>
             {Array.from({ length: 4 }, (_, i) => <CourseCardSkeleton key={i} />)}
           </div>
         </section>
       )}
 
-      {groups?.map((g) => (
-        <section key={g.type} aria-labelledby={`rec-${g.type}`}>
-          <h2 id={`rec-${g.type}`} className="mb-4 text-xl font-bold text-foreground">{title(g)}</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {g.courses.map((c) => <RecommendationCourseCard key={c.id} course={c} />)}
-          </div>
-        </section>
-      ))}
+      {groups?.map((g) => {
+        const unmeasured = unmeasuredTopics(g.courses);
+        return (
+          <section key={g.type} aria-labelledby={`rec-${g.type}`}>
+            <h2 id={`rec-${g.type}`} className="mb-4 text-xl font-bold text-foreground">{title(g)}</h2>
+            {unmeasured.length > 0 && (
+              <p className="-mt-2 mb-4 text-sm text-muted-foreground">
+                Bạn chưa đo {unmeasured.join(', ')}.{' '}
+                <Link
+                  href="/skills"
+                  className="rounded-sm font-medium text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  Làm bài đánh giá
+                </Link>{' '}
+                để nhận gợi ý chính xác hơn.
+              </p>
+            )}
+            <div className={COURSE_GRID}>
+              {g.courses.map((c) => <RecommendationCourseCard key={c.id} course={c} />)}
+            </div>
+          </section>
+        );
+      })}
     </>
   );
 }

@@ -1021,7 +1021,7 @@ model Notification {
   title     String
   body      String
   link      String?
-  // verdict: { submissionId, status, score }; qa_answer: { questionId, answerId }; course_review: { courseId, approvalId, approved }; instructor_application: { applicationId, approved }
+  // verdict: { submissionId, status, score, certificateSerial? }; qa_answer: { questionId, answerId }; course_review: { courseId, approvalId, approved }; instructor_application: { applicationId, approved }
   data      Json             @default("{}")
   readAt    DateTime?
   createdAt DateTime         @default(now())

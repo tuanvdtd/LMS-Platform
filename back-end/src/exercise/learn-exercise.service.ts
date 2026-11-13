@@ -9,7 +9,8 @@ import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js'
 import { RedisService, rateLimit } from '../infra/redis.js';
 import { ownerEnrollment } from '../learn/enrollment.js';
 import { CodeRunner, RunnerUnavailableError, type Language } from './code-runner.js';
-import { runnerUnavailable, tooManyRequests, withRunLock } from './exercise.service.js';
+import { tooManyRequests } from '../common/http.js';
+import { runnerUnavailable, withRunLock } from './exercise.service.js';
 import { excerpt, runTests } from './grading.js';
 import type { CodeInput } from './learn-exercise.schemas.js';
 

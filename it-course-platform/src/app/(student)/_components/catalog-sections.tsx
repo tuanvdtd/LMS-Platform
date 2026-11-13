@@ -78,6 +78,7 @@ export function SectionHeading({
 }
 
 // "Khoá học để bạn bắt đầu": 2 tab Phổ biến nhất / Mới nhất, dữ liệu thật từ API catalog.
+// Ẩn dưới md: trên điện thoại hàng cuộn ngang chiếm gần một màn và đẩy danh sách đầy đủ + bộ lọc xuống sâu.
 export async function CatalogStarter({ category, topic }: { category?: string; topic?: string }) {
   const args = starterArgs({ category, topic });
   const [popular, newest] = await Promise.all([listCourses(args), listCourses({ ...args, sort: 'newest' })]);
@@ -85,7 +86,7 @@ export async function CatalogStarter({ category, topic }: { category?: string; t
   const toCards = (items: typeof popular.items) => items.map((c) => <CatalogCourseCard key={c.id} course={c} />);
 
   return (
-    <section className="border-b bg-background py-8 md:py-10">
+    <section className="hidden border-b bg-background py-8 md:block md:py-10">
       <div className="mx-auto max-w-screen-xl px-4">
         <SectionHeading
           title="Khoá học để bạn bắt đầu"
@@ -104,16 +105,16 @@ export async function CatalogStarter({ category, topic }: { category?: string; t
 
 export function CatalogStarterSkeleton() {
   return (
-    <div className="mx-auto max-w-screen-xl px-4 py-8 md:py-10" aria-hidden>
+    <div className="mx-auto hidden max-w-screen-xl px-4 py-8 md:block md:py-10" aria-hidden>
       <Skeleton className="h-7 w-72 max-w-full md:h-8" />
       <Skeleton className="mt-1 h-5 w-96 max-w-full" />
       <div className="mt-6 flex gap-4 border-b pb-3">
         <Skeleton className="h-6 w-28" />
         <Skeleton className="h-6 w-20" />
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-3 gap-4 lg:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className={cn(i === 1 && 'hidden sm:block', i > 1 && 'hidden lg:block')}>
+          <div key={i} className={cn(i === 3 && 'hidden lg:block')}>
             <CourseCardSkeleton />
           </div>
         ))}

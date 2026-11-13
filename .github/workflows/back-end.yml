@@ -1,0 +1,112 @@
+name: back-end
+
+on:
+  # Chỉ chạy khi code BE hoặc file này đổi; sửa tài liệu .md trong back-end/ không build/deploy lại.
+  pull_request:
+    paths: ['back-end/**', '!back-end/**/*.md', '.github/workflows/back-end.yml']
+  push:
+    branches: [main]
+    paths: ['back-end/**', '!back-end/**/*.md', '.github/workflows/back-end.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Các lần push main chạy lần lượt: build của lần sau không ghi đè `latest` khi deploy lần trước chưa xong.
+concurrency:
+  group: back-end-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: back-end
+
+env:
+  IMAGE: ghcr.io/tuanvdtd/skillpath-api
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12.3.4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: back-end/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      # Chỉ lint src/: thư mục test/ có thể bị xoá sau này.
+      - run: pnpm exec oxlint --type-aware src/
+      - run: pnpm build
+
+  build:
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: back-end
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Quét lỗ hổng trước khi deploy, in bảng kết quả vào log. Có lỗ hổng CRITICAL/HIGH thì hiện cảnh báo
+  # vàng trên trang run nhưng vẫn deploy; muốn chặn deploy thì bỏ `continue-on-error`.
+  scan:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+    steps:
+      - name: Trivy scan
+        id: trivy
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      # Job không checkout nên không có thư mục back-end/ (working-directory mặc định của workflow).
+      - if: steps.trivy.outcome == 'failure'
+        working-directory: .
+        run: echo "::warning title=Trivy::Image có lỗ hổng CRITICAL/HIGH đã có bản vá, xem bảng ở bước Trivy scan của job scan."
+
+  deploy:
+    needs: scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Deploy qua SSM
+        env:
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+        run: ./deploy/ci-deploy.sh

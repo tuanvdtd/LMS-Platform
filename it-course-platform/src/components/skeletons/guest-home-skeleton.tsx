@@ -1,4 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { COURSE_GRID } from '@/components/shared/catalog-course-card';
 
 // Khung chờ trang chủ khách: cùng hình khối 2 (hero tối) + khối 3 (card danh mục) để không nhảy layout.
 export function GuestHomeSkeleton() {
@@ -26,7 +27,7 @@ export function GuestHomeSkeleton() {
         <div className="mx-auto w-full max-w-screen-xl px-4 py-16 lg:py-20">
           <Skeleton className="mb-3 h-8 w-72" />
           <Skeleton className="mb-8 h-5 w-96 max-w-full" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={COURSE_GRID}>
             {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-48 rounded-2xl bg-card" />)}
           </div>
         </div>

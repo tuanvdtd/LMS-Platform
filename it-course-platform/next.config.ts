@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/instructor/dashboard", destination: "/instructor", permanent: false },
-      // Trang quản lý không có mục mặc định (spec course-create-basics §5.4)
+      // Trang quản lý khoá không có nội dung riêng, mở thẳng mục đầu tiên (Mục tiêu)
       { source: "/instructor/courses/:id/manage", destination: "/instructor/courses/:id/manage/goals", permanent: false },
     ];
   },

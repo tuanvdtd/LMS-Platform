@@ -1,5 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { CourseCardSkeleton } from '@/components/skeletons/course-card-skeleton';
+import { COURSE_GRID } from '@/components/shared/catalog-course-card';
 
 // Khớp bố cục trang /instructors/[id]: avatar tròn + tên + thống kê, giới thiệu, lưới khoá học.
 export function InstructorProfileSkeleton() {
@@ -23,7 +24,7 @@ export function InstructorProfileSkeleton() {
       </div>
 
       <Skeleton className="mb-4 h-6 w-32" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={COURSE_GRID}>
         {Array.from({ length: 4 }, (_, i) => (
           <CourseCardSkeleton key={i} />
         ))}

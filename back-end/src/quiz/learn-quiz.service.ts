@@ -141,7 +141,7 @@ export class LearnQuizService {
   async submit(slug: string, userId: string, itemId: string, attemptId: string, body: SubmitInput) {
     const { quiz, enrollment } = await this.load(slug, userId, itemId, false);
     if (!isGuid(attemptId)) throw attemptNotFound();
-    await this.prisma.$transaction(async (tx) => {
+    const certificateSerial = await this.prisma.$transaction(async (tx) => {
       const [attempt] = await tx.$queryRaw<
         { userId: string; quizId: string; status: string; startedAt: Date; questionIds: string[]; passScorePct: number }[]
       >`
@@ -167,15 +167,15 @@ export class LearnQuizService {
         },
       });
 
-      if (passed) await completeItem(tx, enrollment.id, quiz.courseId, itemId, now);
+      return passed ? completeItem(tx, enrollment.id, quiz.courseId, itemId, now) : null;
     }, SUBMIT_TX);
-    return this.buildResult(quiz, userId, attemptId);
+    return { ...(await this.buildResult(quiz, userId, attemptId)), certificateSerial };
   }
 
   async result(slug: string, userId: string, itemId: string, attemptId: string) {
     const { quiz } = await this.load(slug, userId, itemId, false);
     if (!isGuid(attemptId)) throw attemptNotFound();
-    return this.buildResult(quiz, userId, attemptId);
+    return { ...(await this.buildResult(quiz, userId, attemptId)), certificateSerial: null };
   }
 
   private async buildResult(quiz: LearnQuiz, userId: string, attemptId: string) {

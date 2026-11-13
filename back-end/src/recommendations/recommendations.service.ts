@@ -2,13 +2,14 @@
 import { Injectable } from '@nestjs/common';
 import { CARD_SELECT, CatalogService, type CourseCard } from '../catalog/catalog.service.js';
 import { PrismaService } from '../infra/prisma.service.js';
+import { masteryPct } from '../skills/skill-elo.js';
 import { type GroupType, type Reason, type RecPick, recommend } from './recommend-rules.js';
 
 const REF = { select: { id: true, slug: true, name: true } } as const;
 export type RecommendedCourse = CourseCard & { reason: Reason };
 export type RecommendationGroup = { type: GroupType; courses: RecommendedCourse[] };
 
-// Gợi ý theo topic học viên theo dõi + topic phổ biến của nghề. Tính mỗi lần gọi: vài query nhỏ.
+// Gợi ý theo lỗ hổng kỹ năng đo được + topic học viên theo dõi + topic phổ biến của nghề. Tính mỗi lần gọi: vài query nhỏ.
 @Injectable()
 export class RecommendationsService {
   constructor(
@@ -17,7 +18,7 @@ export class RecommendationsService {
   ) {}
 
   async groups(userId: string): Promise<RecommendationGroup[]> {
-    const [user, targetRows] = await Promise.all([
+    const [user, targetRows, skillRows, edgeRows] = await Promise.all([
       this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { occupation: true, level: true } }),
       // Lưu preferences tạo lại mọi dòng cùng lúc (cùng createdAt) → thêm tên topic cho thứ tự ổn định, như PreferencesService.get.
       this.prisma.userTargetTopic.findMany({
@@ -25,7 +26,19 @@ export class RecommendationsService {
         orderBy: [{ createdAt: 'asc' }, { topic: { name: 'asc' } }],
         select: { topicId: true },
       }),
+      // answerCount = 0 là "chưa đo": rating khởi tạo không nói gì về năng lực.
+      this.prisma.userTopicSkill.findMany({
+        where: { userId, answerCount: { gt: 0 } },
+        select: { topicId: true, rating: true },
+      }),
+      // Toàn bộ đồ thị tiên quyết: vài chục cạnh, duyệt trong bộ nhớ.
+      this.prisma.topic.findMany({
+        where: { prerequisites: { some: {} } },
+        select: { id: true, prerequisites: { select: { id: true } } },
+      }),
     ]);
+    const skills = new Map(skillRows.map((r) => [r.topicId, masteryPct(r.rating)]));
+    const prereqs = new Map(edgeRows.map((t) => [t.id, t.prerequisites.map((p) => p.id)]));
     const occupationTopics = user.occupation
       ? (
           await this.prisma.occupationTopic.findMany({
@@ -36,11 +49,13 @@ export class RecommendationsService {
         ).map((r) => r.topicId)
       : [];
     const targets = targetRows.map((r) => r.topicId);
-    const related = [...new Set([...targets, ...occupationTopics])];
+    const related = [...new Set([...targets, ...occupationTopics, ...skills.keys()])];
     if (!related.length) return [];
+    // Lý do của nhóm theo lỗ hổng nhắc cả topic tiên quyết trực tiếp chưa đo → cần tên của chúng.
+    const refIds = [...new Set([...related, ...[...skills.keys()].flatMap((id) => prereqs.get(id) ?? [])])];
 
     const [topics, courses] = await Promise.all([
-      this.prisma.topic.findMany({ where: { id: { in: related } }, ...REF }),
+      this.prisma.topic.findMany({ where: { id: { in: refIds } }, ...REF }),
       this.prisma.course.findMany({
         where: {
           status: 'published',
@@ -64,6 +79,8 @@ export class RecommendationsService {
       occupation: user.occupation ? { value: user.occupation, topicIds: occupationTopics } : null,
       userLevel: user.level,
       courses: courses.map((c) => ({ ...c, ratingAvg: Number(c.ratingAvg) })),
+      skills,
+      prereqs,
     });
     return this.attachCards(picked);
   }

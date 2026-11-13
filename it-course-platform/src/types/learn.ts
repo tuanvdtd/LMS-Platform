@@ -57,6 +57,7 @@ export interface Lecture {
 export interface ProgressResult {
   completed: boolean;
   progressPct: number;
+  certificateSerial?: string | null; // chỉ có khi vừa hoàn thành bài; khác null = vừa được cấp chứng chỉ
 }
 
 export interface Note {

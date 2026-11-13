@@ -275,13 +275,13 @@ describe('Học viên học bài giảng (e2e)', () => {
       await prisma.curriculumItem.delete({ where: { id: quiz.id } });
 
       const enrollmentDoneAt = async () => (await prisma.enrollment.findUniqueOrThrow({ where: { id: enrollmentId } })).completedAt;
-      expect((await learn('post', `/lectures/${videoId}/complete`).expect(200)).body).toEqual({ completed: true, progressPct: 33.33 });
+      expect((await learn('post', `/lectures/${videoId}/complete`).expect(200)).body).toEqual({ completed: true, progressPct: 33.33, certificateSerial: null });
       const first = (await progressRow()).completedAt;
       expect(first).not.toBeNull();
       await learn('post', `/lectures/${videoId}/complete`).expect(200);
       expect(await progressRow()).toMatchObject({ completedAt: first, lastPositionSec: 120 });
-      expect((await learn('post', `/lectures/${pdfId}/complete`).expect(200)).body).toEqual({ completed: true, progressPct: 66.67 });
-      expect((await learn('post', `/lectures/${zeroId}/complete`).expect(200)).body).toEqual({ completed: true, progressPct: 100 });
+      expect((await learn('post', `/lectures/${pdfId}/complete`).expect(200)).body).toEqual({ completed: true, progressPct: 66.67, certificateSerial: null });
+      expect((await learn('post', `/lectures/${zeroId}/complete`).expect(200)).body).toMatchObject({ completed: true, progressPct: 100 });
       expect(await enrollmentDoneAt()).not.toBeNull();
 
       expect((await learn('delete', `/lectures/${zeroId}/complete`).expect(200)).body).toEqual({ completed: false, progressPct: 66.67 });

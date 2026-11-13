@@ -23,7 +23,7 @@ type Loaded =
 
 // Máy trạng thái: overview → running(sheet) → result. `?attempt=<id>` mở thẳng màn xem lại.
 export default function QuizView({ courseSlug, itemId }: { courseSlug: string; itemId: string }) {
-  const { outline, markCompleted, reloadOutline } = useLearnShell();
+  const { outline, markCompleted, reloadOutline, celebrate } = useLearnShell();
   const router = useRouter();
   const pathname = usePathname();
   const key = useSearchParams().get('attempt') ?? '';
@@ -79,6 +79,7 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
       if (result.passed) {
         markCompleted(itemId); // tự tải lại mục lục
         toast.success('Chúc mừng, bạn đã đạt bài kiểm tra!');
+        if (result.certificateSerial) celebrate(result.certificateSerial);
       } else {
         reloadOutline();
       }

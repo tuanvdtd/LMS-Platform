@@ -418,6 +418,10 @@ describe('SubmissionConsumer chấm bài (e2e)', () => {
       expect(rows.length).toBeGreaterThan(0);
       expect(pushed).toEqual(rows);
       expect(push.mock.calls.every(([n]) => n.userId === stu.id && n.type === 'verdict')).toBe(true);
+      // Quiz và bài code đều đạt → khoá hoàn thành: đúng một thông báo kết quả chấm mang mã chứng chỉ vừa cấp.
+      const cert = await prisma.certificate.findFirstOrThrow({ where: { userId: stu.id } });
+      const withCert = push.mock.calls.filter(([n]) => (n.data as { certificateSerial?: string }).certificateSerial);
+      expect(withCert.map(([n]) => (n.data as { certificateSerial?: string }).certificateSerial)).toEqual([cert.serialNo]);
     },
     SLOW,
   );

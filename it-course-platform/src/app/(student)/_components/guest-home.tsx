@@ -6,6 +6,7 @@ import { CategoryCards } from './category-cards';
 import { GuestFeatured } from './guest-featured';
 import { GuestHero } from './guest-hero';
 import { PillarsSection, SignupSection, StepsSection, TeachSection } from './guest-sections';
+import { COURSE_GRID } from '@/components/shared/catalog-course-card';
 
 // Trang chủ khách, hero nền tối.
 export async function GuestHome() {
@@ -30,7 +31,7 @@ export async function GuestHome() {
 function FeaturedFallback() {
   return (
     <div className="mx-auto w-full max-w-screen-xl px-4 py-16 lg:py-20" role="status" aria-busy="true" aria-label="Đang tải">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={COURSE_GRID}>
         {Array.from({ length: 4 }, (_, i) => <CourseCardSkeleton key={i} />)}
       </div>
     </div>

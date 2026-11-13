@@ -30,4 +30,13 @@ describe('planSkillHistory', () => {
   it('xác định: cùng seed cùng kết quả', () => {
     expect(run(1400)).toEqual(run(1400));
   });
+
+  it('attempts cố định → đúng số lượt đó', () => {
+    const p = planSkillHistory(
+      { now, learners: [{ userId: 'u', topicId: 't', ability: 1400, attempts: 2 }], questions: new Map([['t', bank(40)]]) },
+      mulberry32(1),
+    );
+    expect(p.attempts).toHaveLength(2);
+    expect(p.skills[0].answerCount).toBe(24);
+  });
 });
