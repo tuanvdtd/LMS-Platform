@@ -1,9 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { Check, ChevronLeft, CircleAlert, Eye, Lock } from 'lucide-react';
 import { CourseStatusBadge } from '@/components/shared/course-status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { ChecklistSidebar } from './checklist-sidebar';
 import { useCourse } from './course-provider';
 import { GuardedLink } from './guarded-link';
@@ -37,16 +38,21 @@ export function CourseManageShell({ children }: { children: React.ReactNode }) {
             Đã lưu mọi thay đổi
           </span>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-ink-border bg-transparent text-ink-foreground hover:bg-ink-hover hover:text-white"
-          disabled
-          title="Sắp có"
+        {/* Mở tab mới: trang quản lý (và thay đổi chưa lưu) vẫn còn nguyên. */}
+        <Link
+          href={`/learn/${course.slug}`}
+          target="_blank"
+          rel="noopener"
+          title="Xem khoá học như học viên"
+          className={buttonVariants({
+            variant: 'outline',
+            size: 'sm',
+            className: 'border-ink-border bg-transparent text-ink-foreground hover:bg-ink-hover hover:text-white',
+          })}
         >
           <Eye data-icon="inline-start" />
           Xem trước
-        </Button>
+        </Link>
       </header>
       <div className="grid flex-1 md:grid-cols-[300px_minmax(0,1fr)]">
         <ChecklistSidebar />

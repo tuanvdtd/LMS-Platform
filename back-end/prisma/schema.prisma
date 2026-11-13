@@ -1035,12 +1035,13 @@ model Notification {
 enum NotificationType {
   verdict
   qa_answer
+  qa_question
   course_review
   instructor_application
 }
 
 // ============================================================================
-//  7b. BÀI ĐÁNH GIÁ KỸ NĂNG (Elo thích ứng) — spec 2026-11-04-skill-assessment-elo
+//  7b. BÀI ĐÁNH GIÁ KỸ NĂNG (Elo thích ứng)
 //  Nguồn DUY NHẤT của độ thành thạo topic. Câu do nền tảng soạn, không thuộc quiz nào.
 // ============================================================================
 
@@ -1348,21 +1349,25 @@ model CourseQuestion {
 }
 
 model CourseAnswer {
-  id            String   @id @default(uuid(7)) @db.Uuid
-  questionId    String   @db.Uuid
-  userId        String   @db.Uuid
-  body          String // Markdown ≤2000 (zod)
-  isInstructor  Boolean  @default(false) // chụp lúc trả lời
-  replyToUserId String?  @db.Uuid // trả lời một câu trả lời khác → FE ghi "Trả lời <tên>"
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(uuid(7)) @db.Uuid
+  questionId      String   @db.Uuid
+  userId          String   @db.Uuid
+  body            String // Markdown ≤2000 (zod)
+  isInstructor    Boolean  @default(false) // chụp lúc trả lời
+  replyToUserId   String?  @db.Uuid // trả lời một câu trả lời khác → FE ghi "@Tên"
+  replyToAnswerId String?  @db.Uuid // bình luận đang được trả lời → FE bấm "@Tên" cuộn tới; bị xoá → NULL
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  question CourseQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  user     User           @relation("qaAnswerAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  replyTo  User?          @relation("qaAnswerReplyTo", fields: [replyToUserId], references: [id], onDelete: SetNull)
+  question      CourseQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user          User           @relation("qaAnswerAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  replyTo       User?          @relation("qaAnswerReplyTo", fields: [replyToUserId], references: [id], onDelete: SetNull)
+  replyToAnswer CourseAnswer?  @relation("qaAnswerReply", fields: [replyToAnswerId], references: [id], onDelete: SetNull)
+  replies       CourseAnswer[] @relation("qaAnswerReply")
 
   @@index([questionId, createdAt])
   @@index([userId])
+  @@index([replyToAnswerId])
   @@map("course_answers")
 }
 

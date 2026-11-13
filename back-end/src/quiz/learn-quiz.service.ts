@@ -5,6 +5,7 @@ import { isGuid } from '../common/zod.pipe.js';
 import { completeItem } from '../curriculum/progress.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
+import { ownerEnrollment } from '../learn/enrollment.js';
 import { grade, seededShuffle } from './grading.js';
 import type { SubmitInput } from './learn-quiz.schemas.js';
 
@@ -233,7 +234,7 @@ export class LearnQuizService {
   // chỉ cần quiz còn thuộc khoá — GV gỡ hết câu thì lượt cũ vẫn dùng đề đã chụp.
   private async load(slug: string, userId: string, itemId: string, strict = true) {
     if (!isGuid(itemId)) throw quizNotFound();
-    const [quiz, enrollment] = await Promise.all([
+    const [quiz, found] = await Promise.all([
       this.prisma.quiz.findFirst({
         where: { itemId, item: { type: 'quiz', ...(strict && { isPublished: true }) }, course: { slug } },
         select: LEARN_QUIZ_SELECT,
@@ -241,6 +242,7 @@ export class LearnQuizService {
       this.prisma.enrollment.findFirst({ where: { userId, course: { slug } }, select: { id: true, completedAt: true } }),
     ]);
     if (!quiz || (strict && !quiz.questions.length)) throw quizNotFound();
+    const enrollment = found ?? (await ownerEnrollment(this.prisma, slug, userId, { completedAt: true }));
     if (!enrollment) {
       throw new ForbiddenException({ statusCode: 403, code: 'NOT_ENROLLED', message: 'Bạn chưa ghi danh khoá học này' });
     }

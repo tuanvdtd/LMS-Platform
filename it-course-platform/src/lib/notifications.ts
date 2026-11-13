@@ -7,6 +7,7 @@ type Meta = { label: string; audience: Audience };
 export const NOTIF_META: Record<NotificationType, Meta> = {
   verdict: { label: 'Chấm bài', audience: 'student' },
   qa_answer: { label: 'Hỏi đáp', audience: 'student' },
+  qa_question: { label: 'Câu hỏi mới', audience: 'instructor' },
   course_review: { label: 'Duyệt khoá', audience: 'instructor' },
   instructor_application: { label: 'Giảng viên cao cấp', audience: 'instructor' },
 };

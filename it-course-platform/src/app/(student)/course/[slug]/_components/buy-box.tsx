@@ -123,8 +123,11 @@ export function BuyBox({ course }: Props) {
   function primaryCta(bar: boolean) {
     const size = bar ? 'default' : 'lg';
     const width = bar ? 'h-10' : 'w-full';
+    // Chủ khoá: xét trước "enrolled" vì xem trước cũng tạo ghi danh.
+    if (status?.isOwner) {
+      return <Link href={`/learn/${course.slug}`} className={buttonVariants({ size, variant: 'outline', className: width })}>Xem trước khoá học</Link>;
+    }
     if (status?.enrolled) return <Link href={`/learn/${course.slug}`} className={buttonVariants({ size, className: width })}>Vào học</Link>;
-    if (status?.isOwner) return <Button size={size} disabled className={width}>Khoá học của bạn</Button>;
     if (price === 0) {
       return (
         <Button size={size} className={width} disabled={disabled}
@@ -166,7 +169,7 @@ export function BuyBox({ course }: Props) {
 
   return (
     <>
-      {status?.enrolled ? enrolledNote : priceBlock}
+      {status?.enrolled && !status.isOwner ? enrolledNote : priceBlock}
       {primaryCta(false)}
       {showBuyNow && (
         <Button variant="secondary" size="lg" className="w-full" disabled={disabled}
@@ -177,7 +180,7 @@ export function BuyBox({ course }: Props) {
       {/* Thanh dính đáy chỉ ở mobile; trang chừa pb-28 cho nó. */}
       <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t bg-card px-4 py-3 lg:hidden">
         <div className="min-w-0 whitespace-nowrap">
-          {status?.enrolled ? enrolledNote : <p className="text-xl font-extrabold text-foreground">{formatPrice(price)}</p>}
+          {status?.enrolled && !status.isOwner ? enrolledNote : <p className="text-xl font-extrabold text-foreground">{formatPrice(price)}</p>}
         </div>
         {primaryCta(true)}
       </div>

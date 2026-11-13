@@ -144,6 +144,7 @@ describe('Học viên làm quiz (e2e)', () => {
       expect((await learn('get', '', stu, undefined, lectureId).expect(404)).body.code).toBe('QUIZ_NOT_FOUND');
       await learn('get', '', stu, undefined, randomUUID()).expect(404);
       await learn('get', '', stu, undefined, 'abc').expect(404);
+      await learn('get', '', alice).expect(200); // chủ khoá xem trước được
     },
     SLOW,
   );

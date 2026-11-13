@@ -7,6 +7,7 @@ test('toastKind: verdict accepted / duyệt = success, verdict khác / từ ch�
   assert.equal(toastKind({ type: 'verdict', data: { status: 'wrong_answer' } }), 'error');
   assert.equal(toastKind({ type: 'verdict', data: { status: 'internal_error' } }), 'error');
   assert.equal(toastKind({ type: 'qa_answer', data: {} }), 'info');
+  assert.equal(toastKind({ type: 'qa_question', data: {} }), 'info');
   assert.equal(toastKind({ type: 'course_review', data: { approved: true } }), 'success');
   assert.equal(toastKind({ type: 'course_review', data: { approved: false } }), 'error');
   assert.equal(toastKind({ type: 'instructor_application', data: { approved: true } }), 'success');
@@ -28,5 +29,5 @@ test('metaOf: loại đã khai lấy đúng, loại lạ / key prototype trả m
 
 test('typesFor: học viên chỉ thấy loại của học viên, giảng viên thấy hết', () => {
   assert.deepEqual(typesFor(false), ['verdict', 'qa_answer']);
-  assert.deepEqual(typesFor(true), ['verdict', 'qa_answer', 'course_review', 'instructor_application']);
+  assert.deepEqual(typesFor(true), ['verdict', 'qa_answer', 'qa_question', 'course_review', 'instructor_application']);
 });

@@ -4,7 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSelectedLayoutSegment } from 'next/navigation';
-import { ChevronRight, FileQuestion, Library, Lock, PanelLeftClose, PanelLeftOpen, TriangleAlert, X } from 'lucide-react';
+import { ChevronRight, FileQuestion, Library, Lock, PanelLeftClose, PanelLeftOpen, Settings2, TriangleAlert, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -258,10 +258,23 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
                 · {done}/{items.length} bài
               </span>
             </button>
-            <Link href="/my-learning" className={cn(headerBtn, 'hidden h-11 shrink-0 gap-1.5 px-2.5 text-sm font-medium sm:inline-flex')}>
-              <Library className="text-ink-muted" aria-hidden />
-              Học tập của tôi
-            </Link>
+            {outline.isOwner ? (
+              // Chủ khoá đang xem trước: lối quay lại trang quản lý thay cho "Học tập của tôi".
+              <Link
+                href={`/instructor/courses/${outline.course.id}/manage`}
+                title="Bạn đang xem khoá học như học viên"
+                aria-label="Quay lại quản lý khoá học"
+                className={cn(headerBtn, 'h-11 shrink-0 gap-1.5 px-2.5 text-sm font-medium')}
+              >
+                <Settings2 className="text-ink-muted" aria-hidden />
+                <span className="hidden sm:inline">Quay lại quản lý khoá học</span>
+              </Link>
+            ) : (
+              <Link href="/my-learning" className={cn(headerBtn, 'hidden h-11 shrink-0 gap-1.5 px-2.5 text-sm font-medium sm:inline-flex')}>
+                <Library className="text-ink-muted" aria-hidden />
+                Học tập của tôi
+              </Link>
+            )}
             {/* Bài giảng có "Bài tiếp" ở dải dưới video; quiz / bài code đặt ở đây. Chỉ đi tới, quay lại dùng mục lục. */}
             {segment !== 'lecture' && nextHref && next && (
               <Link

@@ -1,7 +1,7 @@
 // src/components/qa/qa-board.tsx — dữ liệu cho UI Hỏi đáp kiểu bình luận: tải trang, gửi lạc quan, xoá có xác nhận.
 'use client';
 
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { QaListSkeleton } from '@/components/skeletons/qa-list-skeleton';
 import {
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { apiMessage } from '@/lib/api/checkout';
+import { apiErrorCode } from '@/lib/api/learn-quiz';
 import { authClient } from '@/lib/auth-client';
 import type { Answer, QaAuthor, Question, QuestionPage } from '@/types/qa';
 import { Composer, Thread, type LocalAnswer, type LocalQuestion, type ThreadHandlers } from './qa-thread';
@@ -22,6 +23,7 @@ import { Composer, Thread, type LocalAnswer, type LocalQuestion, type ThreadHand
 // Cùng một UI cho học viên và giảng viên, khác nhau ở bộ hàm gọi API.
 export type QaApi = {
   list: (cursor?: string) => Promise<QuestionPage>;
+  get?: (questionId: string) => Promise<Question>; // mở 1 câu hỏi từ thông báo khi nó không nằm trong trang đầu
   ask?: (body: string) => Promise<Question>; // không có → ẩn ô đặt câu hỏi (trang giảng viên)
   answer: (questionId: string, body: string, replyToAnswerId?: string) => Promise<Answer>;
   removeQuestion: (questionId: string) => Promise<void>;
@@ -44,11 +46,13 @@ export function QaBoard({
   title,
   empty,
   context,
+  focus,
 }: {
   api: QaApi;
   title: string;
   empty: string;
   context?: (q: LocalQuestion) => ReactNode; // dòng "Khoá · Bài" ở trang giảng viên
+  focus?: { questionId: string; answerId?: string }; // mở từ thông báo: ghim câu hỏi, cuộn tới câu trả lời
 }) {
   const { data: session } = authClient.useSession();
   const me: QaAuthor = { id: session?.user.id ?? '', name: session?.user.name ?? '', image: session?.user.image ?? null };
@@ -62,6 +66,9 @@ export function QaBoard({
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const inflight = useRef(new Set<string>()); // chặn bấm "Thử lại" 2 lần trước khi kịp render "Đang gửi…"
+  // Câu hỏi đang mở từ thông báo; token đổi → remount Thread để mở rộng + cuộn lại.
+  const [pin, setPin] = useState<{ questionId: string; answerId?: string; token: number } | null>(null);
+  const handled = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +78,31 @@ export function QaBoard({
     );
     return () => { cancelled = true; };
   }, [api, reload]);
+
+  const openFocus = useEffectEvent(async (f: { questionId: string; answerId?: string }) => {
+    // Nhường 1 microtask: setState không chạy đồng bộ trong effect.
+    await Promise.resolve();
+    if (!items?.some((q) => q.id === f.questionId)) {
+      if (!api.get) return;
+      try {
+        const saved = await api.get(f.questionId);
+        // Ghim lên đầu; "Xem thêm câu hỏi" sau này không thêm trùng (xem more()).
+        setItems((l) => (l && !l.some((q) => q.id === saved.id) ? [fromServer(saved), ...l] : l));
+      } catch (e) {
+        toast.error(apiErrorCode(e) === 'QUESTION_NOT_FOUND' ? 'Câu hỏi này đã bị xoá' : 'Không mở được câu hỏi');
+        return;
+      }
+    }
+    setPin({ ...f, token: Date.now() });
+  });
+
+  useEffect(() => {
+    if (!focus || !items) return;
+    const token = `${focus.questionId}:${focus.answerId ?? ''}`;
+    if (handled.current === token) return;
+    handled.current = token;
+    void openFocus(focus);
+  }, [focus, items]);
 
   // Tìm theo key (ổn định qua lúc đổi id tạm → id thật). fn trả null = bỏ phần tử.
   const patchQuestion = (key: string, fn: (q: LocalQuestion) => LocalQuestion | null) =>
@@ -145,13 +177,14 @@ export function QaBoard({
         createdAt: new Date().toISOString(),
         author: me,
         isInstructor: false, // server trả giá trị thật khi gửi xong
-        replyTo: replyTarget ? { id: replyTarget.author.id, name: replyTarget.author.name } : null,
+        replyTo: replyTarget ? { id: replyTarget.author.id, name: replyTarget.author.name, answerId: replyTarget.id } : null,
         replyToAnswerId: replyTarget?.id,
         canDelete: true,
         status: 'sending',
       };
       patchQuestion(q.key, (x) => ({ ...x, answers: [...x.answers, a] }));
       void sendAnswer(q, a);
+      return a.key;
     },
     onRetry: (q, a) => void (a ? sendAnswer(q, a) : sendQuestion(q)),
     onDelete: (q, a) => {
@@ -188,7 +221,10 @@ export function QaBoard({
     setLoadingMore(true);
     try {
       const p = await api.list(cursor);
-      setItems((l) => [...(l ?? []), ...p.items.map((q) => fromServer(q))]);
+      setItems((l) => {
+        const have = new Set((l ?? []).map((q) => q.id));
+        return [...(l ?? []), ...p.items.filter((q) => !have.has(q.id)).map((q) => fromServer(q))];
+      });
       setCursor(p.nextCursor);
     } catch (e) {
       toast.error(apiMessage(e, 'Không tải thêm được câu hỏi'));
@@ -216,7 +252,13 @@ export function QaBoard({
           {items.map((q) => (
             <div key={q.key} id={q.key}>
               {context?.(q)}
-              <Thread root={q} me={me} handlers={handlers} />
+              <Thread
+                key={pin?.questionId === q.id ? pin.token : 'thread'}
+                root={q}
+                me={me}
+                handlers={handlers}
+                focus={pin?.questionId === q.id ? pin : undefined}
+              />
             </div>
           ))}
         </div>

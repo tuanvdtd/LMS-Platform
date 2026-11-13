@@ -7,6 +7,7 @@ import { isGuid, validationError } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
 import { RedisService, rateLimit } from '../infra/redis.js';
+import { ownerEnrollment } from '../learn/enrollment.js';
 import { CodeRunner, RunnerUnavailableError, type Language } from './code-runner.js';
 import { tooManyRequests } from '../common/http.js';
 import { runnerUnavailable, withRunLock } from './exercise.service.js';
@@ -217,7 +218,7 @@ export class LearnExerciseService {
   // Bài trước ghi danh (404 trước 403); 2 query song song (DB xa).
   private async load(slug: string, userId: string, itemId: string) {
     if (!isGuid(itemId)) throw exerciseNotFound();
-    const [ex, enrollment] = await Promise.all([
+    const [ex, found] = await Promise.all([
       this.prisma.exercise.findFirst({
         where: { itemId, item: { type: 'coding_exercise', isPublished: true }, course: { slug } },
         select: LEARN_SELECT,
@@ -225,6 +226,7 @@ export class LearnExerciseService {
       this.prisma.enrollment.findFirst({ where: { userId, course: { slug } }, select: { id: true } }),
     ]);
     if (!ex) throw exerciseNotFound();
+    const enrollment = found ?? (await ownerEnrollment(this.prisma, slug, userId));
     if (!enrollment) {
       throw new ForbiddenException({ statusCode: 403, code: 'NOT_ENROLLED', message: 'Bạn chưa ghi danh khoá học này' });
     }

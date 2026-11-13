@@ -19,6 +19,7 @@ export interface LearnSection {
 
 export interface LearnOutline {
   course: { id: string; slug: string; title: string };
+  isOwner: boolean; // chủ khoá đang xem trước khoá của mình
   progressPct: number;
   completedAt: string | null;
   resumeItemId: string | null;
