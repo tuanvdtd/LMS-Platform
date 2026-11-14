@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { LogOut, MessageCircle, Moon, Search, ShieldCheck, ShoppingCart, Sun, User, X } from 'lucide-react';
+import { CircleUser, LogOut, MessageCircle, Moon, Search, ShieldCheck, ShoppingCart, Sun, User, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { cn } from '@/lib/utils';
 import { authClient } from '@/lib/auth-client';
@@ -165,6 +165,10 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
                     </DropdownMenuItem>
                   ) : (
                     <>
+                      <DropdownMenuItem render={<Link href={`/u/${user.id}`} />}>
+                        <CircleUser size={15} className="text-muted-foreground" />
+                        Trang cá nhân
+                      </DropdownMenuItem>
                       {accountLinks.map(({ icon: Icon, label, to }) => (
                         <DropdownMenuItem key={to} render={<Link href={to} />}>
                           <Icon size={15} className="text-muted-foreground" />

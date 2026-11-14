@@ -206,6 +206,35 @@
   --skill-strong-bg: #052e16;
 }
 
+/* Bìa trang cá nhân /u/[id]: một dải màu đặc do người dùng chọn (COVER_TONES ở types/profile.ts), không ảnh, không gradient.
+   Như dải ink, bìa tự mang nền + chữ của nó ở cả hai theme; riêng tông "paper" đi theo theme.
+   --cover-soft: chữ phụ trên bìa (≥4.5:1 với nền). --cover-mark: chữ cái khổ lớn làm hoạ tiết, lệch nền một bậc. */
+[data-cover] {
+  --cover-bg: #0f172a;
+  --cover-fg: #f8fafc;
+  --cover-soft: #cbd5e1;
+  --cover-mark: #1e293b;
+  background-color: var(--cover-bg);
+  color: var(--cover-fg);
+}
+[data-cover='blue'] { --cover-bg: #1d4ed8; --cover-soft: #dbeafe; --cover-mark: #1e40af; }
+[data-cover='orange'] { --cover-bg: #c2410c; --cover-soft: #ffedd5; --cover-mark: #9a3412; }
+[data-cover='violet'] { --cover-bg: #5b21b6; --cover-soft: #ede9fe; --cover-mark: #4c1d95; }
+[data-cover='green'] { --cover-bg: #166534; --cover-soft: #dcfce7; --cover-mark: #14532d; }
+[data-cover='paper'] { --cover-bg: #f1f5f9; --cover-fg: #0f172a; --cover-soft: #475569; --cover-mark: #e2e8f0; }
+.dark [data-cover='ink'] { --cover-bg: #020617; --cover-mark: #0f172a; }
+.dark [data-cover='paper'] { --cover-bg: #1e293b; --cover-fg: #f1f5f9; --cover-soft: #cbd5e1; --cover-mark: #334155; }
+[data-cover] ::selection { background: var(--cover-fg); color: var(--cover-bg); }
+
+/* Chữ cái trên bìa trồi lên một lần khi mở trang. Không chạy thì chữ vẫn ở đúng chỗ. */
+@keyframes cover-mark-rise {
+  from { translate: 0 14%; opacity: 0; }
+}
+.cover-mark { animation: cover-mark-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .cover-mark { animation: none; }
+}
+
 /* Thẻ bấm được (card khoá học, ô danh mục). Hover và focus bàn phím dùng cùng một phản hồi: nhấc 2px + bóng mềm.
    Viền giữ trung tính vì viền xanh là ngôn ngữ "đã chọn" (đáp án quiz, bộ lọc đang áp). */
 @utility card-interactive {

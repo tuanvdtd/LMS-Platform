@@ -326,8 +326,29 @@ describe('Catalog công khai (e2e)', () => {
       await get(`/api/courses/${course.slug}/preview/abc`).expect(404);
     });
   });
-  describe('GET /api/instructors/:id', () => {
-    it('trả hồ sơ + khoá published, không lộ ngân hàng/email', async () => {
+  // Trang cá nhân /u/:id (module profiles) — đặt ở đây để dùng chung teacher / makeCourse.
+  describe('GET /api/users/:id + /api/me/profile', () => {
+    type Me = { id: string; cookie: string };
+    const signIn = async (): Promise<Me> => {
+      const email = `e2e-${randomUUID()}@example.com`;
+      emails.push(email);
+      const post = (path: string) =>
+        request(app.getHttpServer()).post(path).set('Origin', FE_URL).set('X-Forwarded-For', randomIp());
+      await post('/api/auth/sign-up/email').send({ name: 'Học Viên Hồ Sơ', email, password: PASSWORD }).expect(200);
+      await prisma.user.update({ where: { email }, data: { emailVerified: true } });
+      const res = await post('/api/auth/sign-in/email').send({ email, password: PASSWORD }).expect(200);
+      const cookie = (res.headers['set-cookie'] as unknown as string[]).map((c) => c.split(';')[0]).join('; ');
+      return { id: res.body.user.id as string, cookie };
+    };
+    const patch = (me: Me, body: object) =>
+      request(app.getHttpServer())
+        .patch('/api/me/profile')
+        .set('Origin', FE_URL)
+        .set('X-Forwarded-For', randomIp())
+        .set('Cookie', me.cookie)
+        .send(body);
+
+    it('giảng viên: khoá published, headline của instructor_profiles, không lộ ngân hàng/email', async () => {
       await prisma.instructorProfile.upsert({
         where: { userId: teacher.id },
         create: {
@@ -340,20 +361,93 @@ describe('Catalog công khai (e2e)', () => {
         },
         update: {},
       });
-      const pub = await makeCourse({ title: `Ins ${TOKEN}` });
+      const pub = await makeCourse({ title: `Ins ${TOKEN}`, enrollmentCount: 7 });
       await makeCourse({ title: `InsDraft ${TOKEN}`, status: 'draft' });
-      const res = await get(`/api/instructors/${teacher.id}`).expect(200);
-      expect(res.body).toMatchObject({ id: teacher.id, name: 'Giảng Viên E2E', headline: 'Kỹ sư phần mềm' });
-      const ids = res.body.courses.map((c: { id: string }) => c.id);
+      const res = await get(`/api/users/${teacher.id}`).expect(200);
+      expect(res.headers['cache-control']).toBe('public, max-age=60');
+      expect(res.body).toMatchObject({
+        id: teacher.id, name: 'Giảng Viên E2E', headline: 'Kỹ sư phần mềm', isInstructor: true, verified: true,
+        coverTone: 'ink', learningPublic: false, learning: null,
+      });
+      const ids = res.body.teaching.courses.map((c: { id: string }) => c.id);
       expect(ids).toContain(pub.id);
-      expect(res.body.courses.every((c: { title: string }) => !c.title.startsWith('InsDraft'))).toBe(true);
-      expect(JSON.stringify(res.body)).not.toMatch(/bankBin|bankAccount|0123456789|email/);
+      expect(res.body.teaching.courses.every((c: { title: string }) => !c.title.startsWith('InsDraft'))).toBe(true);
+      expect(res.body.teaching.studentCount).toBeGreaterThanOrEqual(7);
+      expect(JSON.stringify(res.body)).not.toMatch(/bankBin|bankAccount|0123456789|email|role|banned/);
     });
 
-    it('user không phải giảng viên / id lạ → 404 INSTRUCTOR_NOT_FOUND', async () => {
-      const r = await get(`/api/instructors/${student.id}`).expect(404);
-      expect(r.body.code).toBe('INSTRUCTOR_NOT_FOUND');
-      await get('/api/instructors/abc').expect(404);
+    it('học viên: có trang, mặc định ẩn phần học tập', async () => {
+      const res = await get(`/api/users/${student.id}`).expect(200);
+      expect(res.body).toMatchObject({
+        id: student.id, isInstructor: false, verified: false, teaching: null, learningPublic: false, learning: null,
+        headline: null, bio: null,
+      });
+    });
+
+    it('tự bật role instructor nhưng chưa có khoá, chưa xác minh → vẫn là học viên', async () => {
+      const wannabe = await makeUser('student,instructor');
+      const res = await get(`/api/users/${wannabe.id}`).expect(200);
+      expect(res.body).toMatchObject({ isInstructor: false, verified: false, teaching: null });
+    });
+
+    it('id sai / tài khoản nghiệp vụ / bị khoá → 404 USER_NOT_FOUND', async () => {
+      const r = await get('/api/users/abc').expect(404);
+      expect(r.body.code).toBe('USER_NOT_FOUND');
+      await get(`/api/users/${randomUUID()}`).expect(404);
+      const staff = await makeUser('admin');
+      await get(`/api/users/${staff.id}`).expect(404);
+      const banned = await makeUser('student');
+      await prisma.user.update({ where: { id: banned.id }, data: { banned: true } });
+      await get(`/api/users/${banned.id}`).expect(404);
+    });
+
+    it('PATCH cần đăng nhập, kiểm dữ liệu; bật công khai thì hiện khoá published + chứng chỉ còn hiệu lực', async () => {
+      await request(app.getHttpServer()).patch('/api/me/profile').set('Origin', FE_URL).send({ learningPublic: true }).expect(401);
+      const me = await signIn();
+      await patch(me, { bio: 'ghé https://spam.example' }).expect(400);
+      await patch(me, { coverTone: 'rainbow' }).expect(400);
+
+      const [done, doing, hidden] = await Promise.all([
+        makeCourse({ title: `Done ${TOKEN}` }),
+        makeCourse({ title: `Doing ${TOKEN}` }),
+        makeCourse({ title: `Hidden ${TOKEN}`, status: 'draft' }),
+      ]);
+      await prisma.enrollment.createMany({
+        data: [
+          { userId: me.id, courseId: done.id, progressPct: 100, completedAt: new Date() },
+          { userId: me.id, courseId: doing.id, progressPct: 40.4 },
+          { userId: me.id, courseId: hidden.id, progressPct: 10 },
+        ],
+      });
+      await prisma.certificate.createMany({
+        data: [
+          { userId: me.id, courseId: done.id, serialNo: `E2E${randomUUID().slice(0, 7)}` },
+          { userId: me.id, courseId: doing.id, serialNo: `E2E${randomUUID().slice(0, 7)}`, revokedAt: new Date() },
+        ],
+      });
+
+      // Chưa bật: server không trả gì về học tập.
+      const before = await get(`/api/users/${me.id}`).expect(200);
+      expect(before.body.learning).toBeNull();
+      expect(JSON.stringify(before.body)).not.toContain(TOKEN);
+
+      const saved = await patch(me, { headline: '  Sinh viên CNTT ', bio: '', coverTone: 'violet', learningPublic: true }).expect(200);
+      expect(saved.body).toEqual({
+        headline: 'Sinh viên CNTT', bio: null, coverTone: 'violet', learningPublic: true, hasInstructorProfile: false,
+      });
+
+      const { body } = await get(`/api/users/${me.id}`).expect(200);
+      expect(body).toMatchObject({ headline: 'Sinh viên CNTT', coverTone: 'violet', learningPublic: true, teaching: null });
+      expect(body.learning.completed.map((c: { slug: string }) => c.slug)).toEqual([done.slug]);
+      expect(body.learning.inProgress).toEqual([
+        { slug: doing.slug, title: doing.title, thumbnailUrl: doing.thumbnailUrl, instructorName: 'Giảng Viên E2E', progressPct: 40 },
+      ]);
+      expect(body.learning.certificates.map((c: { courseSlug: string }) => c.courseSlug)).toEqual([done.slug]);
+      expect(body.learning.skills).toEqual([]);
+
+      // Tắt lại → ẩn ngay ở API.
+      await patch(me, { learningPublic: false }).expect(200);
+      expect((await get(`/api/users/${me.id}`).expect(200)).body.learning).toBeNull();
     });
   });
 });

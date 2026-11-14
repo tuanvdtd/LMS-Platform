@@ -68,6 +68,7 @@ model User {
   accounts Account[]
 
   instructorProfile     InstructorProfile?
+  profile               UserProfile?
   application           InstructorApplication?  @relation("applicant")
   applicationsReviewed  InstructorApplication[] @relation("applicationReviewer")
   courses               Course[]                @relation("courseInstructor")
@@ -212,6 +213,22 @@ model InstructorProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("instructor_profiles")
+}
+
+// Hồ sơ công khai /u/:id của mọi người dùng. Không có dòng = mọi giá trị mặc định.
+// Tách khỏi bảng user: bảng đó do Better Auth quản, cột nào thêm vào cũng lọt vào session.
+// Giảng viên cao cấp: headline/bio hiển thị lấy từ instructor_profiles (đã qua duyệt đơn), bỏ qua 2 cột ở đây.
+model UserProfile {
+  userId         String   @id @db.Uuid
+  headline       String?
+  bio            String?
+  coverTone      String   @default("ink") // COVER_TONES ở profiles.schemas.ts
+  learningPublic Boolean  @default(false) // false: /u/:id không trả khoá đang học, chứng chỉ, điểm kỹ năng
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
 }
 
 // Lịch sử gửi duyệt — một khoá có thể gửi lại nhiều lần sau khi bị từ chối.

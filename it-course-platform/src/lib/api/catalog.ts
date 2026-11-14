@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
-import type { CatalogParams, CourseDetail, CourseList, CurriculumSection, PublicInstructor } from '@/types/catalog';
+import type { CatalogParams, CourseDetail, CourseList, CurriculumSection } from '@/types/catalog';
+import type { PublicProfile } from '@/types/profile';
 
 const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 export const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build';
@@ -43,7 +44,8 @@ export async function learnItemMetadata(slug: string, itemId: string, fallback: 
   return { title: item && course ? `${item.title} · ${course.title} | SkillPath` : fallback };
 }
 
-export async function getInstructor(id: string) {
-  return fetchJson<PublicInstructor>(`/instructors/${encodeURIComponent(id)}`);
+// Trang cá nhân /u/[id]. Cache 60s như catalog: đổi ở Cài đặt có thể trễ tối đa 1 phút.
+export async function getProfile(id: string) {
+  return fetchJson<PublicProfile>(`/users/${encodeURIComponent(id)}`);
 }
 

@@ -214,39 +214,6 @@ export class CatalogService {
     return { url: await videoUrl(this.storage, v) };
   }
 
-  async instructor(id: string) {
-    const notFound = () =>
-      new NotFoundException({ statusCode: 404, code: 'INSTRUCTOR_NOT_FOUND', message: 'Không tìm thấy giảng viên' });
-    if (!isGuid(id)) throw notFound();
-    // role dạng "student,instructor". Select liệt kê trường: KHÔNG lấy bank*/email.
-    const u = await this.prisma.user.findFirst({
-      where: { id, role: { contains: 'instructor' } },
-      select: {
-        id: true,
-        name: true,
-        image: true,
-        instructorProfile: { select: { headline: true, bio: true, website: true, socials: true } },
-      },
-    });
-    if (!u) throw notFound();
-    const rows = await this.prisma.course.findMany({
-      where: { instructorId: id, status: 'published' },
-      select: CARD_SELECT,
-      orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
-    });
-    const p = u.instructorProfile;
-    return {
-      id: u.id,
-      name: u.name,
-      image: u.image,
-      headline: p?.headline ?? null,
-      bio: p?.bio ?? null,
-      website: p?.website ?? null,
-      socials: p?.socials ?? {},
-      courses: await this.toCards(rows),
-    };
-  }
-
   // Trang chi tiết đọc ?couponCode= từ client — không nhét vào detail vì detail được cache theo slug.
   async coupon(slug: string, code: string) {
     const course = await this.prisma.course.findFirst({ where: { slug, status: 'published' }, select: { id: true } });
