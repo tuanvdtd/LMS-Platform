@@ -1,29 +1,30 @@
 import { isProfileVisible, shapeIdentity } from './public-profile.js';
 
 describe('shapeIdentity', () => {
-  const own = { headline: 'Sinh viên', bio: 'Tự học', coverTone: 'green' };
+  const own = {
+    headline: 'Kỹ sư', bio: 'Mười năm', coverTone: 'green', website: 'https://a.dev', socials: { github: 'https://github.com/a' },
+  };
 
   it('chưa có dòng nào → mặc định', () => {
-    expect(shapeIdentity(null, null)).toEqual({
+    expect(shapeIdentity(null, false)).toEqual({
       headline: null, bio: null, coverTone: 'ink', website: null, socials: {}, verified: false,
     });
   });
 
-  it('học viên: lấy từ user_profiles', () => {
-    expect(shapeIdentity(own, null)).toMatchObject({ headline: 'Sinh viên', bio: 'Tự học', coverTone: 'green', verified: false });
-  });
-
-  it('giảng viên cao cấp: headline/bio/link của instructor_profiles thắng, tông bìa vẫn của người dùng', () => {
-    const ins = { headline: 'Kỹ sư', bio: 'Mười năm', website: 'https://a.dev', socials: { github: 'https://github.com/a' } };
-    expect(shapeIdentity(own, ins)).toEqual({
+  it('giảng viên đã xác minh: một bộ duy nhất từ user_profiles, kèm liên kết', () => {
+    expect(shapeIdentity(own, true)).toEqual({
       headline: 'Kỹ sư', bio: 'Mười năm', coverTone: 'green', website: 'https://a.dev',
       socials: { github: 'https://github.com/a' }, verified: true,
     });
   });
 
+  it('chưa xác minh: vẫn có chức danh/giới thiệu nhưng không lộ liên kết', () => {
+    expect(shapeIdentity(own, false)).toMatchObject({ headline: 'Kỹ sư', bio: 'Mười năm', website: null, socials: {}, verified: false });
+  });
+
   it('tông bìa lạ trong DB → ink; socials không phải object → {}', () => {
-    expect(shapeIdentity({ ...own, coverTone: 'x' }, null).coverTone).toBe('ink');
-    expect(shapeIdentity(null, { headline: null, bio: null, website: null, socials: 'oops' }).socials).toEqual({});
+    expect(shapeIdentity({ ...own, coverTone: 'x' }, true).coverTone).toBe('ink');
+    expect(shapeIdentity({ ...own, socials: 'oops' }, true).socials).toEqual({});
   });
 });
 

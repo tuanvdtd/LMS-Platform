@@ -12,6 +12,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "dev": "nest start --watch --exec \"node --import ./dist/instrument.js\"",
+    "dev:local": "nest start --watch --exec \"node --env-file=.env.local --import ./dist/instrument.js\"",
     "dev:tunnel": "PORT=4000 FE_URL=https://learn.tuandt.me BETTER_AUTH_URL=https://api-learn.tuandt.me COOKIE_DOMAIN=.tuandt.me pnpm run dev",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node --enable-source-maps --import ./dist/instrument.js dist/main",

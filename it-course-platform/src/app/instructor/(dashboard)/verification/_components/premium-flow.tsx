@@ -214,7 +214,7 @@ function Approved() {
         <ShieldCheck className="size-8" aria-hidden />
       </div>
       <h1 className="text-2xl font-extrabold">Bạn là giảng viên cao cấp</h1>
-      <p className="text-sm text-muted-foreground">Bạn có thể đặt giá trả phí cho khoá học. Thông tin nhận tiền sửa ở trang Hồ sơ.</p>
+      <p className="text-sm text-muted-foreground">Bạn có thể đặt giá trả phí cho khoá học. Thông tin nhận tiền sửa ở trang Tài khoản nhận tiền.</p>
       <div className="flex flex-wrap justify-center gap-2">
         <Link href="/instructor/courses" className={buttonVariants()}>
           Về khoá học của tôi

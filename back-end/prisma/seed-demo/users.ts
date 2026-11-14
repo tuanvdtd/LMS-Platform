@@ -34,9 +34,15 @@ export async function writeUsers(
     });
     await tx.instructorProfile.createMany({
       data: rows.filter((r) => r.u.profile).map(({ u, id, verifiedAt }) => ({
-        userId: id, headline: u.profile!.headline, bio: u.profile!.bio, website: u.profile!.website, socials: u.profile!.socials,
+        userId: id,
         bankBin: u.profile!.bank.bin, bankAccountNo: u.profile!.bank.accountNo, bankAccountName: u.profile!.bank.accountName,
         verifiedAt: verifiedAt!,
+      })),
+    });
+    await tx.userProfile.createMany({
+      data: rows.filter((r) => r.u.profile).map(({ u, id, verifiedAt }) => ({
+        userId: id, headline: u.profile!.headline, bio: u.profile!.bio, website: u.profile!.website, socials: u.profile!.socials,
+        updatedAt: verifiedAt!,
       })),
     });
     await tx.userTargetTopic.createMany({

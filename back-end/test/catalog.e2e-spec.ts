@@ -348,13 +348,16 @@ describe('Catalog công khai (e2e)', () => {
         .set('Cookie', me.cookie)
         .send(body);
 
-    it('giảng viên: khoá published, headline của instructor_profiles, không lộ ngân hàng/email', async () => {
+    it('giảng viên: khoá published, headline của user_profiles, không lộ ngân hàng/email', async () => {
+      await prisma.userProfile.upsert({
+        where: { userId: teacher.id },
+        create: { userId: teacher.id, headline: 'Kỹ sư phần mềm', bio: 'Bio' },
+        update: { headline: 'Kỹ sư phần mềm', bio: 'Bio' },
+      });
       await prisma.instructorProfile.upsert({
         where: { userId: teacher.id },
         create: {
           userId: teacher.id,
-          headline: 'Kỹ sư phần mềm',
-          bio: 'Bio',
           bankBin: '970436',
           bankAccountNo: '0123456789',
           bankAccountName: 'NGUYEN VAN A',

@@ -91,7 +91,7 @@ export default function InstructorHeader() {
                 <DropdownMenuGroup>
                   <DropdownMenuItem render={<Link href="/instructor/profile" />}>
                     <User />
-                    Hồ sơ giảng viên
+                    Tài khoản nhận tiền
                   </DropdownMenuItem>
                   <DropdownMenuItem render={<Link href="/instructor/verification" />}>
                     <ShieldCheck />

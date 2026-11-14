@@ -23,3 +23,14 @@ describe('updateProfileSchema', () => {
     expect(parse({ learningPublic: 'yes' }).success).toBe(false);
   });
 });
+
+describe('updateProfileSchema: liên kết', () => {
+  it('ô trống → null / bị bỏ; chỉ nhận http(s)', () => {
+    expect(parse({ website: '' }).data).toEqual({ website: null });
+    expect(parse({ socials: { linkedin: '', github: 'https://github.com/a' } }).data).toEqual({
+      socials: { github: 'https://github.com/a' },
+    });
+    expect(parse({ website: 'javascript:alert(1)' }).success).toBe(false);
+    expect(parse({ socials: { tiktok: 'https://x.y' } }).success).toBe(false);
+  });
+});

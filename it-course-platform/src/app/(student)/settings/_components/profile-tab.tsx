@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Info } from 'lucide-react';
+import { ArrowUpRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field';
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -15,13 +15,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { apiMessage } from '@/lib/api/checkout';
 import { getMyProfile, updateMyProfile } from '@/lib/api/profile';
 import { authClient } from '@/lib/auth-client';
-import { cn } from '@/lib/utils';
 import { COVER_TONE_LABEL, COVER_TONES, type MyProfile } from '@/types/profile';
 
 const HEADLINE_MAX = 60;
 const BIO_MAX = 2000;
+const LINKS = [
+  { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/…' },
+  { key: 'github', label: 'GitHub', placeholder: 'https://github.com/…' },
+] as const;
 
-// Tab Hồ sơ: những gì hiện trên trang cá nhân công khai /u/[id].
+// Một dòng cài đặt: tiêu đề + giải thích bên trái, ô nhập bên phải; trên mobile xếp dọc.
+function Row({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-x-10 gap-y-3 border-b py-6 md:grid-cols-[15rem_minmax(0,1fr)]">
+      <div>
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        {hint && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
+      </div>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
+// Tab Hồ sơ: nơi duy nhất sửa những gì hiện trên trang cá nhân /u/[id], cho cả học viên lẫn giảng viên.
 // Tên và ảnh lấy từ tài khoản (đổi qua đơn giảng viên), ở đây chỉ hiển thị.
 export function ProfileTab() {
   const { data: session } = authClient.useSession();
@@ -44,15 +60,15 @@ export function ProfileTab() {
   if (!form || !user) return <ProfileTabSkeleton />;
 
   const set = (patch: Partial<MyProfile>) => setForm((f) => (f ? { ...f, ...patch } : f));
-  const initial = user.name.trim().charAt(0).toUpperCase() || '?';
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
     setSaving(true);
     try {
-      const { headline, bio, coverTone, learningPublic } = form;
-      setForm(await updateMyProfile({ headline, bio, coverTone, learningPublic }));
+      const { verified, website, socials, ...own } = form;
+      // Liên kết chỉ gửi khi đã xác minh: server từ chối (403) nếu tài khoản thường gửi.
+      setForm(await updateMyProfile(verified ? { ...own, website, socials } : own));
       toast.success('Đã lưu hồ sơ', { description: 'Trang cá nhân cập nhật sau tối đa 1 phút.' });
     } catch (err) {
       toast.error(apiMessage(err));
@@ -62,41 +78,33 @@ export function ProfileTab() {
   }
 
   return (
-    <form onSubmit={save} className="flex flex-col gap-8">
-      {/* Xem trước bìa: đúng dải màu và chữ cái sẽ hiện trên trang cá nhân. */}
-      <div data-cover={form.coverTone} className="relative isolate flex items-center gap-4 overflow-hidden rounded-2xl p-5">
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -right-2 -bottom-10 -z-10 text-[11rem] leading-none font-extrabold text-(--cover-mark) select-none"
-        >
-          {initial}
-        </span>
-        <Avatar className="size-16 rounded-xl after:rounded-xl after:border-(--cover-fg)/25 after:mix-blend-normal dark:after:mix-blend-normal">
-          {user.image && <AvatarImage src={user.image} alt="" className="rounded-xl" />}
-          <AvatarFallback className="rounded-xl bg-(--cover-mark) text-2xl font-extrabold text-(--cover-fg)">{initial}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xl font-extrabold">{user.name}</p>
-          <p className="truncate text-sm text-(--cover-soft)">{user.email}</p>
+    <form onSubmit={save}>
+      {/* Xem trước: đúng dải bìa và khối tên sẽ hiện trên trang cá nhân, đổi ngay khi chọn màu / gõ chức danh. */}
+      <div className="overflow-hidden rounded-xl border">
+        <div data-cover={form.coverTone} className="h-20" />
+        <div className="flex flex-wrap items-end gap-x-4 gap-y-3 px-5 pb-5">
+          <Avatar className="-mt-8 size-20 ring-4 ring-background">
+            {user.image && <AvatarImage src={user.image} alt="" />}
+            <AvatarFallback className="bg-secondary text-2xl font-extrabold text-secondary-foreground">
+              {user.name.trim().charAt(0).toUpperCase() || '?'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1 basis-40">
+            <p className="truncate text-lg font-extrabold text-foreground">{user.name}</p>
+            <p className="truncate text-sm text-muted-foreground">{form.headline || 'Chưa có chức danh'}</p>
+          </div>
+          <Link href={`/u/${user.id}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            Xem trang cá nhân
+            <ArrowUpRight data-icon="inline-end" />
+          </Link>
         </div>
-        <Link
-          href={`/u/${user.id}`}
-          className={cn(
-            buttonVariants({ variant: 'outline', size: 'sm' }),
-            'shrink-0 border-(--cover-fg)/40 bg-transparent text-(--cover-fg) hover:bg-(--cover-fg)/10 hover:text-(--cover-fg)',
-          )}
-        >
-          Xem trang cá nhân
-          <ArrowUpRight data-icon="inline-end" />
-        </Link>
       </div>
 
-      <FieldGroup>
-        <FieldSet>
-          <FieldLegend variant="label">Tông bìa</FieldLegend>
-          <div className="flex flex-wrap gap-2.5">
+      <div className="mt-2">
+        <Row title="Màu bìa" hint="Dải màu trên đầu trang cá nhân.">
+          <div role="radiogroup" aria-label="Màu bìa" className="flex flex-wrap gap-3">
             {COVER_TONES.map((tone) => (
-              <label key={tone} className="group relative cursor-pointer">
+              <label key={tone} className="cursor-pointer">
                 <input
                   type="radio"
                   name="coverTone"
@@ -107,24 +115,19 @@ export function ProfileTab() {
                 />
                 <span
                   data-cover={tone}
-                  className="flex h-11 w-24 items-center justify-center rounded-lg border text-sm font-semibold ring-offset-2 ring-offset-background transition-shadow peer-checked:ring-2 peer-checked:ring-foreground peer-focus-visible:ring-3 peer-focus-visible:ring-ring/60"
+                  title={COVER_TONE_LABEL[tone]}
+                  className="flex size-9 items-center justify-center rounded-full border ring-offset-2 ring-offset-background transition-shadow peer-checked:ring-2 peer-checked:ring-foreground peer-focus-visible:ring-3 peer-focus-visible:ring-ring/60"
                 >
-                  {COVER_TONE_LABEL[tone]}
+                  {form.coverTone === tone && <Check className="size-4" aria-hidden />}
+                  <span className="sr-only">{COVER_TONE_LABEL[tone]}</span>
                 </span>
               </label>
             ))}
           </div>
-        </FieldSet>
+        </Row>
 
-        {form.hasInstructorProfile ? (
-          <Alert>
-            <Info />
-            <AlertDescription>
-              Chức danh và phần giới thiệu trên trang cá nhân lấy từ hồ sơ giảng viên đã được duyệt của bạn.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <>
+        <Row title="Chức danh và giới thiệu" hint="Hiện ngay dưới tên bạn và ở đầu trang cá nhân.">
+          <FieldGroup>
             <Field>
               <FieldLabel htmlFor="headline">Chức danh</FieldLabel>
               <Input
@@ -132,9 +135,9 @@ export function ProfileTab() {
                 value={form.headline ?? ''}
                 onChange={(e) => set({ headline: e.target.value })}
                 maxLength={HEADLINE_MAX}
-                placeholder="Ví dụ: Sinh viên CNTT năm 3, đang học front-end"
+                placeholder="Ví dụ: Frontend Engineer · React và TypeScript"
               />
-              <FieldDescription>Một dòng ngay dưới tên bạn. Tối đa {HEADLINE_MAX} ký tự.</FieldDescription>
+              <FieldDescription>Tối đa {HEADLINE_MAX} ký tự.</FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="bio">Giới thiệu</FieldLabel>
@@ -143,46 +146,69 @@ export function ProfileTab() {
                 value={form.bio ?? ''}
                 onChange={(e) => set({ bio: e.target.value })}
                 maxLength={BIO_MAX}
-                rows={5}
-                className="min-h-32"
+                rows={6}
+                className="min-h-36"
               />
               <FieldDescription className="flex justify-between gap-4">
-                <span>Bạn đang học gì, làm gì, muốn đi tới đâu. Không chèn link.</span>
+                <span>Bạn đang làm gì, dạy gì, học gì. Không chèn link.</span>
                 <span className="shrink-0 tabular-nums">
                   {(form.bio ?? '').length}/{BIO_MAX}
                 </span>
               </FieldDescription>
             </Field>
-          </>
-        )}
+          </FieldGroup>
+        </Row>
 
-        <Field orientation="horizontal" className="rounded-xl border p-4">
-          <FieldContent>
-            <FieldLabel htmlFor="learningPublic">Công khai phần học tập</FieldLabel>
-            <FieldDescription>
-              Khi bật, ai mở trang cá nhân của bạn cũng thấy khoá đang học, khoá đã hoàn thành, chứng chỉ và điểm kỹ năng.
-              Khi tắt, họ chỉ thấy tên, chức danh và phần giới thiệu.
-            </FieldDescription>
-          </FieldContent>
-          <Switch
-            id="learningPublic"
-            checked={form.learningPublic}
-            onCheckedChange={(v) => set({ learningPublic: v })}
-          />
-        </Field>
+        <Row title="Liên kết" hint="Hiện cạnh tên bạn. Chỉ nhận địa chỉ http hoặc https.">
+          {form.verified ? (
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="website">Website</FieldLabel>
+                <Input id="website" type="url" value={form.website ?? ''} onChange={(e) => set({ website: e.target.value })} placeholder="https://" />
+              </Field>
+              {LINKS.map((l) => (
+                <Field key={l.key}>
+                  <FieldLabel htmlFor={l.key}>{l.label}</FieldLabel>
+                  <Input
+                    id={l.key}
+                    type="url"
+                    value={form.socials[l.key] ?? ''}
+                    onChange={(e) => set({ socials: { ...form.socials, [l.key]: e.target.value } })}
+                    placeholder={l.placeholder}
+                  />
+                </Field>
+              ))}
+            </FieldGroup>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Website và mạng xã hội chỉ dành cho giảng viên đã xác minh.{' '}
+              <Link href="/instructor/verification" className="font-semibold text-primary hover:underline">
+                Đăng ký giảng viên cao cấp
+              </Link>
+            </p>
+          )}
+        </Row>
 
-        <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
-          <div>
-            <p className="text-sm font-medium text-foreground">Sở thích học tập</p>
-            <p className="text-sm text-muted-foreground">Nghề, kỹ năng quan tâm và trình độ, dùng để gợi ý khoá học.</p>
-          </div>
+        <Row title="Quyền riêng tư" hint="Mặc định phần học tập chỉ mình bạn thấy.">
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="learningPublic">Công khai phần học tập</FieldLabel>
+              <FieldDescription>
+                Khi bật, ai mở trang cá nhân của bạn cũng thấy khoá đang học, khoá đã hoàn thành, chứng chỉ và điểm kỹ năng.
+              </FieldDescription>
+            </FieldContent>
+            <Switch id="learningPublic" checked={form.learningPublic} onCheckedChange={(v) => set({ learningPublic: v })} />
+          </Field>
+        </Row>
+
+        <Row title="Sở thích học tập" hint="Nghề, kỹ năng quan tâm và trình độ, dùng để gợi ý khoá học.">
           <Link href="/onboarding" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
             Chỉnh sửa
           </Link>
-        </div>
-      </FieldGroup>
+        </Row>
+      </div>
 
-      <div>
+      <div className="sticky bottom-0 flex justify-end bg-background py-4">
         <Button type="submit" disabled={saving} aria-busy={saving}>
           {saving ? 'Đang lưu…' : 'Lưu thay đổi'}
         </Button>
@@ -193,17 +219,15 @@ export function ProfileTab() {
 
 function ProfileTabSkeleton() {
   return (
-    <div className="flex flex-col gap-8" role="status" aria-busy="true" aria-label="Đang tải hồ sơ">
-      <Skeleton className="h-[6.5rem] rounded-2xl" />
-      <div className="flex flex-col gap-5">
-        <div className="flex gap-2.5">
-          {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-11 w-24 rounded-lg" />
-          ))}
-        </div>
-        <Skeleton className="h-9 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-24 w-full rounded-xl" />
+    <div role="status" aria-busy="true" aria-label="Đang tải hồ sơ">
+      <Skeleton className="h-[9.5rem] rounded-xl" />
+      <div className="mt-2">
+        {[9, 56, 36].map((h, i) => (
+          <div key={i} className="grid gap-x-10 gap-y-3 border-b py-6 md:grid-cols-[15rem_minmax(0,1fr)]">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="w-full" style={{ height: `${h * 0.25}rem` }} />
+          </div>
+        ))}
       </div>
     </div>
   );

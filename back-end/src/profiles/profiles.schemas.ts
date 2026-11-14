@@ -15,13 +15,24 @@ const text = (max: number) =>
     .transform((s) => s || null)
     .nullable();
 
-// PATCH /me/profile: gửi trường nào sửa trường đó.
+// Ô liên kết: trống → null, có thì phải là http(s). Chỉ giảng viên đã xác minh được gửi (service kiểm).
+const url = z
+  .union([z.literal('').transform(() => null), z.httpUrl('Link không hợp lệ').max(200, 'Tối đa 200 ký tự')])
+  .nullable();
+
+// PATCH /me/profile: gửi trường nào sửa trường đó. socials gửi là thay cả cụm; ô trống bị bỏ khỏi object.
 export const updateProfileSchema = z
   .object({
     headline: text(60),
     bio: text(2000),
     coverTone: z.enum(COVER_TONES, 'Tông bìa không hợp lệ'),
     learningPublic: z.boolean(),
+    website: url,
+    socials: z
+      .object({ linkedin: url, github: url })
+      .partial()
+      .strict()
+      .transform((s) => Object.fromEntries(Object.entries(s).filter(([, v]) => v))),
   })
   .partial()
   .strict();

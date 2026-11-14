@@ -64,11 +64,13 @@ export class InstructorApplicationsService {
 
   // Đọc DB chứ không đọc user của session: ngay sau PUT, session trong request vẫn là bản cũ.
   async view(userId: string) {
-    const [user, profile, app, { sharePct }] = await Promise.all([
+    const [user, profile, app, { sharePct }, own] = await Promise.all([
       this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true, image: true } }),
       this.prisma.instructorProfile.findUnique({ where: { userId }, select: { userId: true } }),
       this.prisma.instructorApplication.findUnique({ where: { userId } }),
       this.revenue.getSharePct(),
+      // Điền sẵn bước "Thông tin cá nhân" bằng hồ sơ đã có ở Cài đặt, để không phải gõ lại.
+      this.prisma.userProfile.findUnique({ where: { userId }, select: { headline: true, bio: true } }),
     ]);
     const done = !!profile;
     const a = done ? null : app;
@@ -77,8 +79,8 @@ export class InstructorApplicationsService {
       displayStatus: done ? ('approved' as const) : (app?.status ?? ('none' as const)),
       name: user.name,
       image: user.image,
-      headline: a?.headline ?? null,
-      bio: a?.bio ?? null,
+      headline: a?.headline ?? (done ? null : (own?.headline ?? null)),
+      bio: a?.bio ?? (done ? null : (own?.bio ?? null)),
       website: a?.website ?? null,
       socials: (a?.socials ?? {}) as Socials,
       termsAccepted: !!a?.termsAcceptedAt,
@@ -228,13 +230,21 @@ export class InstructorApplicationsService {
         });
         if (!app) throw new NotFoundException();
         if (res.count === 0) throw notPending();
+        // Nội dung đơn vừa duyệt thành hồ sơ công khai (user_profiles là nguồn duy nhất); sau này giảng viên tự sửa ở Cài đặt.
+        const identity = {
+          headline: app.headline,
+          bio: app.bio,
+          website: app.website,
+          socials: app.socials as Prisma.InputJsonValue,
+        };
+        await tx.userProfile.upsert({
+          where: { userId: app.userId },
+          create: { userId: app.userId, ...identity },
+          update: identity,
+        });
         await tx.instructorProfile.create({
           data: {
             userId: app.userId,
-            headline: app.headline,
-            bio: app.bio,
-            website: app.website,
-            socials: app.socials as Prisma.InputJsonValue,
             bankBin: app.bankBin,
             bankAccountNo: app.bankAccountNo,
             bankAccountName: app.bankAccountName,

@@ -1,56 +1,47 @@
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Khớp bố cục trang /u/[id]: dải bìa (avatar vuông + tên + chức danh), dải số liệu, rồi các mục dạng sổ.
+// Khớp bố cục trang /u/[id]: dải bìa mảnh, ảnh tròn chồng mép bìa + tên, dòng số liệu, thanh mục, rồi các mục.
 export function ProfileSkeleton() {
   return (
     <div role="status" aria-busy="true" aria-label="Đang tải trang cá nhân">
-      <div className="bg-muted">
-        <div className="mx-auto flex max-w-screen-xl flex-col gap-6 px-4 pt-10 pb-9 md:flex-row md:items-end md:gap-8 md:pt-20 md:pb-12">
-          <Skeleton className="size-24 rounded-2xl bg-border md:size-36" />
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <Skeleton className="h-10 w-72 max-w-full bg-border md:h-14" />
-            <Skeleton className="h-6 w-96 max-w-full bg-border" />
-            <Skeleton className="mt-2 h-4 w-64 max-w-full bg-border" />
+      <div className="h-28 bg-muted md:h-44" />
+
+      <div className="mx-auto max-w-5xl px-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:gap-6">
+          <Skeleton className="-mt-12 size-24 rounded-full bg-border ring-4 ring-background md:-mt-16 md:size-36" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5 md:pb-1">
+            <Skeleton className="h-9 w-72 max-w-full" />
+            <Skeleton className="h-5 w-96 max-w-full" />
           </div>
         </div>
-      </div>
 
-      <div className="border-b">
-        <div className="mx-auto flex max-w-screen-xl gap-7 px-4 py-4">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-6 w-28" />
-          <Skeleton className="hidden h-6 w-28 sm:block" />
+        <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2">
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="hidden h-4 w-28 sm:block" />
         </div>
-      </div>
 
-      <div className="mx-auto grid max-w-screen-xl gap-x-14 px-4 pt-10 pb-20 lg:grid-cols-[minmax(0,1fr)_13rem]">
-        <div className="flex flex-col gap-10">
+        <div className="mt-6 flex h-11 items-center gap-6 border-b">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-4 w-20" />
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-12 pt-8 pb-20">
           <div className="flex max-w-[68ch] flex-col gap-2.5">
-            <Skeleton className="mb-3 h-8 w-36" />
+            <Skeleton className="mb-2 h-7 w-32" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-11/12" />
             <Skeleton className="h-4 w-2/3" />
           </div>
-          <div className="border-t pt-8">
-            <Skeleton className="mb-5 h-8 w-44" />
-            <div className="divide-y border-y">
-              {Array.from({ length: 4 }, (_, i) => (
-                <div key={i} className="flex items-center gap-4 py-3.5">
-                  <Skeleton className="aspect-video w-24 shrink-0 rounded-md sm:w-28" />
-                  <div className="flex min-w-0 flex-1 flex-col gap-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3.5 w-1/3" />
-                  </div>
-                  <Skeleton className="hidden h-2 w-44 rounded-full sm:block" />
-                </div>
+          <div>
+            <Skeleton className="mb-4 h-7 w-40" />
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              {Array.from({ length: 3 }, (_, i) => (
+                <Skeleton key={i} className="aspect-[4/3] rounded-xl" />
               ))}
             </div>
           </div>
-        </div>
-        <div className="hidden flex-col gap-3 border-l pl-4 lg:flex">
-          {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-4 w-28" />
-          ))}
         </div>
       </div>
     </div>

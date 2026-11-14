@@ -48,7 +48,9 @@ export interface MyProfile {
   bio: string | null;
   coverTone: CoverTone;
   learningPublic: boolean;
-  hasInstructorProfile: boolean;
+  website: string | null;
+  socials: { linkedin?: string; github?: string };
+  verified: boolean; // giảng viên đã xác minh: được đặt website / mạng xã hội
 }
 
-export type UpdateProfilePayload = Partial<Omit<MyProfile, 'hasInstructorProfile'>>;
+export type UpdateProfilePayload = Partial<Omit<MyProfile, 'verified'>>;

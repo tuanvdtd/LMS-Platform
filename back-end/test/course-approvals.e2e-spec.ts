@@ -159,7 +159,7 @@ describe('Định giá, gửi duyệt & duyệt khoá (e2e)', () => {
   describe('giảng viên cao cấp', () => {
     // Đơn đăng ký có e2e riêng (instructor-applications); ở đây chỉ cần trạng thái "đã duyệt".
     beforeAll(async () => {
-      await prisma.instructorProfile.create({ data: { userId: teacher.id, headline: 'Senior Backend', ...BANK } });
+      await prisma.instructorProfile.create({ data: { userId: teacher.id, ...BANK } });
     });
 
     it('route cũ POST /instructor/premium đã bỏ → 404', () =>

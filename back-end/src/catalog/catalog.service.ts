@@ -132,7 +132,7 @@ export class CatalogService {
         category: { select: { slug: true, name: true, parent: { select: { slug: true, name: true } } } },
         topics: { select: { topic: { select: { slug: true, name: true } } }, orderBy: { isPrimary: 'desc' } },
         instructor: {
-          select: { id: true, name: true, image: true, instructorProfile: { select: { headline: true } } },
+          select: { id: true, name: true, image: true, profile: { select: { headline: true } } },
         },
       },
     });
@@ -147,7 +147,7 @@ export class CatalogService {
         id: instructor.id,
         name: instructor.name,
         image: instructor.image,
-        headline: instructor.instructorProfile?.headline ?? null,
+        headline: instructor.profile?.headline ?? null,
       },
     };
   }

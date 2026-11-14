@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CARD_SELECT, CatalogService } from '../catalog/catalog.service.js';
 import { isGuid } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
@@ -8,7 +8,7 @@ import { isProfileVisible, shapeIdentity } from './public-profile.js';
 
 const notFound = () =>
   new NotFoundException({ statusCode: 404, code: 'USER_NOT_FOUND', message: 'Không tìm thấy người dùng' });
-const OWN = { headline: true, bio: true, coverTone: true, learningPublic: true } as const;
+const OWN = { headline: true, bio: true, coverTone: true, learningPublic: true, website: true, socials: true } as const;
 const COURSE = { slug: true, title: true, thumbnailUrl: true, instructor: { select: { name: true } } } as const;
 
 @Injectable()
@@ -31,7 +31,7 @@ export class ProfilesService {
             role: true,
             banned: true,
             profile: { select: OWN },
-            instructorProfile: { select: { headline: true, bio: true, website: true, socials: true } },
+            instructorProfile: { select: { userId: true } },
           },
         })
       : null;
@@ -50,7 +50,7 @@ export class ProfilesService {
       image: u.image,
       joinedAt: u.createdAt.toISOString(),
       isInstructor: !!teaching,
-      ...shapeIdentity(u.profile, u.instructorProfile),
+      ...shapeIdentity(u.profile, !!u.instructorProfile),
       teaching,
       learningPublic,
       learning,
@@ -129,17 +129,23 @@ export class ProfilesService {
       this.prisma.userProfile.findUnique({ where: { userId }, select: OWN }),
       this.prisma.instructorProfile.findUnique({ where: { userId }, select: { userId: true } }),
     ]);
-    return {
-      headline: own?.headline ?? null,
-      bio: own?.bio ?? null,
-      coverTone: shapeIdentity(own, null).coverTone,
-      learningPublic: own?.learningPublic ?? false,
-      // true: headline/bio trên trang công khai lấy từ hồ sơ giảng viên, 2 ô ở Cài đặt không có tác dụng.
-      hasInstructorProfile: !!instructor,
-    };
+    // verified: giảng viên đã xác minh, được đặt website / mạng xã hội.
+    const { headline, bio, coverTone, website, socials, verified } = shapeIdentity(own, !!instructor);
+    return { headline, bio, coverTone, website, socials, verified, learningPublic: own?.learningPublic ?? false };
   }
 
   async update(userId: string, input: UpdateProfileInput) {
+    // Liên kết ra ngoài chỉ dành cho người đã qua duyệt đơn giảng viên; không thì ai cũng rải link được.
+    if (input.website !== undefined || input.socials !== undefined) {
+      const ok = await this.prisma.instructorProfile.findUnique({ where: { userId }, select: { userId: true } });
+      if (!ok) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          code: 'LINKS_REQUIRE_VERIFICATION',
+          message: 'Chỉ giảng viên đã xác minh mới thêm được liên kết',
+        });
+      }
+    }
     await this.prisma.userProfile.upsert({ where: { userId }, create: { userId, ...input }, update: input });
     return this.mine(userId);
   }
