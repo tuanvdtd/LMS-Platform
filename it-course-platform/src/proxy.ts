@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { isPrivatePath } from '@/lib/private-routes';
 import { safeRedirect } from '@/lib/safe-redirect';
 
-const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
+const AUTH_PAGES = ['/login', '/register', '/forgot-password', '/two-factor'];
 
 // Chỉ kiểm tra có cookie (lạc quan, không gọi back-end). Cookie hỏng → API trả 401, interceptor
 // lib/api/client.ts đưa về /login?redirect=. Prod cần COOKIE_DOMAIN để FE đọc được cookie do back-end set.

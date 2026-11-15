@@ -6,7 +6,8 @@ import { authClient } from '@/lib/auth-client';
 import { safeRedirect } from '@/lib/safe-redirect';
 import { NETWORK, onboardingUrl } from './auth-messages';
 
-const PROVIDERS = [
+// Dùng lại ở Cài đặt → Bảo mật (tài khoản liên kết).
+export const PROVIDERS = [
   {
     id: 'google',
     label: 'Google',
@@ -23,7 +24,7 @@ const PROVIDERS = [
   },
 ] as const;
 
-type Provider = (typeof PROVIDERS)[number];
+export type Provider = (typeof PROVIDERS)[number];
 
 export function SocialButtons({ redirect }: { redirect?: string }) {
   const [pending, setPending] = useState<Provider['id'] | null>(null);

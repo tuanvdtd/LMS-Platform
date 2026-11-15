@@ -3,6 +3,8 @@ import { SettingsView } from './_components/settings-view';
 
 export const metadata: Metadata = { title: 'Cài đặt | SkillPath' };
 
-export default function SettingsPage() {
-  return <SettingsView />;
+// Next 16: searchParams là Promise
+export default async function SettingsPage({ searchParams }: PageProps<'/settings'>) {
+  const { tab } = await searchParams;
+  return <SettingsView initialTab={Array.isArray(tab) ? tab[0] : tab} />;
 }

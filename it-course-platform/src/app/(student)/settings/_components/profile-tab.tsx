@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { SettingsRow as Row } from '@/components/shared/settings-row';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -23,19 +24,6 @@ const LINKS = [
   { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/…' },
   { key: 'github', label: 'GitHub', placeholder: 'https://github.com/…' },
 ] as const;
-
-// Một dòng cài đặt: tiêu đề + giải thích bên trái, ô nhập bên phải; trên mobile xếp dọc.
-function Row({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-x-10 gap-y-3 border-b py-6 md:grid-cols-[15rem_minmax(0,1fr)]">
-      <div>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        {hint && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
-      </div>
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
-}
 
 // Tab Hồ sơ: nơi duy nhất sửa những gì hiện trên trang cá nhân /u/[id], cho cả học viên lẫn giảng viên.
 // Tên và ảnh lấy từ tài khoản (đổi qua đơn giảng viên), ở đây chỉ hiển thị.

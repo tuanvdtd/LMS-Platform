@@ -1,28 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, Lock, User, Link2, Eye, EyeOff } from 'lucide-react';
-import { Btn } from '@/components/shared/product-ui';
+import { Bell, Lock, User } from 'lucide-react';
+import { SecuritySettings } from '@/components/security/security-settings';
 import { ProfileTab } from './profile-tab';
 
 const TABS = [
   { id: 'profile', label: 'Hồ sơ', icon: User },
   { id: 'security', label: 'Bảo mật', icon: Lock },
   { id: 'notifications', label: 'Thông báo', icon: Bell },
-  { id: 'accounts', label: 'Tài khoản liên kết', icon: Link2 },
 ];
 
-export function SettingsView() {
-  const [tab, setTab] = useState('profile');
+// initialTab lấy từ ?tab= (liên kết Google/GitHub xong quay về đúng tab Bảo mật). Đổi tab ghi lại vào URL để tải lại trang không mất chỗ.
+export function SettingsView({ initialTab }: { initialTab?: string }) {
+  const [tab, setTabState] = useState(TABS.some((t) => t.id === initialTab) ? initialTab! : 'profile');
+  const setTab = (id: string) => {
+    setTabState(id);
+    window.history.replaceState(null, '', `?tab=${id}`);
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-extrabold mb-6" style={{ color: 'var(--foreground)' }}>Cài đặt</h1>
 
-      <div className="flex gap-1 mb-8 border-b" style={{ borderColor: 'var(--border)' }}>
+      <div role="tablist" aria-label="Mục cài đặt" className="flex gap-1 mb-8 border-b" style={{ borderColor: 'var(--border)' }}>
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
+            role="tab"
+            aria-selected={tab === id}
             onClick={() => setTab(id)}
             className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors"
             style={{
@@ -37,55 +43,8 @@ export function SettingsView() {
       </div>
 
       {tab === 'profile' && <ProfileTab />}
-      {tab === 'security' && <SecurityTab />}
+      {tab === 'security' && <SecuritySettings />}
       {tab === 'notifications' && <NotificationsTab />}
-      {tab === 'accounts' && <AccountsTab />}
-    </div>
-  );
-}
-
-function SecurityTab() {
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-
-  return (
-    <div className="space-y-6">
-      <div className="border rounded-2xl p-5 space-y-4" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-        <h2 className="font-bold" style={{ color: 'var(--foreground)' }}>Đổi mật khẩu</h2>
-        {[
-          { label: 'Mật khẩu hiện tại', show: showCurrent, toggle: () => setShowCurrent((v) => !v) },
-          { label: 'Mật khẩu mới', show: showNew, toggle: () => setShowNew((v) => !v) },
-          { label: 'Xác nhận mật khẩu mới', show: showNew, toggle: () => setShowNew((v) => !v) },
-        ].map(({ label, show, toggle }) => (
-          <div key={label}>
-            <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--foreground)' }}>{label}</label>
-            <div className="relative">
-              <input
-                type={show ? 'text' : 'password'}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm outline-none pr-10"
-                style={{ borderColor: 'var(--border)', background: 'var(--background)', color: 'var(--foreground)' }}
-              />
-              <button
-                type="button"
-                onClick={toggle}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-                style={{ color: 'var(--muted-foreground)' }}
-              >
-                {show ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
-          </div>
-        ))}
-        <Btn variant="primary">Cập nhật mật khẩu</Btn>
-      </div>
-
-      <div className="border rounded-2xl p-5 space-y-3" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-        <h2 className="font-bold" style={{ color: 'var(--foreground)' }}>Xác thực hai yếu tố (2FA)</h2>
-        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-          Tăng cường bảo mật tài khoản bằng xác thực qua ứng dụng Authenticator.
-        </p>
-        <Btn variant="secondary">Bật 2FA</Btn>
-      </div>
     </div>
   );
 }
@@ -138,40 +97,6 @@ function NotificationsTab() {
               </button>
             </div>
           ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AccountsTab() {
-  const ACCOUNTS = [
-    { provider: 'Google', icon: '🔵', connected: true, email: 'khoa.nguyen@gmail.com' },
-    { provider: 'GitHub', icon: '⚫', connected: false, email: null },
-  ];
-
-  return (
-    <div className="space-y-4">
-      {ACCOUNTS.map(({ provider, icon, connected, email }) => (
-        <div
-          key={provider}
-          className="border rounded-2xl p-5 flex items-center justify-between"
-          style={{ borderColor: 'var(--border)', background: 'var(--card)' }}
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">{icon}</span>
-            <div>
-              <p className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{provider}</p>
-              {connected && email && (
-                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{email}</p>
-              )}
-            </div>
-          </div>
-          {connected ? (
-            <Btn variant="danger" size="sm">Huỷ liên kết</Btn>
-          ) : (
-            <Btn variant="secondary" size="sm">Liên kết</Btn>
-          )}
         </div>
       ))}
     </div>

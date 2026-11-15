@@ -71,7 +71,13 @@ export function LoginView({ redirect, reset, oauthError }: Props) {
     setShowReset(false);
     setUnverified(null);
     try {
-      const { error } = await authClient.signIn.email(values);
+      const { data, error } = await authClient.signIn.email(values);
+      // Tài khoản đã bật xác thực hai lớp: mật khẩu đúng nhưng chưa có phiên, sang bước nhập mã.
+      if (data && 'twoFactorRedirect' in data && data.twoFactorRedirect) {
+        setDone(true);
+        router.push(withRedirect('/two-factor', redirect));
+        return;
+      }
       if (!error) {
         setDone(true);
         router.replace(safeRedirect(redirect));

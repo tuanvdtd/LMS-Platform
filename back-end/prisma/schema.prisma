@@ -60,12 +60,16 @@ model User {
   banReason  String?
   banExpires DateTime?
 
+  // plugin twoFactor
+  twoFactorEnabled Boolean? @default(false)
+
   // additionalFields — chọn ở onboarding (PATCH /me/preferences), nuôi recommendation tầng 1
   occupation Occupation?
   level      SkillLevel?
 
-  sessions Session[]
-  accounts Account[]
+  sessions   Session[]
+  accounts   Account[]
+  twoFactors TwoFactor[]
 
   instructorProfile     InstructorProfile?
   profile               UserProfile?
@@ -147,7 +151,25 @@ model Account {
   @@map("account")
 }
 
-// Token xác minh email / đặt lại mật khẩu.
+// Plugin twoFactor: secret TOTP và mã dự phòng (đều đã mã hoá bằng BETTER_AUTH_SECRET).
+// verified = false: đã quét QR nhưng chưa nhập mã xác nhận → chưa tính là bật.
+model TwoFactor {
+  id                      String    @id @db.Uuid
+  secret                  String
+  backupCodes             String
+  verified                Boolean?  @default(true)
+  failedVerificationCount Int?      @default(0)
+  lockedUntil             DateTime?
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([secret])
+  @@map("two_factor")
+}
+
+// Token xác minh email / đặt lại mật khẩu / thiết bị tin cậy 2FA.
 model Verification {
   id         String   @id @db.Uuid
   identifier String
