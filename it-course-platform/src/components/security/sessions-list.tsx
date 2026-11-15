@@ -16,16 +16,15 @@ import { type AuthError, securityError } from './messages';
 type Session = { id: string; token: string; userAgent?: string | null; ipAddress?: string | null; createdAt: Date | string };
 type State =
   | { status: 'loading' }
-  | { status: 'error'; stale: boolean; message: string }
+  | { status: 'error'; message: string }
   | { status: 'ready'; sessions: Session[] };
 
 const ALL = 'all';
-const RELOGIN = 'relogin';
 
 async function fetchSessions(currentId: string): Promise<State> {
   try {
     const { data, error } = await authClient.listSessions();
-    if (error) return { status: 'error', stale: error.code === 'SESSION_NOT_FRESH', message: securityError(error) };
+    if (error) return { status: 'error', message: securityError(error) };
     const time = (s: Session) => new Date(s.createdAt).getTime();
     // Thiết bị này lên đầu, còn lại mới nhất trước.
     const sessions = [...(data as Session[])].sort(
@@ -33,12 +32,11 @@ async function fetchSessions(currentId: string): Promise<State> {
     );
     return { status: 'ready', sessions };
   } catch {
-    return { status: 'error', stale: false, message: NETWORK };
+    return { status: 'error', message: NETWORK };
   }
 }
 
-// Các thiết bị đang giữ phiên đăng nhập. Xem danh sách cần phiên "tươi" (đăng nhập trong 24 giờ, freshAge của Better Auth):
-// kẻ nhặt được cookie cũ không dò được thiết bị của chủ tài khoản.
+// Các thiết bị đang giữ phiên đăng nhập; đăng xuất từng thiết bị hoặc mọi thiết bị khác.
 export function SessionsList({ currentId }: { currentId: string }) {
   const [state, setState] = useState<State>({ status: 'loading' });
   const [pending, setPending] = useState<string | null>(null);
@@ -63,15 +61,6 @@ export function SessionsList({ currentId }: { currentId: string }) {
     setPending(null);
   }
 
-  // Đăng nhập lại để có phiên mới, rồi quay về đúng tab này.
-  async function signInAgain() {
-    setPending(RELOGIN);
-    await authClient.signOut().catch(() => undefined);
-    // Tải lại toàn trang như useSignOut: không giữ state của phiên cũ.
-    const back = `${window.location.pathname}?tab=security`;
-    window.location.replace(`/login?redirect=${encodeURIComponent(back)}`);
-  }
-
   if (state.status === 'loading') {
     return (
       <div role="status" aria-busy="true" aria-label="Đang tải phiên đăng nhập" className="divide-y rounded-lg border">
@@ -89,29 +78,19 @@ export function SessionsList({ currentId }: { currentId: string }) {
   }
   if (state.status === 'error') {
     return (
-      <Alert variant={state.stale ? 'default' : 'destructive'}>
+      <Alert variant="destructive">
         <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-          <span>
-            {state.stale
-              ? 'Phiên hiện tại đã quá 24 giờ. Đăng nhập lại để xem và đăng xuất các thiết bị.'
-              : state.message}
-          </span>
-          {state.stale ? (
-            <Button size="sm" variant="outline" isLoading={pending === RELOGIN} onClick={signInAgain}>
-              Đăng nhập lại
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setState({ status: 'loading' });
-                void load();
-              }}
-            >
-              Thử lại
-            </Button>
-          )}
+          <span>{state.message}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setState({ status: 'loading' });
+              void load();
+            }}
+          >
+            Thử lại
+          </Button>
         </AlertDescription>
       </Alert>
     );

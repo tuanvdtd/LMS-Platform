@@ -90,7 +90,9 @@ export function createAuth(
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
     // Redis là lớp đọc nhanh; bảng session vẫn là nguồn chính.
     secondaryStorage: redisStorage(redis),
-    session: { storeSessionInDatabase: true },
+    // freshAge 0: xem danh sách phiên và huỷ liên kết không đòi phiên mới tạo trong 24 giờ (mặc định Better Auth).
+    // Thao tác nặng (đổi mật khẩu, bật/tắt 2FA) đã hỏi lại mật khẩu; bắt đăng nhập lại chỉ cản người đang cần đá thiết bị lạ.
+    session: { storeSessionInDatabase: true, freshAge: 0 },
     advanced: {
       // Khớp UUID v7 của 40 bảng còn lại.
       database: { generateId: () => uuidv7() },

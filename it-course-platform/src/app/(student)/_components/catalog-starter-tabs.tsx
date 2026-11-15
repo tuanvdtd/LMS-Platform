@@ -30,7 +30,8 @@ export function CatalogStarterTabs({ tabs }: { tabs: { value: string; label: str
 function CourseCarousel({ items }: { items: React.ReactNode[] }) {
   const ref = useRef<HTMLUListElement>(null);
   const scroll = (dir: 1 | -1) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.9, behavior: 'smooth' });
-  const arrow = 'absolute top-1/3 z-10 hidden -translate-y-1/2 rounded-full shadow-md md:inline-flex';
+  // -mt-4.5 = nửa chiều cao nút (size-9). Không dùng -translate-y-1/2: Button đặt translate-y 1px khi nhấn, đè mất -50% làm nút nhảy.
+  const arrow = 'absolute top-1/3 z-10 -mt-4.5 hidden rounded-full shadow-md md:inline-flex';
 
   return (
     <div className="relative">

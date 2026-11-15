@@ -10,7 +10,6 @@ const MESSAGES: Record<string, string> = {
   TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE: 'Bạn nhập sai quá nhiều lần. Hãy đăng nhập lại.',
   ACCOUNT_TEMPORARILY_LOCKED: 'Bạn nhập sai quá nhiều lần. Tài khoản tạm khoá xác thực trong 15 phút.',
   INVALID_TWO_FACTOR_COOKIE: 'Phiên xác thực đã hết hạn. Hãy đăng nhập lại.',
-  SESSION_NOT_FRESH: 'Thao tác này cần phiên đăng nhập trong vòng 24 giờ. Hãy đăng nhập lại rồi thử lại.',
   FAILED_TO_UNLINK_LAST_ACCOUNT: 'Đây là cách đăng nhập duy nhất của bạn nên không huỷ liên kết được',
   STAFF_OAUTH_FORBIDDEN: 'Tài khoản nghiệp vụ chỉ đăng nhập bằng email và mật khẩu',
 };
