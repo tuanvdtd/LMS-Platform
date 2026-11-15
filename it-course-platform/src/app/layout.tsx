@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { SentryUser } from "@/components/sentry-user";
 import { NotificationSocket } from "@/components/layout/notification-socket";
 import { Toaster } from "@/components/ui/sonner";
+import { CookieConsent } from "@/components/cookie-consent";
 
 const beVietnamPro = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <NotificationSocket />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
+          <CookieConsent />
           {/* Góc trên phải, sát đỉnh màn hình (đè lên header) để gần tầm mắt; toast tự tắt / có nút đóng
               nên chỉ che chuông thông báo và menu tài khoản trong vài giây. */}
           <Toaster position="top-right" closeButton offset={{ top: 16 }} mobileOffset={{ top: 12 }} />

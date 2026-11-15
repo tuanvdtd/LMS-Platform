@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { QrCode, ShieldCheck } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { CookieSettingsButton } from '@/components/cookie-consent';
 import { categoryHref } from '@/lib/category-links';
 import type { CategoryNode } from '@/types';
 
@@ -38,7 +39,12 @@ export function SiteFooter({ categories }: { categories: CategoryNode[] }) {
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto flex w-full max-w-screen-xl flex-col gap-4 px-4 py-6 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <span>© 2026 SkillPath</span>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+            <span>© 2026 SkillPath</span>
+            <Link href="/terms" className={link}>Điều khoản sử dụng</Link>
+            <Link href="/privacy" className={link}>Chính sách bảo mật</Link>
+            <CookieSettingsButton className={link} />
+          </div>
           <ThemeToggle className="inline-flex h-9 w-fit cursor-pointer items-center gap-2 rounded-full px-3 outline-none hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/50" />
         </div>
       </div>

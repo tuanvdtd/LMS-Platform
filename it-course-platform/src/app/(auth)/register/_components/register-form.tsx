@@ -150,7 +150,14 @@ export function RegisterForm({ redirect }: { redirect?: string }) {
               aria-describedby={describedBy('acceptTerms')}
               {...register('acceptTerms')}
             />
-            <span>Tôi đồng ý với Điều khoản sử dụng và Chính sách bảo mật của SkillPath</span>
+            {/* Mở tab mới để không mất dữ liệu đang nhập trong form */}
+            <span>
+              Tôi đồng ý với{' '}
+              <Link href="/terms" target="_blank" className="font-semibold text-primary hover:underline">Điều khoản sử dụng</Link>
+              {' '}và{' '}
+              <Link href="/privacy" target="_blank" className="font-semibold text-primary hover:underline">Chính sách bảo mật</Link>
+              {' '}của SkillPath
+            </span>
           </label>
           {errors.acceptTerms && <p id="acceptTerms-error" className="mt-1 text-xs text-destructive">{errors.acceptTerms.message}</p>}
         </div>
