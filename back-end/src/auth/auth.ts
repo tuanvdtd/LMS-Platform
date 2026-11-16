@@ -183,7 +183,7 @@ export function createAuth(
       admin({ ac, roles, defaultRole: 'student', adminRoles: ['admin'] }),
       // TOTP + mã dự phòng. Chỉ chặn /sign-in/email: đăng nhập Google/GitHub dựa vào 2FA của chính provider.
       // Bật/tắt đòi mật khẩu → tài khoản chỉ có mạng xã hội phải tạo mật khẩu trước (POST /me/password).
-      twoFactor({ issuer: 'SkillPath' }),
+      twoFactor({ issuer: 'Aolumi' }),
     ],
     // /api/auth/* mount ngoài pipeline Nest và Better Auth tự catch lỗi →
     // SentryGlobalFilter không thấy. Khai báo onError thì Better Auth bỏ log

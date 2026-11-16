@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { videoRetentionData } from '@/lib/mocks/data';
 import { RetentionChart, LessonProgressChart } from './_components/engagement-charts';
 
-export const metadata: Metadata = { title: 'Hành vi học | SkillPath' };
+export const metadata: Metadata = { title: 'Hành vi học | Aolumi' };
 
 export default function AnalyticsEngagementPage() {
   return (

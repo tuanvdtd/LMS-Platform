@@ -156,7 +156,7 @@ export function RegisterForm({ redirect }: { redirect?: string }) {
               <Link href="/terms" target="_blank" className="font-semibold text-primary hover:underline">Điều khoản sử dụng</Link>
               {' '}và{' '}
               <Link href="/privacy" target="_blank" className="font-semibold text-primary hover:underline">Chính sách bảo mật</Link>
-              {' '}của SkillPath
+              {' '}của Aolumi
             </span>
           </label>
           {errors.acceptTerms && <p id="acceptTerms-error" className="mt-1 text-xs text-destructive">{errors.acceptTerms.message}</p>}

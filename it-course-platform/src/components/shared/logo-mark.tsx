@@ -1,13 +1,15 @@
 import { cn } from '@/lib/utils';
 
-// Ký hiệu SkillPath: chữ S là một tuyến đường, ga xuất phát rỗng → ga đích đặc. Màu theo currentColor.
+// Ký hiệu Aolumi: chữ "a" thường đồng thời là bong bóng lời nói (đuôi nhọn ở góc dưới trái). Màu theo currentColor.
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="56 24 144 208" aria-hidden className={cn('h-8 w-auto text-primary', className)}>
-      <g fill="currentColor" fillRule="evenodd">
-        <path d="M180.62 66.85A56 56 0 1 0 128 142A28 28 0 1 1 100 170L72 170A56 56 0 1 0 128 114A28 28 0 1 1 154.31 76.42Z" />
-        <path d="M193 86A23 23 0 1 1 147 86A23 23 0 1 1 193 86ZM179 86A9 9 0 1 0 161 86A9 9 0 1 0 179 86Z" />
-        <circle cx="86" cy="170" r="24" />
+    <svg viewBox="38 46 176 160" aria-hidden className={cn('h-8 w-auto text-primary', className)}>
+      <g fill="currentColor">
+        <path
+          fillRule="evenodd"
+          d="M118 46A80 80 0 0 1 198 126A80 80 0 0 1 118 206H38L61.43 182.57A80 80 0 0 1 118 46ZM118 90A36 36 0 1 0 118 162A36 36 0 1 0 118 90Z"
+        />
+        <rect x="170" y="46" width="44" height="160" rx="22" />
       </g>
     </svg>
   );

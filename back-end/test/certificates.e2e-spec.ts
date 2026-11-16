@@ -179,7 +179,7 @@ describe('Chứng chỉ (e2e)', () => {
       const pdf = await call('get', `/api/certificates/${serial}/pdf`).expect(200);
       expect(pdf.headers['content-type']).toBe('application/pdf');
       expect(pdf.headers['content-disposition']).toBe(`attachment; filename="chung-chi-${serial}.pdf"`);
-      for (const bad of ['SP-2222-2222-22', 'khong-phai-ma', 'SP-7K3F-92QX-M0']) {
+      for (const bad of ['AL-2222-2222-22', 'khong-phai-ma', 'AL-7K3F-92QX-M0']) {
         expect((await call('get', `/api/certificates/${bad}`).expect(404)).body.code).toBe('CERTIFICATE_NOT_FOUND');
         await call('get', `/api/certificates/${bad}/image`).expect(404);
         await call('get', `/api/certificates/${bad}/pdf`).expect(404);

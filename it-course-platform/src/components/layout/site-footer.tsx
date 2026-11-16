@@ -12,7 +12,7 @@ export function SiteFooter({ categories }: { categories: CategoryNode[] }) {
   const cols: [string, { label: string; href: string }[]][] = [
     ['Khám phá', [...categories.map((c) => ({ label: c.name, href: categoryHref(c.slug) })), { label: 'Tất cả khoá học', href: '/courses' }]],
     ['Học viên', [{ label: 'Đăng ký miễn phí', href: '/register' }, { label: 'Đăng nhập', href: '/login' }]],
-    ['Giảng viên', [{ label: 'Dạy học trên SkillPath', href: '/teach' }]],
+    ['Giảng viên', [{ label: 'Dạy học trên Aolumi', href: '/teach' }]],
   ];
   return (
     <footer className="bg-foreground text-white/70 dark:border-t dark:bg-card">
@@ -20,7 +20,7 @@ export function SiteFooter({ categories }: { categories: CategoryNode[] }) {
         <div className="col-span-2 flex flex-col gap-4">
           <Link href="/" className="flex w-fit items-center gap-2">
             <LogoMark className="text-[color-mix(in_oklab,var(--primary),white_40%)]" />
-            <span className="text-lg font-bold text-white">Skill<span className="text-[color-mix(in_oklab,var(--primary),white_40%)]">Path</span></span>
+            <span className="text-lg font-semibold text-white">aolumi</span>
           </Link>
           <p className="max-w-xs text-sm leading-relaxed">Nền tảng khoá học IT chấm bài tự động và gợi ý lộ trình theo năng lực thực tế của bạn.</p>
           <ul className="grid gap-2 text-sm">
@@ -40,7 +40,7 @@ export function SiteFooter({ categories }: { categories: CategoryNode[] }) {
       <div className="border-t border-white/10">
         <div className="mx-auto flex w-full max-w-screen-xl flex-col gap-4 px-4 py-6 text-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-            <span>© 2026 SkillPath</span>
+            <span>© 2026 Aolumi</span>
             <Link href="/terms" className={link}>Điều khoản sử dụng</Link>
             <Link href="/privacy" className={link}>Chính sách bảo mật</Link>
             <CookieSettingsButton className={link} />

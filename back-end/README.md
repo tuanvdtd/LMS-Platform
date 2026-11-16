@@ -1,4 +1,4 @@
-# SkillPath — back-end
+# Aolumi — back-end
 
 NestJS 12 + Prisma 6 + Better Auth.
 

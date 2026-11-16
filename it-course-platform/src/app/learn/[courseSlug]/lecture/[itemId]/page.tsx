@@ -5,7 +5,7 @@ import LectureView from './_components/lecture-view';
 
 export async function generateMetadata({ params }: PageProps<'/learn/[courseSlug]/lecture/[itemId]'>): Promise<Metadata> {
   const { courseSlug, itemId } = await params;
-  return learnItemMetadata(courseSlug, itemId, 'Học bài | SkillPath');
+  return learnItemMetadata(courseSlug, itemId, 'Học bài | Aolumi');
 }
 
 export default async function LecturePage({ params, searchParams }: PageProps<'/learn/[courseSlug]/lecture/[itemId]'>) {

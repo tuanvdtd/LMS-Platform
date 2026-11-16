@@ -21,7 +21,7 @@ export function GuestHero() {
             Học lập trình theo <span className="text-[color-mix(in_oklab,var(--primary),white_40%)]">năng lực thực tế</span>
           </h1>
           <p className="max-w-xl text-lg text-white/75">
-            SkillPath chấm bài trắc nghiệm và bài code tự động, rồi gợi ý bài cần ôn và khoá nên học tiếp, kèm lý do.
+            Aolumi chấm bài trắc nghiệm và bài code tự động, rồi gợi ý bài cần ôn và khoá nên học tiếp, kèm lý do.
           </p>
           <form action="/courses" role="search" className="flex w-full max-w-xl gap-2 text-foreground">
             <div className="relative flex-1">

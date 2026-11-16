@@ -20,7 +20,7 @@ const fmt = (n: number) => n.toLocaleString('vi-VN');
 
 export async function generateMetadata({ params }: PageProps<'/courses/[l1]'>): Promise<Metadata> {
   const [{ l1 }, tree] = await Promise.all([params, getCategoryTree()]);
-  return { title: `${tree.find((c) => c.slug === l1)?.name ?? 'Danh mục'} | SkillPath` };
+  return { title: `${tree.find((c) => c.slug === l1)?.name ?? 'Danh mục'} | Aolumi` };
 }
 
 // Suspense ngoài: params/searchParams là runtime data, đọc bên trong boundary để điều hướng (đổi bộ lọc) không bị chặn.

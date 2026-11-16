@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { PremiumFlow } from './_components/premium-flow';
 
-export const metadata: Metadata = { title: 'Giảng viên cao cấp | SkillPath' };
+export const metadata: Metadata = { title: 'Giảng viên cao cấp | Aolumi' };
 
 export default function InstructorVerificationPage() {
   return (

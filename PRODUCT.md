@@ -18,7 +18,7 @@ Giao diện học viên và giảng viên quan trọng ngang nhau. Giao diện a
 
 ## Product Purpose
 
-SkillPath là nền tảng thương mại khoá học IT, là sản phẩm của một **đồ án tốt nghiệp**. Nền tảng không tự cung cấp nội dung: người dùng tự đăng khoá của mình, và mọi khoá (cả free lẫn có phí) đều phải được kiểm duyệt trước khi lên catalog.
+Aolumi là nền tảng thương mại khoá học IT, là sản phẩm của một **đồ án tốt nghiệp**. Nền tảng không tự cung cấp nội dung: người dùng tự đăng khoá của mình, và mọi khoá (cả free lẫn có phí) đều phải được kiểm duyệt trước khi lên catalog.
 
 Thành công nghĩa là buổi demo trước hội đồng chạy trơn tru và thể hiện rõ phần xử lý nghiệp vụ và dữ liệu: chấm bài tự động, gợi ý cá nhân hoá dựa trên năng lực, phân tích học tập cho giảng viên. Hiện chưa có người dùng thật.
 
@@ -48,7 +48,7 @@ Ba điểm khác Udemy, cùng một cơ chế kiểm duyệt:
 
 ## Brand Commitments
 
-- Tên sản phẩm: **SkillPath**.
+- Tên sản phẩm: **Aolumi**.
 - Giọng văn: tiếng Việt, rõ ràng, trực tiếp. Lý do của mỗi gợi ý phải nói bằng con số hoặc sự kiện cụ thể của chính học viên.
 
 ## Evidence on Hand

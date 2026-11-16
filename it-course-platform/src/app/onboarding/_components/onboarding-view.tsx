@@ -46,8 +46,8 @@ export function OnboardingView() {
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
           <span className="flex items-center gap-2">
             <LogoMark />
-            <span className="text-lg font-bold">
-              Skill<span className="text-primary">Path</span>
+            <span className="text-lg font-semibold">
+              aolumi
             </span>
           </span>
           <Button variant="ghost" disabled={saving} onClick={ob.saveAndExit}>

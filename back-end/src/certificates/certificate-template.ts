@@ -200,12 +200,12 @@ export function certificateSvg(view: CertificateView, opts: { verifyBase: string
   <path d="${SCALLOP}Z" fill="url(#gold)"/><circle r="35.6" fill="#0b1226"/>
   <circle r="31.5" fill="none" stroke="url(#gold)" stroke-width="0.4"/>
   <circle r="18" fill="none" stroke="url(#gold)" stroke-width="0.4"/>
-  <text font-family="Be Vietnam Pro" font-weight="600" font-size="4.6" letter-spacing="1.32" fill="#ecd9a4"><textPath href="#sealText" startOffset="1.5">ĐÃ XÁC THỰC  •  SKILLPATH  •  VERIFIED  •</textPath></text>
+  <text font-family="Be Vietnam Pro" font-weight="600" font-size="4.6" letter-spacing="1.6" fill="#ecd9a4"><textPath href="#sealText" startOffset="1.5">ĐÃ XÁC THỰC  •  AOLUMI  •  VERIFIED  •</textPath></text>
   <path d="M-7.5 0.5 L-2.2 5.8 L8 -5.4" fill="none" stroke="url(#gold)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 
 <g font-family="Be Vietnam Pro">
-  <text x="36" y="56" font-weight="600" font-size="10.5" letter-spacing="4.2" fill="#f1e2b6">SKILLPATH</text>
+  <text x="36" y="56" font-weight="600" font-size="10.5" letter-spacing="4.2" fill="#f1e2b6">AOLUMI</text>
   <rect x="36" y="66" width="22" height="1" fill="url(#gold)"/>
   <text x="36" y="${H - 86}" font-weight="400" font-size="6" letter-spacing="2.2" fill="#8e98b8">MÃ CHỨNG CHỈ</text>
   <text x="36" y="${H - 71}" font-family="JetBrains Mono" font-size="10" letter-spacing="0.6" fill="#f6ecd0">${esc(view.serialNo)}</text>

@@ -31,7 +31,7 @@ export const HTML: SkillSeedQuestion[] = [
       { content: '`alt="logo.png"`' },
       { content: '`alt="Hình ảnh logo hình tròn màu xanh"`' },
       { content: '`alt=""`' },
-      { content: '`alt="SkillPath - về trang chủ"`', correct: true },
+      { content: '`alt="Aolumi - về trang chủ"`', correct: true },
     ],
   },
   {

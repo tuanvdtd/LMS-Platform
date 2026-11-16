@@ -4,7 +4,7 @@ import { CourseGridSkeleton } from '@/components/skeletons/course-grid-skeleton'
 import FeaturedCourses from '../_components/featured-courses';
 import { PersonalHome } from './_components/personal-home';
 
-export const metadata: Metadata = { title: 'Trang chủ | SkillPath' };
+export const metadata: Metadata = { title: 'Trang chủ | Aolumi' };
 
 // Trang chủ người đã đăng nhập. proxy.ts rewrite '/' → '/home' khi có cookie session, nên trang '/' của khách
 // không phải đọc cookie và render tĩnh được. Phần cá nhân hoá tải ở client (cần cookie phiên).

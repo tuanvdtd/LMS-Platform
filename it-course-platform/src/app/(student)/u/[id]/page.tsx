@@ -7,8 +7,8 @@ import { ProfileView } from './_components/profile-view';
 
 export async function generateMetadata({ params }: PageProps<'/u/[id]'>): Promise<Metadata> {
   const p = await getProfile((await params).id);
-  if (!p) return { title: 'Không tìm thấy người dùng | SkillPath' };
-  return { title: `${p.name} | SkillPath`, description: p.headline ?? `Trang cá nhân của ${p.name} trên SkillPath` };
+  if (!p) return { title: 'Không tìm thấy người dùng | Aolumi' };
+  return { title: `${p.name} | Aolumi`, description: p.headline ?? `Trang cá nhân của ${p.name} trên Aolumi` };
 }
 
 // Trang cá nhân công khai của mọi người dùng; giảng viên có thêm phần giảng dạy.

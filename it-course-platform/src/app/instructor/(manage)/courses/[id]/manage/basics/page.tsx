@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getCategoryTree } from '@/lib/api/categories';
 import { BasicsForm } from '../_components/basics-form';
 
-export const metadata: Metadata = { title: 'Trang tổng quan | SkillPath' };
+export const metadata: Metadata = { title: 'Trang tổng quan | Aolumi' };
 
 // Server component: cây danh mục lấy qua getCategoryTree (fetch cache 60s) có sẵn,
 // truyền xuống CategoryPicker bằng props. Dữ liệu khoá lấy từ CourseProvider (client).

@@ -30,7 +30,7 @@ export function CookieConsent() {
       <div className="pointer-events-auto mx-auto flex w-full max-w-4xl flex-col gap-4 rounded-xl border bg-card p-4 text-card-foreground shadow-xl sm:flex-row sm:items-center sm:gap-5 sm:p-5">
         <Cookie className="hidden size-6 shrink-0 text-primary sm:block" aria-hidden />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h2 className="text-sm font-bold">SkillPath dùng cookie</h2>
+          <h2 className="text-sm font-bold">Aolumi dùng cookie</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Cookie thiết yếu giữ phiên đăng nhập và luôn bật. Công cụ chẩn đoán lỗi chỉ chạy khi bạn đồng ý.{' '}
             <Link href="/privacy#cookie" className="font-semibold text-primary underline-offset-4 hover:underline">

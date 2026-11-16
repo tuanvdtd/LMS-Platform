@@ -8,8 +8,8 @@ import CourseDetailView from './_components/course-detail-view';
 export async function generateMetadata({ params }: PageProps<'/course/[slug]'>): Promise<Metadata> {
   const course = await getCourse((await params).slug);
   return course
-    ? { title: `${course.title} | SkillPath`, description: course.subtitle ?? undefined }
-    : { title: 'Không tìm thấy khoá học | SkillPath' };
+    ? { title: `${course.title} | Aolumi`, description: course.subtitle ?? undefined }
+    : { title: 'Không tìm thấy khoá học | Aolumi' };
 }
 
 // params là runtime data: await bên trong Suspense để điều hướng client không bị chặn.

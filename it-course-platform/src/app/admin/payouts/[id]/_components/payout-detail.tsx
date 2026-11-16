@@ -94,7 +94,7 @@ export function PayoutDetail() {
           <dt className="text-muted-foreground">Chủ tài khoản</dt>
           <dd>{payout.bankAccountName}</dd>
           <dt className="text-muted-foreground">Nội dung CK</dt>
-          <dd className="font-mono">SKILLPATH {payout.period}</dd>
+          <dd className="font-mono">AOLUMI {payout.period}</dd>
           {payout.status === 'paid' && (
             <>
               <dt className="text-muted-foreground">Ngày trả</dt>

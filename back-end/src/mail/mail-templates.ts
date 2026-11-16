@@ -1,6 +1,6 @@
 // Nội dung + khung HTML của mọi email. Hàm thuần, không đọc env → test và xem trước được mà không cần dựng app.
 // Email client (Gmail, Outlook) bỏ <style>, flexbox và SVG → bố cục bằng table + style inline,
-// hình vẽ (logo, nhà ga trên tuyến) ghép từ các ô bo tròn.
+// hình vẽ (logo, nhà ga trên thanh tiến trình) ghép từ các ô bo tròn.
 
 export interface Mail {
   subject: string;
@@ -61,12 +61,11 @@ const BLANK = 'font-size:0;line-height:0';
 const dot = (size: number, style: string, inner = '&nbsp;') =>
   `<td width="${size}" valign="middle" style="${BLANK}"><div style="width:${size}px;height:${size}px;border-radius:${size}px;box-sizing:border-box;${style}">${inner}</div></td>`;
 
-// Logo: ga xuất phát rỗng nối tới ga đích đặc, giống ký hiệu chữ S trên web.
+// Logo: chữ "a" kiêm bong bóng lời nói, giống ký hiệu trên web. Một khối xanh bo tròn bên trái,
+// góc dưới trái để nhọn làm đuôi bong bóng, lỗ tròn màu nền nằm lệch trái; cạnh phải thẳng là nét sổ của chữ "a".
 const logo = `<table ${TABLE}><tr>
-${dot(12, `border:2px solid ${C.inkBlue}`)}
-<td width="14" valign="middle" style="${BLANK}"><div style="width:14px;height:2px;background:${C.inkBlue}">&nbsp;</div></td>
-${dot(12, `background:${C.inkBlue}`)}
-<td style="padding-left:10px;font-family:${SANS};font-size:18px;font-weight:800;letter-spacing:-0.01em;color:${C.inkFg}">Skill<span style="color:${C.inkBlue}">Path</span></td>
+<td width="20" valign="middle" style="${BLANK}"><div style="width:20px;height:18px;border-radius:9px 3px 3px 0;background:${C.inkBlue}"><div style="width:8px;height:8px;margin:5px 0 0 5px;display:inline-block;border-radius:8px;background:${C.ink}">&nbsp;</div></div></td>
+<td style="padding-left:9px;font-family:${SANS};font-size:19px;font-weight:600;letter-spacing:-0.01em;color:${C.inkFg}">aolumi</td>
 </tr></table>`;
 
 function station(state: StepState): string {
@@ -168,7 +167,7 @@ ${c.expiry ? `<p style="${small};padding-top:12px">Link có hiệu lực trong <
 ${c.note ? `<p style="${small};padding-top:16px">${c.note}</p>` : ''}
 </td></tr>
 <tr><td align="center" style="padding:24px 16px 0">
-<p style="${small};font-size:12px">SkillPath · Khoá học IT chấm bài tự động, gợi ý theo năng lực thực tế</p>
+<p style="${small};font-size:12px">Aolumi · Khoá học IT chấm bài tự động, gợi ý theo năng lực thực tế</p>
 <p style="${small};font-size:12px">Đây là email tự động, vui lòng không trả lời.</p>
 </td></tr>
 </table>
@@ -180,10 +179,10 @@ ${c.note ? `<p style="${small};padding-top:16px">${c.note}</p>` : ''}
 
 export const verificationMail = (url: string) =>
   render({
-    subject: 'Xác minh email SkillPath',
+    subject: 'Xác minh email Aolumi',
     preheader: 'Còn một bước nữa là tài khoản của bạn sẵn sàng.',
     heading: 'Xác minh email để bắt đầu học',
-    body: 'Còn một bước nữa là tài khoản SkillPath của bạn sẵn sàng. Bấm nút bên dưới để xác nhận đây đúng là email của bạn.',
+    body: 'Còn một bước nữa là tài khoản Aolumi của bạn sẵn sàng. Bấm nút bên dưới để xác nhận đây đúng là email của bạn.',
     steps: [
       ['Tạo tài khoản', 'done'],
       ['Xác minh email', 'current'],
@@ -191,15 +190,15 @@ export const verificationMail = (url: string) =>
     ],
     cta: ['Xác minh email', url],
     expiry: '24 giờ',
-    note: 'Bạn không đăng ký SkillPath? Cứ bỏ qua email này, sẽ không có tài khoản nào được kích hoạt.',
+    note: 'Bạn không đăng ký Aolumi? Cứ bỏ qua email này, sẽ không có tài khoản nào được kích hoạt.',
   });
 
 export const resetPasswordMail = (url: string) =>
   render({
-    subject: 'Đặt lại mật khẩu SkillPath',
-    preheader: 'Tạo mật khẩu mới cho tài khoản SkillPath của bạn.',
+    subject: 'Đặt lại mật khẩu Aolumi',
+    preheader: 'Tạo mật khẩu mới cho tài khoản Aolumi của bạn.',
     heading: 'Đặt lại mật khẩu của bạn',
-    body: 'Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản SkillPath gắn với email này. Sau khi đổi mật khẩu, mọi thiết bị đang đăng nhập sẽ được đăng xuất.',
+    body: 'Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản Aolumi gắn với email này. Sau khi đổi mật khẩu, mọi thiết bị đang đăng nhập sẽ được đăng xuất.',
     cta: ['Đặt mật khẩu mới', url],
     expiry: '1 giờ',
     note: 'Không phải bạn yêu cầu? Cứ bỏ qua email này, mật khẩu hiện tại vẫn giữ nguyên.',
@@ -207,10 +206,10 @@ export const resetPasswordMail = (url: string) =>
 
 export const staffInviteMail = (url: string) =>
   render({
-    subject: 'Lời mời làm kiểm duyệt viên SkillPath',
-    preheader: 'Đặt mật khẩu để bắt đầu duyệt khoá học trên SkillPath.',
+    subject: 'Lời mời làm kiểm duyệt viên Aolumi',
+    preheader: 'Đặt mật khẩu để bắt đầu duyệt khoá học trên Aolumi.',
     heading: 'Bạn được mời làm kiểm duyệt viên',
-    body: 'SkillPath mời bạn tham gia đội kiểm duyệt: xem các khoá học giảng viên gửi lên và quyết định khoá nào đủ chất lượng để xuất bản. Đặt mật khẩu để kích hoạt tài khoản của bạn.',
+    body: 'Aolumi mời bạn tham gia đội kiểm duyệt: xem các khoá học giảng viên gửi lên và quyết định khoá nào đủ chất lượng để xuất bản. Đặt mật khẩu để kích hoạt tài khoản của bạn.',
     steps: [
       ['Nhận lời mời', 'done'],
       ['Đặt mật khẩu', 'current'],
@@ -233,10 +232,10 @@ export function courseReviewedMail(
     ? render({
         subject: `Khoá học "${title}" đã được duyệt`,
         preheader:
-          'Khoá học đã qua kiểm duyệt và đang hiển thị trên SkillPath.',
+          'Khoá học đã qua kiểm duyệt và đang hiển thị trên Aolumi.',
         status: ['success', 'Đã duyệt'],
         heading: 'Khoá học của bạn đã được xuất bản',
-        body: `${t} đã qua kiểm duyệt và hiện có mặt trên SkillPath. Học viên có thể tìm thấy và đăng ký ngay từ bây giờ.`,
+        body: `${t} đã qua kiểm duyệt và hiện có mặt trên Aolumi. Học viên có thể tìm thấy và đăng ký ngay từ bây giờ.`,
         steps: [
           ['Gửi duyệt', 'done'],
           ['Kiểm duyệt', 'done'],
@@ -267,7 +266,7 @@ export function instructorApplicationReviewedMail(
 ) {
   return approved
     ? render({
-        subject: 'Bạn đã là giảng viên cao cấp SkillPath',
+        subject: 'Bạn đã là giảng viên cao cấp Aolumi',
         preheader:
           'Đơn của bạn đã được duyệt. Giờ bạn có thể đặt giá cho khoá học.',
         status: ['success', 'Đã duyệt'],

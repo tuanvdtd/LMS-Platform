@@ -79,7 +79,7 @@ export function SecuritySettings() {
       </Row>
 
       {!isStaff(user) && (
-        <Row title="Tài khoản liên kết" hint="Đăng nhập nhanh bằng Google hoặc GitHub, vào cùng một tài khoản SkillPath.">
+        <Row title="Tài khoản liên kết" hint="Đăng nhập nhanh bằng Google hoặc GitHub, vào cùng một tài khoản Aolumi.">
           <LinkedAccounts accounts={accounts} onChange={loadAccounts} />
         </Row>
       )}

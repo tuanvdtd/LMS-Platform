@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { SettingsView } from './_components/settings-view';
 
-export const metadata: Metadata = { title: 'Cài đặt | SkillPath' };
+export const metadata: Metadata = { title: 'Cài đặt | Aolumi' };
 
 // Next 16: searchParams là Promise
 export default async function SettingsPage({ searchParams }: PageProps<'/settings'>) {

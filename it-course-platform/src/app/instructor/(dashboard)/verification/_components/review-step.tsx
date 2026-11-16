@@ -57,7 +57,7 @@ export function ReviewStep({ view, onSaved }: StepProps) {
       )}
       <Separator />
       <div className="flex flex-col items-start gap-3">
-        <p className="text-sm text-muted-foreground">SkillPath duyệt trong khoảng 2 ngày làm việc. Kết quả gửi qua email.</p>
+        <p className="text-sm text-muted-foreground">Aolumi duyệt trong khoảng 2 ngày làm việc. Kết quả gửi qua email.</p>
         <Button onClick={send} disabled={sending}>
           {sending ? 'Đang gửi…' : 'Gửi đơn'}
         </Button>

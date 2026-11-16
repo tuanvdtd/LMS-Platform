@@ -41,7 +41,7 @@ export async function getCurriculum(slug: string) {
 export async function learnItemMetadata(slug: string, itemId: string, fallback: string) {
   const [course, sections] = await Promise.all([getCourse(slug), getCurriculum(slug)]);
   const item = sections?.flatMap((s) => s.items).find((i) => i.id === itemId);
-  return { title: item && course ? `${item.title} · ${course.title} | SkillPath` : fallback };
+  return { title: item && course ? `${item.title} · ${course.title} | Aolumi` : fallback };
 }
 
 // Trang cá nhân /u/[id]. Cache 60s như catalog: đổi ở Cài đặt có thể trễ tối đa 1 phút.

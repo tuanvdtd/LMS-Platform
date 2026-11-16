@@ -21,7 +21,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SkillPath",
+  title: "Aolumi",
   description: "Nền tảng học lập trình theo lộ trình kỹ năng",
 };
 

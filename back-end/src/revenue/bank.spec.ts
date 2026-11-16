@@ -22,7 +22,7 @@ describe('vietQrUrl', () => {
       }),
     ).toBe(
       'https://img.vietqr.io/image/970436-0123456789-compact2.png' +
-        '?amount=350000&addInfo=SKILLPATH+2026-09&accountName=NGUYEN+VAN+A',
+        '?amount=350000&addInfo=AOLUMI+2026-09&accountName=NGUYEN+VAN+A',
     );
   });
 });

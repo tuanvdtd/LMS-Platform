@@ -149,7 +149,7 @@ export function ProfileSections({ profile: p }: { profile: PublicProfile }) {
       {l && l.skills.length > 0 && (
         <Section id="ky-nang" title="Kỹ năng" count={l.skills.length}>
           <p className="mb-5 max-w-[68ch] text-sm text-muted-foreground">
-            Điểm đo bằng bài đánh giá kỹ năng trên SkillPath, không phải tự khai.
+            Điểm đo bằng bài đánh giá kỹ năng trên Aolumi, không phải tự khai.
           </p>
           <ul className="grid gap-x-12 gap-y-5 sm:grid-cols-2">
             {/* Trang công khai: thanh một màu + con số. Không gắn nhãn Yếu / Vững hay tô đỏ lên hồ sơ của người khác. */}
