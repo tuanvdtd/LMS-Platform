@@ -87,10 +87,10 @@ export function planActivity(input: { users: PUser[]; courses: PCourse[]; shareP
     e.lastAccessedAt = done ? t : e.at;
   }
 
-  // Đánh giá: 35–40% lượt có tiến độ ≥ 30%; sao lệch về 4–5.
+  // Đánh giá: 35–40% lượt có tiến độ ≥ 50% (đúng ngưỡng học viên được đánh giá); sao lệch về 4–5.
   const reviews: { courseId: string; userId: string; rating: number; comment: string; createdAt: Date; instructorReply: string | null; instructorRepliedAt: Date | null }[] = [];
   for (const e of enrollments) {
-    if (e.progressPct < 30 || !chance(rng, 0.375)) continue;
+    if (e.progressPct < 50 || !chance(rng, 0.375)) continue;
     const rating = weighted(rng, [[5, 50], [4, 35], [3, 12], [2, 3]] as const);
     const fill = (s: string) => s.replaceAll('{tech}', e.course.label).replaceAll('{lecture}', pick(rng, e.course.lectureTitles));
     const createdAt = between(rng, e.lastAccessedAt!, minDate(latest, addMs(e.lastAccessedAt!, 14 * DAY)));

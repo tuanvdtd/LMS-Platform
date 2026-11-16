@@ -4,8 +4,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSelectedLayoutSegment } from 'next/navigation';
-import { ChevronRight, FileQuestion, Library, Lock, PanelLeftClose, PanelLeftOpen, Settings2, TriangleAlert, X } from 'lucide-react';
+import { ChevronRight, FileQuestion, Library, Lock, PanelLeftClose, PanelLeftOpen, Settings2, Star, TriangleAlert, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
+import { ReviewDialog } from '@/components/shared/review-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -13,10 +14,12 @@ import { LearnShellSkeleton } from '@/components/skeletons/learn-shell-skeleton'
 import { apiMessage } from '@/lib/api/checkout';
 import { getOutline, setLastItem } from '@/lib/api/learn';
 import { apiErrorCode } from '@/lib/api/learn-quiz';
+import { getMyReview } from '@/lib/api/reviews';
 import { useNotificationStore } from '@/lib/notification-store';
 import { usePointerFocus } from '@/lib/use-pointer-focus';
 import { cn } from '@/lib/utils';
 import type { LearnOutline } from '@/types/learn';
+import type { MyReview } from '@/types/reviews';
 import { CertificateDialog } from './certificate-dialog';
 import { CourseOutline } from './course-outline';
 import { flatItems, itemHref, neighbors } from './learn-nav';
@@ -72,6 +75,8 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<SidebarMode>('docked');
   const [docked, setDocked] = useState(readDocked);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [myReview, setMyReview] = useState<MyReview | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const pointerFocus = usePointerFocus();
 
   useEffect(() => {
@@ -82,6 +87,15 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
     );
     return () => { cancelled = true; };
   }, [courseSlug, nonce]);
+
+  // Chủ khoá xem trước không đánh giá khoá của mình → không hỏi. Lỗi thì không hiện nút.
+  const canAskReview = outline !== null && !outline.isOwner;
+  useEffect(() => {
+    if (!canAskReview) return;
+    let cancelled = false;
+    getMyReview(courseSlug).then((m) => { if (!cancelled) setMyReview(m); }, () => undefined);
+    return () => { cancelled = true; };
+  }, [canAskReview, courseSlug]);
 
   // Ghi bài đang học cho "Tiếp tục học"; lỗi bỏ qua.
   const ready = outline !== null;
@@ -270,10 +284,23 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
                 <span className="hidden sm:inline">Quay lại quản lý khoá học</span>
               </Link>
             ) : (
-              <Link href="/my-learning" className={cn(headerBtn, 'hidden h-11 shrink-0 gap-1.5 px-2.5 text-sm font-medium sm:inline-flex')}>
-                <Library className="text-ink-muted" aria-hidden />
-                Học tập của tôi
-              </Link>
+              <>
+                {myReview && (
+                  <button
+                    type="button"
+                    onClick={() => setReviewOpen(true)}
+                    aria-label={myReview.review ? 'Sửa đánh giá của bạn' : 'Đánh giá khoá học'}
+                    className={cn(headerBtn, 'h-11 shrink-0 gap-1.5 px-2.5 text-sm font-medium')}
+                  >
+                    <Star className={myReview.review ? 'fill-rating text-rating' : 'text-ink-muted'} aria-hidden />
+                    <span className="hidden sm:inline">{myReview.review ? 'Sửa đánh giá' : 'Đánh giá'}</span>
+                  </button>
+                )}
+                <Link href="/my-learning" className={cn(headerBtn, 'hidden h-11 shrink-0 gap-1.5 px-2.5 text-sm font-medium sm:inline-flex')}>
+                  <Library className="text-ink-muted" aria-hidden />
+                  Học tập của tôi
+                </Link>
+              </>
             )}
             {/* Bài giảng có "Bài tiếp" ở dải dưới video; quiz / bài code đặt ở đây. Chỉ đi tới, quay lại dùng mục lục. */}
             {segment !== 'lecture' && nextHref && next && (
@@ -316,6 +343,21 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <CertificateDialog serial={cert.open} onClose={() => setCert((c) => ({ ...c, open: null }))} />
+        {myReview && (
+          <ReviewDialog
+            courseSlug={courseSlug}
+            open={reviewOpen}
+            onOpenChange={setReviewOpen}
+            // Tiến độ lấy từ mục lục đang hiển thị: vừa qua mốc là đánh giá được, không cần tải lại trang.
+            my={{
+              ...myReview,
+              progressPct: outline.progressPct,
+              canReview: myReview.review !== null || outline.progressPct >= myReview.minProgressPct,
+            }}
+            onSaved={(review) => setMyReview((m) => m && { ...m, review, canReview: true })}
+            onDeleted={() => setMyReview((m) => m && { ...m, review: null })}
+          />
+        )}
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
           <SheetContent side="left" showCloseButton={false} className="max-w-[90vw] gap-0 p-0 data-[side=left]:w-96">
             <SheetClose

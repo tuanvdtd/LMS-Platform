@@ -10,7 +10,6 @@ import {
   FileQuestion,
   Gauge,
   Globe,
-  MessageSquare,
   RefreshCw,
   Signal,
   Users,
@@ -23,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { countItems, formatHoursMinutes, type CourseDetail, type CurriculumSection } from '@/types/catalog';
 import { formatPrice, LANGUAGE_LABEL, SKILL_LEVEL_LABEL } from '@/types/instructor-course';
 import { BuyBox } from './buy-box';
+import { CourseReviews } from './course-reviews';
 import { CurriculumAccordion } from './curriculum-accordion';
 import { PausingVideo } from '@/components/shared/pausing-video';
 
@@ -255,25 +255,7 @@ export default function CourseDetailView({ course, sections }: { course: CourseD
           </div>
         </section>
 
-        {/* Phân bố sao và danh sách đánh giá chờ API; giờ chỉ có điểm trung bình + số lượt */}
-        <section id="danh-gia">
-          <h2 className="mb-4 text-lg font-semibold text-foreground">Đánh giá của học viên</h2>
-          {course.ratingCount === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-10 text-center">
-              <MessageSquare className="size-6 text-muted-foreground" aria-hidden />
-              <p className="font-semibold text-foreground">Chưa có đánh giá nào</p>
-              <p className="max-w-sm text-sm text-muted-foreground">Học viên đầu tiên hoàn thành khoá và đánh giá sẽ hiện ở đây.</p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-4 rounded-xl border bg-card p-6">
-              <b className="text-5xl leading-none font-bold text-foreground">{course.ratingAvg.toFixed(1)}</b>
-              <div className="flex flex-col gap-1">
-                <RatingStars rating={course.ratingAvg} size="md" />
-                <span className="text-sm text-muted-foreground">{course.ratingCount.toLocaleString('vi-VN')} đánh giá</span>
-              </div>
-            </div>
-          )}
-        </section>
+        <CourseReviews slug={course.slug} />
       </div>
     </div>
   );
