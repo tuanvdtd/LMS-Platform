@@ -1,20 +1,26 @@
 import { Star, TrendingUp, TrendingDown, Minus, CheckCircle, XCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import type { CourseStatus, Verdict } from '@/types';
+import { starFills } from '@/lib/reviews';
 import { MASTERY_COLOR, MASTERY_LABEL, masteryLevel } from '@/lib/skills';
 import { Button } from '@/components/ui/button';
 
 // ─── RatingStars ──────────────────────────────────────────────────────────────
+// Sao tô theo phần lẻ: lớp sao vàng nằm trên sao viền xám và bị cắt theo bề rộng.
 export function RatingStars({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md' }) {
-  const stars = [1, 2, 3, 4, 5];
   const s = size === 'sm' ? 12 : 16;
   return (
-    <span className="flex items-center gap-0.5" aria-label={`${rating} sao`}>
-      {stars.map((i) => (
-        <Star
-          key={i}
-          size={s}
-          className={i <= Math.round(rating) ? 'fill-rating text-rating' : 'text-border'}
-        />
+    <span
+      role="img"
+      className="flex items-center gap-0.5"
+      aria-label={`${rating.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} trên 5 sao`}
+    >
+      {starFills(rating).map((fill, i) => (
+        <span key={i} className="relative inline-flex shrink-0" aria-hidden>
+          <Star size={s} className="text-border" />
+          <span className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
+            <Star size={s} className="max-w-none fill-rating text-rating" />
+          </span>
+        </span>
       ))}
     </span>
   );

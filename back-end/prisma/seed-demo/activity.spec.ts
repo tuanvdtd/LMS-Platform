@@ -49,10 +49,10 @@ describe('planActivity', () => {
       expect(!!e.completedAt).toBe(done === 6);
     }
   });
-  it('đánh giá chỉ từ lượt có tiến độ ≥ 30, 1 đánh giá mỗi user/khoá, sao 2–5', () => {
+  it('đánh giá chỉ từ lượt có tiến độ ≥ 50, 1 đánh giá mỗi user/khoá, sao 2–5', () => {
     for (const r of plan.reviews) {
       const e = plan.enrollments.find((x) => x.userId === r.userId && x.courseId === r.courseId)!;
-      expect(e.progressPct).toBeGreaterThanOrEqual(30);
+      expect(e.progressPct).toBeGreaterThanOrEqual(50);
       expect([2, 3, 4, 5]).toContain(r.rating);
       expect(r.comment).not.toMatch(/\{tech\}|\{lecture\}/);
     }
