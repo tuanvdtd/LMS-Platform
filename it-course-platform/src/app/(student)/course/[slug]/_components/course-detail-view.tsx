@@ -241,12 +241,12 @@ export default function CourseDetailView({ course, sections }: { course: CourseD
               <AvatarFallback className="text-lg">{course.instructor.name.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex min-w-0 flex-col items-start">
-              <Link href={`/instructors/${course.instructor.id}`} className={cn('rounded-sm font-semibold text-primary hover:underline', focusRing)}>
+              <Link href={`/u/${course.instructor.id}`} className={cn('rounded-sm font-semibold text-primary hover:underline', focusRing)}>
                 {course.instructor.name}
               </Link>
               {course.instructor.headline && <p className="text-sm text-muted-foreground">{course.instructor.headline}</p>}
               <Link
-                href={`/instructors/${course.instructor.id}`}
+                href={`/u/${course.instructor.id}`}
                 className={cn('mt-1 inline-flex min-h-6 items-center gap-1 rounded-sm text-sm font-medium text-primary hover:underline', focusRing)}
               >
                 Xem hồ sơ <ChevronRight className="size-3.5" aria-hidden />

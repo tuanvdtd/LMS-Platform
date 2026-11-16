@@ -132,7 +132,7 @@ export class CatalogService {
         category: { select: { slug: true, name: true, parent: { select: { slug: true, name: true } } } },
         topics: { select: { topic: { select: { slug: true, name: true } } }, orderBy: { isPrimary: 'desc' } },
         instructor: {
-          select: { id: true, name: true, image: true, instructorProfile: { select: { headline: true } } },
+          select: { id: true, name: true, image: true, profile: { select: { headline: true } } },
         },
       },
     });
@@ -147,7 +147,7 @@ export class CatalogService {
         id: instructor.id,
         name: instructor.name,
         image: instructor.image,
-        headline: instructor.instructorProfile?.headline ?? null,
+        headline: instructor.profile?.headline ?? null,
       },
     };
   }
@@ -212,39 +212,6 @@ export class CatalogService {
       throw new ForbiddenException({ statusCode: 403, code: 'PREVIEW_NOT_ALLOWED', message: 'Bài này không cho xem thử' });
     }
     return { url: await videoUrl(this.storage, v) };
-  }
-
-  async instructor(id: string) {
-    const notFound = () =>
-      new NotFoundException({ statusCode: 404, code: 'INSTRUCTOR_NOT_FOUND', message: 'Không tìm thấy giảng viên' });
-    if (!isGuid(id)) throw notFound();
-    // role dạng "student,instructor". Select liệt kê trường: KHÔNG lấy bank*/email.
-    const u = await this.prisma.user.findFirst({
-      where: { id, role: { contains: 'instructor' } },
-      select: {
-        id: true,
-        name: true,
-        image: true,
-        instructorProfile: { select: { headline: true, bio: true, website: true, socials: true } },
-      },
-    });
-    if (!u) throw notFound();
-    const rows = await this.prisma.course.findMany({
-      where: { instructorId: id, status: 'published' },
-      select: CARD_SELECT,
-      orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
-    });
-    const p = u.instructorProfile;
-    return {
-      id: u.id,
-      name: u.name,
-      image: u.image,
-      headline: p?.headline ?? null,
-      bio: p?.bio ?? null,
-      website: p?.website ?? null,
-      socials: p?.socials ?? {},
-      courses: await this.toCards(rows),
-    };
   }
 
   // Trang chi tiết đọc ?couponCode= từ client — không nhét vào detail vì detail được cache theo slug.

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { Bell, ChevronLeft, ChevronRight, LogOut, Menu, MessageCircle, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, CircleUser, LogOut, Menu, MessageCircle, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { categoryHref, topicHref } from '@/lib/category-links';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { accountLinks } from '@/components/layout/account-links';
 import { isStaff, teachHref } from '@/lib/instructor-role';
 import type { CategoryNode } from '@/types';
 
-type NavUser = { name: string; email: string; role?: string | null };
+type NavUser = { id: string; name: string; email: string; role?: string | null };
 
 // 3 màn nằm ngang trong một dải rộng 300%, trượt theo độ sâu của stack.
 const SLIDE = ['translate-x-0', '-translate-x-1/3', '-translate-x-2/3'] as const;
@@ -119,6 +119,10 @@ export function MobileNav({
                   </Link>
                 ) : (
                   <>
+                    <Link href={`/u/${user.id}`} onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
+                      <CircleUser size={15} className="text-muted-foreground" />
+                      Trang cá nhân
+                    </Link>
                     {accountLinks.map(({ icon: Icon, label, to }) => (
                       <Link key={to} href={to} onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
                         <Icon size={15} className="text-muted-foreground" />

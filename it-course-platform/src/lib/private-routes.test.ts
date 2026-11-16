@@ -14,7 +14,7 @@ test('trang riêng tư: đúng prefix và trang con', () => {
 
 test('trang công khai, kể cả path chỉ trùng phần đầu chữ', () => {
   for (const p of [
-    '/', '/courses', '/courses/development', '/course/react', '/topic/react', '/instructors/1', '/search',
+    '/', '/courses', '/courses/development', '/course/react', '/topic/react', '/instructors/1', '/u/1', '/search',
     '/teach', '/verify/ABC123', '/login', '/register', '/forgot-password', '/reset-password',
     '/learning-x', '/carts', '/instructors', '/administrator', '/homework',
   ]) {

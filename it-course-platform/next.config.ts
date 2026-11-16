@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/instructor/dashboard", destination: "/instructor", permanent: false },
+      // Hồ sơ giảng viên đã gộp vào trang cá nhân chung; giữ link cũ sống.
+      { source: "/instructors/:id", destination: "/u/:id", permanent: false },
       // Trang quản lý khoá không có nội dung riêng, mở thẳng mục đầu tiên (Mục tiêu)
       { source: "/instructor/courses/:id/manage", destination: "/instructor/courses/:id/manage/goals", permanent: false },
     ];

@@ -68,6 +68,7 @@ model User {
   accounts Account[]
 
   instructorProfile     InstructorProfile?
+  profile               UserProfile?
   application           InstructorApplication?  @relation("applicant")
   applicationsReviewed  InstructorApplication[] @relation("applicationReviewer")
   courses               Course[]                @relation("courseInstructor")
@@ -199,10 +200,6 @@ model InstructorApplication {
 // Sự tồn tại của bản ghi = "đã được xác minh". Chỉ tạo khi application approved.
 model InstructorProfile {
   userId          String   @id @db.Uuid
-  headline        String?
-  bio             String?
-  website         String?
-  socials         Json     @default("{}")
   // Thông tin nhận tiền để chi trả doanh thu. Cả 3 cùng null hoặc cùng có (CHECK sql/07).
   bankBin         String? // mã BIN VietQR, 6 số
   bankAccountNo   String?
@@ -212,6 +209,24 @@ model InstructorProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("instructor_profiles")
+}
+
+// Hồ sơ công khai /u/:id của mọi người dùng. Không có dòng = mọi giá trị mặc định.
+// Tách khỏi bảng user: bảng đó do Better Auth quản, cột nào thêm vào cũng lọt vào session.
+// Nguồn duy nhất của chức danh / giới thiệu / liên kết, kể cả giảng viên: duyệt đơn giảng viên thì chép nội dung đơn vào đây.
+model UserProfile {
+  userId         String   @id @db.Uuid
+  headline       String?
+  bio            String?
+  website        String? // chỉ giảng viên đã xác minh được đặt (chống rải link)
+  socials        Json     @default("{}") // { linkedin?, github? }
+  coverTone      String   @default("ink") // COVER_TONES ở profiles.schemas.ts
+  learningPublic Boolean  @default(false) // false: /u/:id không trả khoá đang học, chứng chỉ, điểm kỹ năng
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
 }
 
 // Lịch sử gửi duyệt — một khoá có thể gửi lại nhiều lần sau khi bị từ chối.

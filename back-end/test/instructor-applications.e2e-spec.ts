@@ -85,7 +85,7 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
       makeUser('student,instructor'),
       makeUser(),
     ]);
-    await prisma.instructorProfile.create({ data: { userId: legacy.id, headline: 'Cũ', ...BANK } });
+    await prisma.instructorProfile.create({ data: { userId: legacy.id, ...BANK } });
   }, 120_000);
 
   // Xoá user → cascade đơn + profile; reviewedById SetNull.
@@ -267,7 +267,9 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
         expect(push).toHaveBeenLastCalledWith(expect.objectContaining({ id: notes[1].id }));
 
         const profile = await prisma.instructorProfile.findUniqueOrThrow({ where: { userId: teacher.id } });
-        expect(profile).toMatchObject({ headline: 'Senior Backend', bio: BIO, socials: INFO.socials, ...BANK });
+        expect(profile).toMatchObject(BANK);
+        const identity = await prisma.userProfile.findUniqueOrThrow({ where: { userId: teacher.id } });
+        expect(identity).toMatchObject({ headline: 'Senior Backend', bio: BIO, socials: INFO.socials });
         const row = await prisma.instructorApplication.findUniqueOrThrow({ where: { id: appId } });
         expect(row).toMatchObject({ bankBin: null, bankAccountNo: null, bankAccountName: null, reviewedById: admin.id });
 

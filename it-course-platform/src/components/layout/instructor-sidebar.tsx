@@ -27,7 +27,7 @@ export const INSTRUCTOR_NAV = [
       { icon: Users, label: 'Học viên', to: '/instructor/analytics/students' },
     ],
   },
-  { icon: User, label: 'Hồ sơ giảng viên', to: '/instructor/profile' },
+  { icon: User, label: 'Tài khoản nhận tiền', to: '/instructor/profile' },
   { icon: ShieldCheck, label: 'Giảng viên cao cấp', to: '/instructor/verification' },
 ];
 

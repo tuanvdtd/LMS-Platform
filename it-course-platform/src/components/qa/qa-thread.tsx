@@ -152,7 +152,18 @@ function CommentItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className={cn('text-sm font-medium', sending ? 'text-muted-foreground' : 'text-foreground')}>{author.name}</span>
+            {/* Tab mới: bấm vào tên giữa bài học không làm mất chỗ đang xem. */}
+            <a
+              href={`/u/${author.id}`}
+              target="_blank"
+              rel="noopener"
+              className={cn(
+                'rounded-sm text-sm font-medium outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50',
+                sending ? 'text-muted-foreground' : 'text-foreground',
+              )}
+            >
+              {author.name}
+            </a>
             {role && (
               <span className={cn('inline-flex h-5 items-center rounded-md px-1.5 text-xs font-medium', ROLE_BADGE[role].className)}>
                 {ROLE_BADGE[role].label}

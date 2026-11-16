@@ -47,17 +47,6 @@ export interface CurriculumSection {
   items: { id: string; type: 'lecture' | 'quiz' | 'practice_test' | 'coding_exercise'; title: string; durationSec: number; isPreview: boolean }[];
 }
 
-export interface PublicInstructor {
-  id: string;
-  name: string;
-  image: string | null;
-  headline: string | null;
-  bio: string | null;
-  website: string | null;
-  socials: { linkedin?: string; github?: string };
-  courses: CourseCard[];
-}
-
 export interface CatalogParams {
   q?: string;
   level?: SkillLevel;
