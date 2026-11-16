@@ -1,4 +1,4 @@
-import { adminClient, inferAdditionalFields } from 'better-auth/client/plugins';
+import { adminClient, inferAdditionalFields, twoFactorClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 
 // NEXT_PUBLIC_* được inline lúc build → thiếu biến thì báo ngay, không âm thầm gọi sai host.
@@ -10,6 +10,8 @@ export const authClient = createAuthClient({
   plugins: [
     // Khớp plugin admin ở back-end → session.user có `role`.
     adminClient(),
+    // Khớp plugin twoFactor → session.user có `twoFactorEnabled`, signIn.email có thể trả twoFactorRedirect.
+    twoFactorClient(),
     // Khớp user.additionalFields ở back-end/src/auth/auth.ts
     inferAdditionalFields({
       user: {

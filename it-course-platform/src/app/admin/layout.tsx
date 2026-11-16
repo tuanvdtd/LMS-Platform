@@ -63,12 +63,14 @@ function ShellSkeleton() {
   );
 }
 
-// Moderator chỉ dùng hàng đợi duyệt khoá và ngân hàng câu kỹ năng. Chỉ render sau khi có session (không chạy lúc prerender)
+const MODERATOR_PATHS = ['/admin/course-approvals', '/admin/skill-bank', '/admin/security'];
+
+// Moderator chỉ dùng hàng đợi duyệt khoá, ngân hàng câu kỹ năng và bảo mật tài khoản của chính mình. Chỉ render sau khi có session (không chạy lúc prerender)
 // nên usePathname không cần Suspense; /admin điều hướng theo vai trò ở đây vì page không biết session.
 function RoleGate({ admin, children }: { admin: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
   if (pathname === '/admin') redirect(admin ? '/admin/payouts' : '/admin/course-approvals');
-  if (!admin && !pathname.startsWith('/admin/course-approvals') && !pathname.startsWith('/admin/skill-bank')) return <Forbidden />;
+  if (!admin && !MODERATOR_PATHS.some((p) => pathname.startsWith(p))) return <Forbidden />;
   return children;
 }
 

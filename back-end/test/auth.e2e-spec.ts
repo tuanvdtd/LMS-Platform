@@ -1,6 +1,6 @@
 import { Controller, Get, INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { randomInt, randomUUID } from 'node:crypto';
+import { createHmac, randomInt, randomUUID } from 'node:crypto';
 import request, { type Response } from 'supertest';
 import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
@@ -15,6 +15,18 @@ const PASSWORD = 'Password123!';
 const randomIp = () =>
   `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
 const randomEmail = () => `e2e-${randomUUID()}@example.com`;
+
+// Mã TOTP hiện tại (RFC 6238, SHA-1, 6 số, 30s) từ secret base32 trong otpauth URI.
+function totp(uri: string): string {
+  const b32 = new URL(uri).searchParams.get('secret')!.replace(/=+$/, '').toUpperCase();
+  const bits = b32.split('').map((c) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.indexOf(c).toString(2).padStart(5, '0')).join('');
+  const key = Buffer.from(bits.match(/.{8}/g)!.map((b) => parseInt(b, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000)));
+  const mac = createHmac('sha1', key).update(counter).digest();
+  const at = mac[mac.length - 1] & 0xf;
+  return String((mac.readUInt32BE(at) & 0x7fffffff) % 1_000_000).padStart(6, '0');
+}
 
 @Controller('probe')
 class ProbeController {
@@ -203,5 +215,45 @@ describe('Auth (e2e)', () => {
     const ip = randomIp();
     for (let i = 0; i < 3; i++) await requestReset(randomEmail(), ip).expect(200);
     await requestReset(randomEmail(), ip).expect(429);
+  });
+
+  const verifiedUser = async () => {
+    const email = randomEmail();
+    await signUp(email).expect(200);
+    await call('get', await verifyPathFor(email));
+    return { email, cookie: cookieOf(await signIn(email).expect(200)) };
+  };
+
+  it('11. 2FA: bật bằng TOTP, đăng nhập lại phải qua mã mới có session', async () => {
+    const { email, cookie } = await verifiedUser();
+    await call('post', '/api/auth/two-factor/enable', { cookie }).send({ password: 'sai-mat-khau' }).expect(400);
+    const enable = await call('post', '/api/auth/two-factor/enable', { cookie }).send({ password: PASSWORD }).expect(200);
+    expect(enable.body.backupCodes).toHaveLength(10);
+    // Chưa nhập mã xác nhận → chưa bật: đăng nhập vẫn thẳng.
+    expect((await signIn(email).expect(200)).body.twoFactorRedirect).toBeUndefined();
+    await call('post', '/api/auth/two-factor/verify-totp', { cookie }).send({ code: totp(enable.body.totpURI) }).expect(200);
+
+    const challenge = await signIn(email).expect(200);
+    expect(challenge.body.twoFactorRedirect).toBe(true);
+    const pending = cookieOf(challenge);
+    await call('get', '/api/me', { cookie: pending }).expect(401);
+    await call('post', '/api/auth/two-factor/verify-totp', { cookie: pending }).send({ code: '000000' }).expect(401);
+    const done = await call('post', '/api/auth/two-factor/verify-totp', { cookie: pending })
+      .send({ code: totp(enable.body.totpURI) })
+      .expect(200);
+    const me = await call('get', '/api/me', { cookie: cookieOf(done) }).expect(200);
+    expect(me.body.twoFactorEnabled).toBe(true);
+  });
+
+  it('12. POST /me/password: chỉ tạo được khi tài khoản chưa có mật khẩu', async () => {
+    const { email, cookie } = await verifiedUser();
+    const res = await call('post', '/api/me/password', { cookie }).send({ newPassword: 'NewPassword456!' }).expect(400);
+    expect(res.body.code).toBe('PASSWORD_ALREADY_SET');
+    await call('post', '/api/me/password', { cookie }).send({ newPassword: 'ngan' }).expect(400);
+
+    // Giả lập tài khoản chỉ đăng nhập bằng mạng xã hội: bỏ account credential.
+    await prisma.account.deleteMany({ where: { user: { email }, providerId: 'credential' } });
+    await call('post', '/api/me/password', { cookie }).send({ newPassword: 'NewPassword456!' }).expect(200);
+    await call('post', '/api/auth/sign-in/email').send({ email, password: 'NewPassword456!' }).expect(200);
   });
 });

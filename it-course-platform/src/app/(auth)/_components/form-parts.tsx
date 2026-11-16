@@ -31,7 +31,9 @@ export function PasswordToggle({ shown, onToggle }: { shown: boolean; onToggle: 
       variant="ghost"
       size="icon"
       onClick={onToggle}
-      className="absolute right-0 top-1/2 -translate-y-1/2"
+      // Căn giữa bằng inset + my-auto, không dùng -translate-y-1/2: Button đặt translate-y 1px khi nhấn,
+      // đè mất -50% làm nút nhảy xuống nửa chiều cao rồi bật lên.
+      className="absolute inset-y-0 right-0 my-auto"
       aria-label={shown ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
     >
       {shown ? <EyeOff size={15} style={{ color: 'var(--muted-foreground)' }} /> : <Eye size={15} style={{ color: 'var(--muted-foreground)' }} />}

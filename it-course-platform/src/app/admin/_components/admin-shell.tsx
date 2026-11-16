@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BadgeCheck, ChevronDown, ClipboardCheck, House, Library, LogOut, Menu, Settings, ShieldUser, Wallet, X, type LucideIcon } from 'lucide-react';
+import { BadgeCheck, ChevronDown, ClipboardCheck, House, Library, LockKeyhole, LogOut, Menu, Settings, ShieldUser, Wallet, X, type LucideIcon } from 'lucide-react';
 import { SignOutDialog } from '@/components/layout/sign-out-dialog';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -43,7 +43,13 @@ const GROUPS: { label: string; links: NavLink[] }[] = [
       { href: '/admin/moderators', label: 'Moderator', icon: ShieldUser, adminOnly: true },
     ],
   },
-  { label: 'Hệ thống', links: [{ href: '/admin/settings', label: 'Cài đặt', icon: Settings, adminOnly: true }] },
+  {
+    label: 'Hệ thống',
+    links: [
+      { href: '/admin/settings', label: 'Cài đặt', icon: Settings, adminOnly: true },
+      { href: '/admin/security', label: 'Bảo mật tài khoản', icon: LockKeyhole },
+    ],
+  },
 ];
 
 // Số việc đang chờ trên nav. Tải lại mỗi lần đổi trang → duyệt xong quay về hàng đợi là số đã giảm.

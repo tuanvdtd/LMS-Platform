@@ -1,9 +1,10 @@
+import { HttpException } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import type { PrismaClient } from '@prisma/client';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { APIError, isAPIError } from 'better-auth/api';
-import { admin } from 'better-auth/plugins';
+import { admin, twoFactor } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
 import { adminAc, defaultStatements } from 'better-auth/plugins/admin/access';
 import type { Redis } from 'ioredis';
@@ -42,6 +43,23 @@ export function isServerError(e: unknown): boolean {
   return !isAPIError(e) || e.status === 'INTERNAL_SERVER_ERROR';
 }
 
+// Lỗi 4xx của auth.api.* là APIError, không có filter nào map → lọt ra Nest thành 500.
+export async function authCall<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (!isAPIError(e) || isServerError(e)) throw e;
+    throw new HttpException(
+      {
+        statusCode: e.statusCode,
+        code: e.body?.code,
+        message: e.body?.message,
+      },
+      e.statusCode,
+    );
+  }
+}
+
 const staffOAuthError = () =>
   new APIError('FORBIDDEN', {
     code: 'STAFF_OAUTH_FORBIDDEN',
@@ -72,7 +90,9 @@ export function createAuth(
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
     // Redis là lớp đọc nhanh; bảng session vẫn là nguồn chính.
     secondaryStorage: redisStorage(redis),
-    session: { storeSessionInDatabase: true },
+    // freshAge 0: xem danh sách phiên và huỷ liên kết không đòi phiên mới tạo trong 24 giờ (mặc định Better Auth).
+    // Thao tác nặng (đổi mật khẩu, bật/tắt 2FA) đã hỏi lại mật khẩu; bắt đăng nhập lại chỉ cản người đang cần đá thiết bị lạ.
+    session: { storeSessionInDatabase: true, freshAge: 0 },
     advanced: {
       // Khớp UUID v7 của 40 bảng còn lại.
       database: { generateId: () => uuidv7() },
@@ -104,6 +124,9 @@ export function createAuth(
         void mail.sendVerification(user.email, url);
       },
     },
+    // Liên kết từ Cài đặt → Bảo mật: người dùng đang đăng nhập và tự xác thực với provider,
+    // nên nhận cả tài khoản Google/GitHub dùng email khác. Tự liên kết lúc đăng nhập vẫn đòi trùng email đã xác minh.
+    account: { accountLinking: { allowDifferentEmails: true } },
     // Provider thiếu key thì bỏ hẳn (dev có thể không cấu hình OAuth).
     socialProviders: {
       ...(google && { google }),
@@ -158,6 +181,9 @@ export function createAuth(
     },
     plugins: [
       admin({ ac, roles, defaultRole: 'student', adminRoles: ['admin'] }),
+      // TOTP + mã dự phòng. Chỉ chặn /sign-in/email: đăng nhập Google/GitHub dựa vào 2FA của chính provider.
+      // Bật/tắt đòi mật khẩu → tài khoản chỉ có mạng xã hội phải tạo mật khẩu trước (POST /me/password).
+      twoFactor({ issuer: 'SkillPath' }),
     ],
     // /api/auth/* mount ngoài pipeline Nest và Better Auth tự catch lỗi →
     // SentryGlobalFilter không thấy. Khai báo onError thì Better Auth bỏ log

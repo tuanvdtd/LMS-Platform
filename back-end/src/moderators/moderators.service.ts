@@ -8,8 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { isAPIError } from 'better-auth/api';
-import { AUTH, type Auth, isServerError } from '../auth/auth.js';
+import { AUTH, type Auth, authCall } from '../auth/auth.js';
 import { isGuid } from '../common/zod.pipe.js';
 import { requireEnv } from '../env.js';
 import { PrismaService } from '../infra/prisma.service.js';
@@ -49,23 +48,6 @@ const emailTaken = () =>
     code: 'EMAIL_TAKEN',
     message: 'Email đã được dùng',
   });
-
-// Lỗi 4xx của auth.api.* là APIError, không có filter nào map → lọt ra Nest thành 500.
-async function authCall<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (e) {
-    if (!isAPIError(e) || isServerError(e)) throw e;
-    throw new HttpException(
-      {
-        statusCode: e.statusCode,
-        code: e.body?.code,
-        message: e.body?.message,
-      },
-      e.statusCode,
-    );
-  }
-}
 
 // Admin quản lý tài khoản moderator. Tạo/khoá đi qua Better Auth để session + cache Redis đúng.
 @Injectable()
