@@ -4,7 +4,7 @@ import { AuthFormSkeleton } from '@/components/skeletons/auth-form-skeleton';
 import { ResetPasswordForm } from './_components/reset-password-form';
 
 // Token nằm trên URL → không gửi Referer ra ngoài
-export const metadata: Metadata = { title: 'Đặt lại mật khẩu | SkillPath', referrer: 'no-referrer' };
+export const metadata: Metadata = { title: 'Đặt lại mật khẩu | Aolumi', referrer: 'no-referrer' };
 
 // useSearchParams cần Suspense khi trang được prerender tĩnh, để phần còn lại prerender được
 export default function ResetPasswordPage({ searchParams }: PageProps<'/reset-password'>) {

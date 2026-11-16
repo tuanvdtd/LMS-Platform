@@ -1,5 +1,5 @@
 ---
-name: SkillPath
+name: Aolumi
 description: Nền tảng khoá học IT chấm bài tự động và gợi ý theo năng lực thực tế
 colors:
   primary: "#2563eb"
@@ -134,13 +134,13 @@ components:
     height: "60px"
 ---
 
-# Design System: SkillPath
+# Design System: Aolumi
 
 ## Overview
 
 **Creative North Star: "The Transparent Scorecard"**
 
-SkillPath là một bảng điểm minh bạch, không phải tủ kính bán khoá học. Thứ người dùng tìm đến là con số: học viên đạt bao nhiêu phần trăm ở topic nào, bài code Accepted mấy trên mấy test, khoá đang chờ duyệt hay đã bị từ chối và vì sao. Giao diện vì thế sáng, gọn, đặt số liệu và trạng thái lên trước. Màu chỉ mang nghĩa: xanh dương là hành động và đường đi, cam là điểm cần chú ý hoặc cần mua, còn xanh lá, vàng, đỏ luôn mang nghĩa đúng, đang học và yếu.
+Aolumi là một bảng điểm minh bạch, không phải tủ kính bán khoá học. Thứ người dùng tìm đến là con số: học viên đạt bao nhiêu phần trăm ở topic nào, bài code Accepted mấy trên mấy test, khoá đang chờ duyệt hay đã bị từ chối và vì sao. Giao diện vì thế sáng, gọn, đặt số liệu và trạng thái lên trước. Màu chỉ mang nghĩa: xanh dương là hành động và đường đi, cam là điểm cần chú ý hoặc cần mua, còn xanh lá, vàng, đỏ luôn mang nghĩa đúng, đang học và yếu.
 
 Cảm giác tổng thể mềm và thân thiện. Góc bo rõ, bóng đổ mềm có ngả màu mực, nền tint nhạt cho từng trạng thái. Học viên mới không thấy bị chấm điểm lạnh lùng. Mật độ thông tin theo kiểu Udemy: header có ô tìm kiếm lớn, card khoá học, trang khoá có cột giá dính. Phần thuộc về developer (code, thời lượng, kết quả chấm) dùng chữ mono.
 
@@ -158,7 +158,7 @@ Khi cần một dải nhấn mạnh (thanh quản lý khoá, hero trang khoá, t
 Bảng màu tiết chế: neutral slate hơi ngả xanh, một màu chính, một màu nhấn, cộng một bộ màu ngữ nghĩa có đủ biến thể chữ / nền nhạt / viền.
 
 ### Primary
-- **Xanh SkillPath** (primary): nút chính, link, tab đang chọn, thanh tiến độ, đường chính trong biểu đồ, logo. Ở theme tối đổi sang xanh sáng `#60a5fa` với chữ tối trên nền nút, để vừa làm nền nút vừa làm chữ đều đạt 4.5:1.
+- **Xanh Aolumi** (primary): nút chính, link, tab đang chọn, thanh tiến độ, đường chính trong biểu đồ, logo. Ở theme tối đổi sang xanh sáng `#60a5fa` với chữ tối trên nền nút, để vừa làm nền nút vừa làm chữ đều đạt 4.5:1.
 - **Xanh đậm khi hover** (primary-hover): chỉ dùng cho trạng thái hover/pressed của nút chính.
 - **Xanh sương** (primary-soft): nền nhạt cho mục đang chọn, tin chưa đọc, chip topic, icon bài giảng.
 
@@ -248,7 +248,7 @@ Góc bo mềm, đọc như đồ vật thân thiện, không tròn như đồ ch
 ### Buttons
 Chắc tay nhưng mềm: cao 36px, bo 8px, chữ semibold 14px. Khi bấm, nút nhích xuống 1px.
 - **Shape:** bo 8px (`rounded-md`). Cỡ `lg` cao 44px cho CTA chính trên hero và trang khoá.
-- **Primary:** nền xanh SkillPath, chữ trắng. Hover sang xanh đậm.
+- **Primary:** nền xanh Aolumi, chữ trắng. Hover sang xanh đậm.
 - **Accent:** nền cam, chữ trắng đậm. Chỉ dùng cho hành động mua, mỗi màn tối đa một nút.
 - **Outline / Secondary / Ghost:** nền trắng có viền, nền slate nhạt, hoặc trong suốt. Hover dùng nền `secondary`.
 - **Destructive:** nền đỏ 10% với chữ `danger`, không dùng nền đỏ đặc.

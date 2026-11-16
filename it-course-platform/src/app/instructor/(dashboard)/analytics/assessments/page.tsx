@@ -3,7 +3,7 @@ import { demoQuiz, skillHeatmapData } from '@/lib/mocks/data';
 import { Button } from '@/components/ui/button';
 import { ScoreDistributionChart, CodeVerdictPie } from './_components/assessment-charts';
 
-export const metadata: Metadata = { title: 'Chất lượng Bài kiểm tra | SkillPath' };
+export const metadata: Metadata = { title: 'Chất lượng Bài kiểm tra | Aolumi' };
 
 const CODE_VERDICT = [
   { name: 'Accepted', value: 73, color: '#22c55e' },

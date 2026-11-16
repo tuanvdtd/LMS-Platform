@@ -21,5 +21,5 @@ export const securityError = (error: AuthError) => (error.code && MESSAGES[error
 // ?error= do back-end gắn khi liên kết Google/GitHub thất bại.
 export const linkError = (code: string) =>
   code === 'account_already_linked_to_different_user'
-    ? 'Tài khoản này đã liên kết với một người dùng SkillPath khác'
+    ? 'Tài khoản này đã liên kết với một người dùng Aolumi khác'
     : (MESSAGES[code] ?? 'Liên kết không thành công, vui lòng thử lại');

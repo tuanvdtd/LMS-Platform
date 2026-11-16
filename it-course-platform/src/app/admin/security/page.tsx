@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { SecuritySettings } from '@/components/security/security-settings';
 import { Card, CardContent } from '@/components/ui/card';
 
-export const metadata: Metadata = { title: 'Bảo mật | SkillPath Admin' };
+export const metadata: Metadata = { title: 'Bảo mật | Aolumi Admin' };
 
 // Tài khoản nghiệp vụ không vào được /settings của học viên → mật khẩu, xác thực hai lớp và phiên đăng nhập nằm ở đây.
 export default function AdminSecurityPage() {

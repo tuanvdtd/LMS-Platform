@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import { ResumeRedirect } from './_components/resume-redirect';
 
-export const metadata: Metadata = { title: 'Vào học | SkillPath' };
+export const metadata: Metadata = { title: 'Vào học | Aolumi' };
 
 // /learn/<slug> → bài đang học dở.
 export default function LearnIndexPage() {

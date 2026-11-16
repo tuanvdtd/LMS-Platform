@@ -18,7 +18,7 @@ import { parseCatalogParams } from '@/types/catalog';
 export async function generateMetadata({ params }: PageProps<'/topic/[slug]'>): Promise<Metadata> {
   const { slug } = await params;
   const head = await listCourses({ page: 1, topic: slug, limit: 20 });
-  return { title: `${head?.topic?.name ?? 'Chủ đề'} | SkillPath` };
+  return { title: `${head?.topic?.name ?? 'Chủ đề'} | Aolumi` };
 }
 
 // Suspense ngoài: params/searchParams là runtime data, đọc bên trong boundary để điều hướng (đổi bộ lọc) không bị chặn.

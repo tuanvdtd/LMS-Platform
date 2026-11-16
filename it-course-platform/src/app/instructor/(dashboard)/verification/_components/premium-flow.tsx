@@ -236,7 +236,7 @@ function Pending({ submittedAt }: { submittedAt: string | null }) {
       <h1 className="text-2xl font-extrabold">Đơn đang chờ duyệt</h1>
       <p className="text-sm text-pretty text-muted-foreground">
         {submittedAt && `Gửi lúc ${new Date(submittedAt).toLocaleString('vi-VN')}. `}
-        SkillPath duyệt trong khoảng 2 ngày làm việc, kết quả gửi qua email. Trong lúc chờ bạn vẫn tạo khoá miễn phí được.
+        Aolumi duyệt trong khoảng 2 ngày làm việc, kết quả gửi qua email. Trong lúc chờ bạn vẫn tạo khoá miễn phí được.
       </p>
       <Link href="/instructor/courses" className={buttonVariants({ variant: 'outline' })}>
         Về khoá học của tôi

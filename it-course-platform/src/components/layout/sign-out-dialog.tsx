@@ -24,7 +24,7 @@ export function SignOutDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <span className="grid size-10 shrink-0 place-items-center rounded-md bg-muted">
               <LogOut className="size-5" aria-hidden />
             </span>
-            <AlertDialogTitle>Đăng xuất khỏi SkillPath?</AlertDialogTitle>
+            <AlertDialogTitle>Đăng xuất khỏi Aolumi?</AlertDialogTitle>
           </div>
           <AlertDialogDescription>Bạn sẽ cần đăng nhập lại để tiếp tục học.</AlertDialogDescription>
         </div>

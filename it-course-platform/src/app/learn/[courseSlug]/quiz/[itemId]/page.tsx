@@ -6,7 +6,7 @@ import { QuizStartSkeleton } from './_components/quiz-start';
 
 export async function generateMetadata({ params }: PageProps<'/learn/[courseSlug]/quiz/[itemId]'>): Promise<Metadata> {
   const { courseSlug, itemId } = await params;
-  return learnItemMetadata(courseSlug, itemId, 'Làm bài kiểm tra | SkillPath');
+  return learnItemMetadata(courseSlug, itemId, 'Làm bài kiểm tra | Aolumi');
 }
 
 // QuizView đọc ?attempt bằng useSearchParams → bọc Suspense.

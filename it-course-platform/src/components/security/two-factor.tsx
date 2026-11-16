@@ -202,7 +202,7 @@ function Flow({ mode, onClose }: { mode: Mode; onClose: () => void }) {
       <DialogHeader>
         <DialogTitle>Lưu mã dự phòng</DialogTitle>
         <DialogDescription>
-          Mỗi mã đăng nhập được một lần khi bạn không có điện thoại bên cạnh. SkillPath không hiện lại các mã này, hãy lưu ở nơi an toàn.
+          Mỗi mã đăng nhập được một lần khi bạn không có điện thoại bên cạnh. Aolumi không hiện lại các mã này, hãy lưu ở nơi an toàn.
         </DialogDescription>
       </DialogHeader>
       <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5 rounded-lg border bg-muted px-4 py-3 font-mono text-[0.8125rem]">
@@ -218,8 +218,8 @@ function Flow({ mode, onClose }: { mode: Mode; onClose: () => void }) {
             variant="outline"
             size="sm"
             onClick={() => {
-              const url = URL.createObjectURL(new Blob([`Mã dự phòng SkillPath\n\n${text}\n`], { type: 'text/plain' }));
-              Object.assign(document.createElement('a'), { href: url, download: 'skillpath-ma-du-phong.txt' }).click();
+              const url = URL.createObjectURL(new Blob([`Mã dự phòng Aolumi\n\n${text}\n`], { type: 'text/plain' }));
+              Object.assign(document.createElement('a'), { href: url, download: 'aolumi-ma-du-phong.txt' }).click();
               URL.revokeObjectURL(url);
             }}
           >

@@ -356,7 +356,7 @@ export function ApplicationDetail() {
           <AlertDialogHeader>
             <AlertDialogTitle>Duyệt {user.name} làm giảng viên cao cấp?</AlertDialogTitle>
             <AlertDialogDescription>
-              Giảng viên sẽ đặt được giá trả phí cho khoá học và nhận doanh thu hằng tháng từ SkillPath.
+              Giảng viên sẽ đặt được giá trả phí cho khoá học và nhận doanh thu hằng tháng từ Aolumi.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {warnings.length > 0 && (

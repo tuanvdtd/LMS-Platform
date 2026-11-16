@@ -11,9 +11,9 @@ import { certificateImageUrl, certificatePdfUrl, getCertificate } from '@/lib/ap
 export async function generateMetadata({ params }: PageProps<'/verify/[code]'>): Promise<Metadata> {
   const { code } = await params;
   const cert = await getCertificate(code).catch(() => null);
-  if (!cert) return { title: 'Không tìm thấy chứng chỉ | SkillPath' };
+  if (!cert) return { title: 'Không tìm thấy chứng chỉ | Aolumi' };
   return {
-    title: `Chứng chỉ của ${cert.learnerName} | SkillPath`,
+    title: `Chứng chỉ của ${cert.learnerName} | Aolumi`,
     description: `${cert.learnerName} đã hoàn thành khoá học ${cert.courseTitle}.`,
     openGraph: cert.revoked ? undefined : { images: [certificateImageUrl(cert.serialNo)] },
   };
@@ -29,7 +29,7 @@ export default async function VerifyCertificatePage({ params }: PageProps<'/veri
         <FileQuestion className="mx-auto mb-4 size-12 text-muted-foreground" aria-hidden />
         <h1 className="mb-2 text-xl font-extrabold text-foreground">Không tìm thấy chứng chỉ</h1>
         <p className="text-sm text-muted-foreground">
-          Hãy kiểm tra lại mã trên chứng chỉ. Mã có dạng SP-XXXX-XXXX-XX.
+          Hãy kiểm tra lại mã trên chứng chỉ. Mã có dạng AL-XXXX-XXXX-XX.
         </p>
         <p className="mt-4 break-all font-mono text-sm text-foreground">{code}</p>
       </div>
@@ -67,7 +67,7 @@ export default async function VerifyCertificatePage({ params }: PageProps<'/veri
           <BadgeCheck className="mt-0.5 size-6 shrink-0 text-success" aria-hidden />
           <div>
             <h1 className="text-lg font-extrabold text-success">Chứng chỉ hợp lệ</h1>
-            <p className="text-sm text-foreground">SkillPath xác nhận chứng chỉ này là thật.</p>
+            <p className="text-sm text-foreground">Aolumi xác nhận chứng chỉ này là thật.</p>
           </div>
         </div>
       )}

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { AuthFormSkeleton } from '@/components/skeletons/auth-form-skeleton';
 import { RegisterForm } from './_components/register-form';
 
-export const metadata: Metadata = { title: 'Đăng ký | SkillPath' };
+export const metadata: Metadata = { title: 'Đăng ký | Aolumi' };
 
 // useSearchParams cần Suspense khi trang được prerender tĩnh (như trang login)
 export default function RegisterPage({ searchParams }: PageProps<'/register'>) {

@@ -3,7 +3,7 @@ import { certificateSvg } from './certificate-template.js';
 
 const svg = certificateSvg(
   {
-    serialNo: 'SP-7K3F-92QX-M4',
+    serialNo: 'AL-7K3F-92QX-M4',
     learnerName: 'Nguyễn Thị Minh Anh',
     courseTitle: 'React JS từ cơ bản đến nâng cao',
     instructorName: 'Trần Quốc Bảo',

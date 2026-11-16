@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { AssessmentView } from './_components/assessment-view';
 
-export const metadata: Metadata = { title: 'Đánh giá kỹ năng | SkillPath' };
+export const metadata: Metadata = { title: 'Đánh giá kỹ năng | Aolumi' };
 
 export default async function AssessmentPage({ params }: PageProps<'/skills/[topicSlug]'>) {
   const { topicSlug } = await params;

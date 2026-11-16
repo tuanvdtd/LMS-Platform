@@ -5,8 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { LegalNote, LegalPage, type LegalSection, SupportEmail } from '../_components/legal-page';
 
 export const metadata: Metadata = {
-  title: 'Chính sách bảo mật | SkillPath',
-  description: 'SkillPath thu thập dữ liệu gì, dùng vào việc gì, chia sẻ với ai, và bạn kiểm soát dữ liệu của mình thế nào.',
+  title: 'Chính sách bảo mật | Aolumi',
+  description: 'Aolumi thu thập dữ liệu gì, dùng vào việc gì, chia sẻ với ai, và bạn kiểm soát dữ liệu của mình thế nào.',
 };
 
 // Bảng này phải khớp với thứ trang thật sự lưu trên trình duyệt. Thêm cookie/khoá localStorage mới thì thêm dòng.
@@ -26,7 +26,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          SkillPath tôn trọng quyền riêng tư của bạn. Chính sách này giải thích chúng tôi thu thập dữ liệu gì, dùng vào việc gì, chia sẻ
+          Aolumi tôn trọng quyền riêng tư của bạn. Chính sách này giải thích chúng tôi thu thập dữ liệu gì, dùng vào việc gì, chia sẻ
           với ai và bạn có những quyền gì. Chính sách áp dụng cho mọi người dùng: khách truy cập, học viên, giảng viên.
         </p>
         <p>
@@ -87,7 +87,7 @@ const SECTIONS: LegalSection[] = [
           kết quả chấm sai, bạn có thể liên hệ giảng viên của khoá hoặc đội hỗ trợ.
         </p>
         <LegalNote title="Cam kết:">
-          SkillPath không bán, không cho thuê dữ liệu cá nhân của bạn, không dùng dữ liệu của bạn để hiển thị quảng cáo của bên thứ ba
+          Aolumi không bán, không cho thuê dữ liệu cá nhân của bạn, không dùng dữ liệu của bạn để hiển thị quảng cáo của bên thứ ba
           và không gửi email tiếp thị khi bạn chưa đồng ý.
         </LegalNote>
       </>
@@ -98,7 +98,7 @@ const SECTIONS: LegalSection[] = [
     title: 'Dữ liệu được chia sẻ với ai',
     body: (
       <>
-        <p><strong>Những người dùng khác trên SkillPath</strong></p>
+        <p><strong>Những người dùng khác trên Aolumi</strong></p>
         <ul>
           <li>Trang cá nhân công khai hiển thị tên, ảnh đại diện và giới thiệu của bạn. Phần học tập (khoá đã học, chứng chỉ, kỹ năng) chỉ hiển thị khi bạn bật công tắc công khai trong Cài đặt.</li>
           <li>Câu hỏi, câu trả lời và đánh giá khoá học hiển thị kèm tên và ảnh đại diện của bạn.</li>
@@ -126,7 +126,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Cookie là tệp nhỏ lưu trên thiết bị của bạn. Bên cạnh cookie, SkillPath còn dùng bộ nhớ cục bộ của trình duyệt cho một số
+          Cookie là tệp nhỏ lưu trên thiết bị của bạn. Bên cạnh cookie, Aolumi còn dùng bộ nhớ cục bộ của trình duyệt cho một số
           thiết lập. Chúng tôi chia thành hai nhóm:
         </p>
         <ul>
@@ -153,7 +153,7 @@ const SECTIONS: LegalSection[] = [
             ))}
           </TableBody>
         </Table>
-        <p>SkillPath không dùng cookie quảng cáo và không có công cụ theo dõi của mạng xã hội.</p>
+        <p>Aolumi không dùng cookie quảng cáo và không có công cụ theo dõi của mạng xã hội.</p>
         <LegalNote title="Thay đổi lựa chọn của bạn:">
           bạn đổi ý hoặc rút lại sự đồng ý được bất cứ lúc nào. Khi bạn chọn “Chỉ thiết yếu”, công cụ chẩn đoán lỗi dừng ngay trên
           trình duyệt của bạn.{' '}
@@ -221,7 +221,7 @@ const SECTIONS: LegalSection[] = [
     title: 'Trẻ em',
     body: (
       <p>
-        SkillPath không hướng tới trẻ em. Người dưới 16 tuổi chỉ được dùng dịch vụ khi có sự đồng ý của cha mẹ hoặc người giám hộ. Nếu
+        Aolumi không hướng tới trẻ em. Người dưới 16 tuổi chỉ được dùng dịch vụ khi có sự đồng ý của cha mẹ hoặc người giám hộ. Nếu
         bạn cho rằng một trẻ đã cung cấp dữ liệu cho chúng tôi mà chưa có sự đồng ý đó, hãy liên hệ để chúng tôi xoá dữ liệu.
       </p>
     ),

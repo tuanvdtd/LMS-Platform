@@ -5,7 +5,7 @@ import { SiteFooter } from '@/components/layout/site-footer';
 import { getCategoryTree } from '@/lib/api/categories';
 import { TeachCta } from './_components/teach-cta';
 
-export const metadata: Metadata = { title: 'Trở thành giảng viên | SkillPath' };
+export const metadata: Metadata = { title: 'Trở thành giảng viên | Aolumi' };
 
 // Landing tuyển giảng viên.
 // Số thật: 70% = mặc định revenue_share_pct; ví dụ chia theo luật chia doanh thu (splitRevenue ở BE).
@@ -39,7 +39,7 @@ const STEPS = [
 ];
 
 const FAQ = [
-  { q: 'Dạy trên SkillPath có mất phí không?', a: 'Không. Bật vai trò, soạn khoá và xuất bản khoá miễn phí đều không mất phí.' },
+  { q: 'Dạy trên Aolumi có mất phí không?', a: 'Không. Bật vai trò, soạn khoá và xuất bản khoá miễn phí đều không mất phí.' },
   { q: 'Khi nào tôi phải xác minh danh tính?', a: 'Khi đặt giá cho khoá. Khoá miễn phí không cần.' },
   { q: 'Doanh thu được chia thế nào?', a: 'Bạn nhận 70% số tiền học viên thực trả cho mỗi đơn.' },
   { q: 'Duyệt khoá mất bao lâu?', a: '3–5 ngày làm việc. Bị từ chối thì có ghi lý do để bạn sửa và gửi lại.' },
@@ -59,7 +59,7 @@ export default async function TeachPage() {
       <section className="border-b">
         <div className="mx-auto grid max-w-screen-xl grid-cols-1 items-center gap-10 px-4 py-14 lg:grid-cols-[1.05fr_1fr] lg:py-20">
           <div className="flex min-w-0 flex-col gap-5">
-            <p className="text-sm font-semibold text-primary">Dạy học trên SkillPath</p>
+            <p className="text-sm font-semibold text-primary">Dạy học trên Aolumi</p>
             <h1 className="text-4xl leading-tight font-extrabold text-balance md:text-5xl">
               Bạn đã viết code nhiều năm.<br className="max-sm:hidden" /> Giờ dạy lại điều đó.
             </h1>

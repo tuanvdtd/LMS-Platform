@@ -95,7 +95,7 @@ export const courses: Course[] = [
     title: 'React Mastery: Từ Hooks đến Kiến trúc Doanh nghiệp',
     subtitle: 'Làm chủ React 19, Hooks, Context, Zustand và hiệu suất tối ưu',
     description:
-      'Khoá học toàn diện nhất về React trên SkillPath, được cập nhật cho React 19. Từ useState đến concurrent features, bạn sẽ xây dựng 5 dự án thực tế.',
+      'Khoá học toàn diện nhất về React trên Aolumi, được cập nhật cho React 19. Từ useState đến concurrent features, bạn sẽ xây dựng 5 dự án thực tế.',
     thumbnail:
       'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=640&h=360&fit=crop',
     track: 'frontend',
@@ -601,7 +601,7 @@ export const skillHeatmapData = [
 export const demoCertificates = [
   {
     id: 'cert-1',
-    code: 'SP-2024-JS-48291',
+    code: 'AL-2024-JS-48291',
     courseTitle: 'JavaScript Complete: Cơ bản đến Async Mastery',
     courseId: 'c-4',
     studentName: 'Minh Khoa',

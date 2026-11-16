@@ -48,8 +48,8 @@ export default function InstructorHeader() {
 
         <Link href="/instructor" className="flex items-center gap-2">
           <LogoMark />
-          <span className="hidden text-lg font-bold sm:block">
-            Skill<span className="text-primary">Path</span>
+          <span className="hidden text-lg font-semibold sm:block">
+            aolumi
           </span>
           <span className="rounded-full bg-brand-accent-soft px-2 py-0.5 text-xs font-semibold text-brand-accent-strong">
             Giảng viên

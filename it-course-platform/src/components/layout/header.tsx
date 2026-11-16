@@ -65,8 +65,8 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
           className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 lg:static lg:mr-1 lg:translate-x-0"
         >
           <LogoMark />
-          <span className="hidden text-lg font-bold text-foreground sm:block">
-            Skill<span className="text-primary">Path</span>
+          <span className="hidden text-lg font-semibold text-foreground sm:block">
+            aolumi
           </span>
         </Link>
 

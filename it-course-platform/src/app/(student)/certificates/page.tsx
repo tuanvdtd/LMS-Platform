@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { CertificatesView } from './_components/certificates-view';
 
-export const metadata: Metadata = { title: 'Chứng chỉ của tôi | SkillPath' };
+export const metadata: Metadata = { title: 'Chứng chỉ của tôi | Aolumi' };
 
 export default function CertificatesPage() {
   return <CertificatesView />;

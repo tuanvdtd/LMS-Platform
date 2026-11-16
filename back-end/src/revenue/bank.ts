@@ -16,7 +16,7 @@ type QrInput = { bankBin: string; bankAccountNo: string; bankAccountName: string
 export function vietQrUrl(p: QrInput): string {
   const qs = new URLSearchParams({
     amount: String(p.amount),
-    addInfo: `SKILLPATH ${p.period}`,
+    addInfo: `AOLUMI ${p.period}`,
     accountName: p.bankAccountName,
   });
   return `https://img.vietqr.io/image/${p.bankBin}-${p.bankAccountNo}-compact2.png?${qs}`;

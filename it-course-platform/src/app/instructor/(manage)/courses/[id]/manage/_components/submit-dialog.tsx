@@ -62,7 +62,7 @@ export function SubmitDialog({ open, onOpenChange }: { open: boolean; onOpenChan
         <AlertDialogHeader>
           <AlertDialogTitle>Gửi khoá học đi duyệt</AlertDialogTitle>
           <AlertDialogDescription>
-            Trong lúc chờ duyệt bạn không sửa được khoá học. Đội ngũ SkillPath sẽ phản hồi qua email.
+            Trong lúc chờ duyệt bạn không sửa được khoá học. Đội ngũ Aolumi sẽ phản hồi qua email.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="flex flex-col gap-4">

@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { LegalNote, LegalPage, type LegalSection, SupportEmail } from '../_components/legal-page';
 
 export const metadata: Metadata = {
-  title: 'Điều khoản sử dụng | SkillPath',
-  description: 'Quy định về tài khoản, khoá học, thanh toán, giảng viên và nội dung khi sử dụng SkillPath.',
+  title: 'Điều khoản sử dụng | Aolumi',
+  description: 'Quy định về tài khoản, khoá học, thanh toán, giảng viên và nội dung khi sử dụng Aolumi.',
 };
 
 // Nội dung bám theo cách sản phẩm đang chạy thật (Stripe Checkout, kiểm duyệt khoá, chia doanh thu,
@@ -16,11 +16,11 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Khi tạo tài khoản hoặc dùng bất kỳ tính năng nào của SkillPath, bạn xác nhận đã đọc, hiểu và đồng ý với các điều khoản này
+          Khi tạo tài khoản hoặc dùng bất kỳ tính năng nào của Aolumi, bạn xác nhận đã đọc, hiểu và đồng ý với các điều khoản này
           cùng <Link href="/privacy">Chính sách bảo mật</Link>. Nếu không đồng ý, vui lòng ngừng sử dụng dịch vụ.
         </p>
         <p>
-          SkillPath là nền tảng khoá học công nghệ thông tin: giảng viên tự đăng khoá của mình, mọi khoá đều qua kiểm duyệt trước khi
+          Aolumi là nền tảng khoá học công nghệ thông tin: giảng viên tự đăng khoá của mình, mọi khoá đều qua kiểm duyệt trước khi
           lên danh mục, học viên học qua video, trắc nghiệm và bài tập lập trình được chấm tự động.
         </p>
       </>
@@ -40,7 +40,7 @@ const SECTIONS: LegalSection[] = [
           <li>Nếu nghi ngờ tài khoản bị truy cập trái phép, hãy đổi mật khẩu, thu hồi các phiên đăng nhập lạ trong Cài đặt và báo cho chúng tôi.</li>
         </ul>
         <p>
-          Tài khoản kiểm duyệt viên và quản trị viên là tài khoản nghiệp vụ do SkillPath cấp, tách riêng khỏi tài khoản cá nhân và không
+          Tài khoản kiểm duyệt viên và quản trị viên là tài khoản nghiệp vụ do Aolumi cấp, tách riêng khỏi tài khoản cá nhân và không
           dùng để học, mua hay dạy.
         </p>
       </>
@@ -79,7 +79,7 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li>Giá khoá học niêm yết bằng đồng Việt Nam (₫) và hiển thị rõ trước khi bạn thanh toán.</li>
           <li>
-            Thanh toán được xử lý qua Stripe. SkillPath không nhận và không lưu số thẻ của bạn; chúng tôi chỉ nhận kết quả giao dịch để
+            Thanh toán được xử lý qua Stripe. Aolumi không nhận và không lưu số thẻ của bạn; chúng tôi chỉ nhận kết quả giao dịch để
             ghi nhận đơn hàng.
           </li>
           <li>Bạn được ghi danh sau khi Stripe xác nhận thanh toán thành công. Đơn chưa hoàn tất không tạo ra quyền truy cập.</li>
@@ -101,9 +101,9 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li>Trắc nghiệm và bài tập lập trình được chấm tự động. Bài code chạy trong môi trường cô lập với giới hạn thời gian và bộ nhớ; kết quả phụ thuộc vào bộ test của đề bài.</li>
           <li>Không gửi mã nhằm phá hoại, dò quét, chiếm tài nguyên hay thoát khỏi môi trường chấm bài.</li>
-          <li>Bài đánh giá kỹ năng do SkillPath soạn và là nguồn duy nhất để tính độ thành thạo theo chủ đề. Hãy tự làm bài: kết quả gian lận làm gợi ý khoá học của chính bạn sai lệch.</li>
+          <li>Bài đánh giá kỹ năng do Aolumi soạn và là nguồn duy nhất để tính độ thành thạo theo chủ đề. Hãy tự làm bài: kết quả gian lận làm gợi ý khoá học của chính bạn sai lệch.</li>
           <li>Gợi ý khoá học được tạo tự động từ mục tiêu bạn khai và kết quả đánh giá. Đây là gợi ý tham khảo, không phải cam kết về kết quả học tập hay việc làm.</li>
-          <li>Chứng chỉ được cấp khi bạn hoàn thành khoá học và xác thực được bằng mã QR. Chứng chỉ xác nhận việc hoàn thành khoá trên SkillPath, không phải văn bằng hay chứng chỉ thuộc hệ thống giáo dục quốc dân.</li>
+          <li>Chứng chỉ được cấp khi bạn hoàn thành khoá học và xác thực được bằng mã QR. Chứng chỉ xác nhận việc hoàn thành khoá trên Aolumi, không phải văn bằng hay chứng chỉ thuộc hệ thống giáo dục quốc dân.</li>
         </ul>
         <p>Chúng tôi có thể huỷ kết quả hoặc thu hồi chứng chỉ nếu phát hiện gian lận.</p>
       </>
@@ -122,10 +122,10 @@ const SECTIONS: LegalSection[] = [
           <li>Doanh thu được chốt và chuyển khoản hằng tháng vào tài khoản ngân hàng bạn đã khai. Khoản thuộc đơn hàng bị hoàn tiền sẽ được khấu trừ.</li>
           <li>Giá khoá học cố định từ lần xuất bản đầu tiên; muốn giảm giá sau đó thì dùng mã giảm giá.</li>
           <li>Bạn cam kết sở hữu hoặc có quyền sử dụng toàn bộ nội dung đăng lên (video, hình ảnh, mã nguồn, tài liệu, đề bài) và tự chịu trách nhiệm nếu có khiếu nại về bản quyền.</li>
-          <li>Bạn tự chịu trách nhiệm về nghĩa vụ thuế đối với thu nhập nhận được từ SkillPath.</li>
+          <li>Bạn tự chịu trách nhiệm về nghĩa vụ thuế đối với thu nhập nhận được từ Aolumi.</li>
         </ul>
         <p>
-          Bạn giữ quyền sở hữu nội dung của mình. Bạn cấp cho SkillPath quyền lưu trữ, xử lý kỹ thuật (ví dụ chuyển mã video), hiển
+          Bạn giữ quyền sở hữu nội dung của mình. Bạn cấp cho Aolumi quyền lưu trữ, xử lý kỹ thuật (ví dụ chuyển mã video), hiển
           thị và phân phối nội dung đó tới học viên đã ghi danh, cũng như dùng tên khoá, mô tả và ảnh bìa để giới thiệu khoá trên nền tảng.
         </p>
         <p>
@@ -142,7 +142,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Câu hỏi, câu trả lời, đánh giá khoá học, tin nhắn, ghi chú và thông tin trên trang cá nhân là nội dung của bạn. Bạn chịu trách
-          nhiệm về nội dung đó và cho phép SkillPath lưu trữ, hiển thị nó trong phạm vi tính năng tương ứng.
+          nhiệm về nội dung đó và cho phép Aolumi lưu trữ, hiển thị nó trong phạm vi tính năng tương ứng.
         </p>
         <ul>
           <li>Đánh giá khoá học phải phản ánh trải nghiệm thật của bạn. Không đánh giá để đổi lấy lợi ích, không tự đánh giá khoá của mình.</li>
@@ -163,17 +163,17 @@ const SECTIONS: LegalSection[] = [
         <li>Truy cập trái phép tài khoản, dữ liệu của người khác; dò quét, khai thác lỗ hổng hoặc gây quá tải hệ thống.</li>
         <li>Phát tán mã độc, thư rác, quảng cáo không được phép hoặc lôi kéo học viên giao dịch ngoài nền tảng để né phí.</li>
         <li>Gian lận thanh toán, lạm dụng mã giảm giá hoặc chính sách hoàn tiền.</li>
-        <li>Dùng nội dung trên SkillPath để huấn luyện mô hình máy học hoặc xây dựng sản phẩm cạnh tranh khi chưa được đồng ý bằng văn bản.</li>
+        <li>Dùng nội dung trên Aolumi để huấn luyện mô hình máy học hoặc xây dựng sản phẩm cạnh tranh khi chưa được đồng ý bằng văn bản.</li>
       </ul>
     ),
   },
   {
     id: 'so-huu-tri-tue',
-    title: 'Sở hữu trí tuệ của SkillPath',
+    title: 'Sở hữu trí tuệ của Aolumi',
     body: (
       <p>
-        Giao diện, mã nguồn, logo, tên SkillPath, ngân hàng câu hỏi đánh giá kỹ năng và các tài liệu chính thức của nền tảng thuộc về
-        SkillPath. Bạn không được sao chép, sửa đổi, phân phối hay khai thác thương mại các thành phần này khi chưa có sự đồng ý bằng
+        Giao diện, mã nguồn, logo, tên Aolumi, ngân hàng câu hỏi đánh giá kỹ năng và các tài liệu chính thức của nền tảng thuộc về
+        Aolumi. Bạn không được sao chép, sửa đổi, phân phối hay khai thác thương mại các thành phần này khi chưa có sự đồng ý bằng
         văn bản của chúng tôi.
       </p>
     ),
@@ -183,7 +183,7 @@ const SECTIONS: LegalSection[] = [
     title: 'Tính sẵn sàng của dịch vụ',
     body: (
       <p>
-        Chúng tôi nỗ lực giữ dịch vụ hoạt động ổn định nhưng không cam kết dịch vụ không bao giờ gián đoạn hay không có lỗi. SkillPath
+        Chúng tôi nỗ lực giữ dịch vụ hoạt động ổn định nhưng không cam kết dịch vụ không bao giờ gián đoạn hay không có lỗi. Aolumi
         có thể bảo trì, cập nhật, thay đổi hoặc ngừng một số tính năng. Với thay đổi lớn ảnh hưởng tới bạn, chúng tôi sẽ thông báo
         trước trong khả năng hợp lý qua email hoặc thông báo trên nền tảng.
       </p>
@@ -194,7 +194,7 @@ const SECTIONS: LegalSection[] = [
     title: 'Giới hạn trách nhiệm',
     body: (
       <>
-        <p>Dịch vụ được cung cấp theo hiện trạng. Trong phạm vi pháp luật cho phép, SkillPath không chịu trách nhiệm đối với:</p>
+        <p>Dịch vụ được cung cấp theo hiện trạng. Trong phạm vi pháp luật cho phép, Aolumi không chịu trách nhiệm đối với:</p>
         <ul>
           <li>Thiệt hại gián tiếp, mất dữ liệu hoặc mất cơ hội phát sinh từ việc sử dụng hay không thể sử dụng dịch vụ.</li>
           <li>Tính chính xác của nội dung do giảng viên và người dùng khác đăng tải.</li>
@@ -258,7 +258,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Điều khoản sử dụng"
-      intro="Các điều khoản dưới đây là thoả thuận giữa bạn và SkillPath về việc sử dụng nền tảng, áp dụng cho cả học viên lẫn giảng viên."
+      intro="Các điều khoản dưới đây là thoả thuận giữa bạn và Aolumi về việc sử dụng nền tảng, áp dụng cho cả học viên lẫn giảng viên."
       sections={SECTIONS}
       other={{ href: '/privacy', label: 'Chính sách bảo mật' }}
     />

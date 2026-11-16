@@ -15,7 +15,7 @@ export function TermsStep({ view, onSaved, registerSave }: StepProps) {
   // Đã tick mà chưa lưu → chuyển bước thì lưu luôn. Bỏ tick không có gì để lưu (đồng ý là một chiều).
   const run = useStepSave(agree && !view.termsAccepted, save, registerSave);
   const terms = [
-    `Bạn nhận ${view.revenueSharePct}% doanh thu mỗi lượt bán khoá học của mình; SkillPath giữ phần còn lại.`,
+    `Bạn nhận ${view.revenueSharePct}% doanh thu mỗi lượt bán khoá học của mình; Aolumi giữ phần còn lại.`,
     'Doanh thu được chốt và chuyển khoản hằng tháng vào tài khoản ngân hàng bạn khai ở bước sau.',
     'Giá khoá học cố định từ lần xuất bản đầu tiên; muốn giảm giá sau đó thì dùng coupon.',
     'Bạn cam kết sở hữu hoặc có quyền sử dụng toàn bộ nội dung đăng lên khoá học.',
@@ -53,7 +53,7 @@ export function TermsStep({ view, onSaved, registerSave }: StepProps) {
           className="mt-0.5"
         />
         <Label htmlFor="agree" className="text-sm font-normal leading-snug">
-          Tôi đã đọc và đồng ý điều khoản dành cho giảng viên của SkillPath
+          Tôi đã đọc và đồng ý điều khoản dành cho giảng viên của Aolumi
         </Label>
       </div>
       <div>

@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { CartSkeleton } from '@/components/skeletons/cart-skeleton';
 import CartView from './_components/cart-view';
 
-export const metadata: Metadata = { title: 'Giỏ hàng | SkillPath' };
+export const metadata: Metadata = { title: 'Giỏ hàng | Aolumi' };
 
 export default function CartPage() {
   return (

@@ -5,7 +5,7 @@ import { StatCard } from '@/components/shared/product-ui';
 import { atRiskStudents } from '@/lib/mocks/data';
 import RevenueChart from '@/app/instructor/(dashboard)/_components/revenue-chart';
 
-export const metadata: Metadata = { title: 'Tổng quan giảng viên | SkillPath' };
+export const metadata: Metadata = { title: 'Tổng quan giảng viên | Aolumi' };
 
 export default function InstructorDashboardPage() {
   const alerts = [

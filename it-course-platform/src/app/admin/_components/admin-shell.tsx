@@ -128,8 +128,8 @@ export function AdminShell({ user, admin, children }: { user: ShellUser; admin: 
         </Button>
         <Link href="/admin" className="flex h-10 items-center gap-2 rounded-md px-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
           <LogoMark className="h-7" />
-          <span className="hidden text-base font-bold text-foreground sm:inline">
-            Skill<span className="text-primary">Path</span>
+          <span className="hidden text-base font-semibold text-foreground sm:inline">
+            aolumi
           </span>
         </Link>
         <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-semibold text-ink-foreground">{admin ? 'Quản trị' : 'Kiểm duyệt'}</span>
@@ -154,7 +154,7 @@ export function AdminShell({ user, admin, children }: { user: ShellUser; admin: 
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href="/" />}>
               <House className="text-muted-foreground" />
-              Về trang chủ SkillPath
+              Về trang chủ Aolumi
             </DropdownMenuItem>
             <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setSignOutOpen(true)}>
               <LogOut />

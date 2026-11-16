@@ -13,7 +13,7 @@ import { getCategoryTree } from '@/lib/api/categories';
 import { categoryHref } from '@/lib/category-links';
 import { parseCatalogParams } from '@/types/catalog';
 
-export const metadata: Metadata = { title: 'Khám phá khoá học | SkillPath' };
+export const metadata: Metadata = { title: 'Khám phá khoá học | Aolumi' };
 
 const fmt = (n: number) => n.toLocaleString('vi-VN');
 

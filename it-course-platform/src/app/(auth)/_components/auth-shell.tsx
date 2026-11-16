@@ -1,4 +1,4 @@
-import { BookOpen } from 'lucide-react';
+import { LogoMark } from '@/components/shared/logo-mark';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function AuthShell({ title, children }: { title: string; children: React.ReactNode }) {
@@ -6,11 +6,9 @@ export function AuthShell({ title, children }: { title: string; children: React.
     <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: 'var(--background)' }}>
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <BookOpen size={20} className="text-primary-foreground" />
-          </div>
-          <span className="text-2xl font-extrabold" style={{ color: 'var(--foreground)' }}>
-            Skill<span className="text-primary">Path</span>
+          <LogoMark className="h-9" />
+          <span className="text-2xl font-semibold" style={{ color: 'var(--foreground)' }}>
+            aolumi
           </span>
         </div>
 

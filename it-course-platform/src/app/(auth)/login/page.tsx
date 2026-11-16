@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { AuthFormSkeleton } from '@/components/skeletons/auth-form-skeleton';
 import { LoginView } from '../_components/login-view';
 
-export const metadata: Metadata = { title: 'Đăng nhập | SkillPath' };
+export const metadata: Metadata = { title: 'Đăng nhập | Aolumi' };
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 

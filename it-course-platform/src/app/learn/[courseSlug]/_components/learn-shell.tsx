@@ -237,10 +237,10 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
                 {docked ? <PanelLeftClose /> : <PanelLeftOpen />}
               </button>
             )}
-            <Link href="/" aria-label="SkillPath — trang chủ" className={cn(headerBtn, 'h-11 gap-1.5 px-1.5')}>
+            <Link href="/" aria-label="Aolumi — trang chủ" className={cn(headerBtn, 'h-11 gap-1.5 px-1.5')}>
               <LogoMark className="h-7" />
-              <span className="hidden text-base font-bold sm:inline">
-                SkillPath
+              <span className="hidden text-base font-semibold sm:inline">
+                aolumi
               </span>
             </Link>
           </div>

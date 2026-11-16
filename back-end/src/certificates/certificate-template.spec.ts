@@ -3,7 +3,7 @@ import { certificateSvg, type CertificateView, type Measure } from './certificat
 // Hàm đo giả: mỗi ký tự rộng 0.5em.
 const measure: Measure = (text, _font, size) => text.length * size * 0.5;
 const view = (over: Partial<CertificateView> = {}): CertificateView => ({
-  serialNo: 'SP-7K3F-92QX-M4',
+  serialNo: 'AL-7K3F-92QX-M4',
   learnerName: 'Nguyễn Thị Minh Anh',
   courseTitle: 'React JS từ cơ bản đến nâng cao',
   instructorName: 'Trần Quốc Bảo',
@@ -19,7 +19,7 @@ const fontSizeOf = (s: string, text: string) => Number(new RegExp(`font-size="([
 describe('certificateSvg', () => {
   it('cùng mã số → cùng SVG; khác mã số → hoa văn khác', () => {
     expect(svg()).toBe(svg());
-    expect(svg({ serialNo: 'SP-A2B3-C4D5-E6' })).not.toBe(svg());
+    expect(svg({ serialNo: 'AL-A2B3-C4D5-E6' })).not.toBe(svg());
   });
   it('in tên, khoá, giảng viên, kỹ năng viết hoa, mã số, ngày theo giờ Việt Nam', () => {
     const s = svg();
@@ -28,7 +28,7 @@ describe('certificateSvg', () => {
       'React JS từ cơ bản đến nâng cao',
       'Trần Quốc Bảo',
       'REACT JS   ·   JAVASCRIPT',
-      'SP-7K3F-92QX-M4',
+      'AL-7K3F-92QX-M4',
       '12 tháng 11, 2026',
       'fe.test/verify/',
     ]) {

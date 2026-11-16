@@ -5,7 +5,7 @@ import CodeView, { CodeViewSkeleton } from './_components/code-view';
 
 export async function generateMetadata({ params }: PageProps<'/learn/[courseSlug]/code/[itemId]'>): Promise<Metadata> {
   const { courseSlug, itemId } = await params;
-  return learnItemMetadata(courseSlug, itemId, 'Bài tập lập trình | SkillPath');
+  return learnItemMetadata(courseSlug, itemId, 'Bài tập lập trình | Aolumi');
 }
 
 // CodeView đọc ?submission bằng useSearchParams → bọc Suspense.
