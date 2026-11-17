@@ -57,3 +57,13 @@ export const libraryQuerySchema = z.object({
   kind: z.enum(['document', 'video']).default('document'),
 });
 export type LibraryQuery = z.output<typeof libraryQuerySchema>;
+
+// Trang Thư viện file: phân trang, tìm theo tên, lọc theo tình trạng dùng.
+export const libraryPageQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+  q: z.string().trim().max(100).optional(),
+  filter: z.enum(['all', 'used', 'unused', 'failed']).default('all'),
+  order: z.enum(['desc', 'asc']).default('desc'),
+});
+export type LibraryPageQuery = z.output<typeof libraryPageQuerySchema>;

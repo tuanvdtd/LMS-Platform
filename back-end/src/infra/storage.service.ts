@@ -1,8 +1,10 @@
 import { createPrivateKey } from 'node:crypto';
 import {
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
   S3ServiceException,
@@ -169,6 +171,39 @@ export class StorageService {
   delete(bucket: Bucket, key: string): Promise<void> {
     return this.call(async () => {
       await this.clientOf(bucket).send(new DeleteObjectCommand({ Bucket: this.buckets[bucket], Key: key }));
+    });
+  }
+
+  // Mọi object dưới một tiền tố, tự lặp hết các trang.
+  list(bucket: Bucket, prefix: string): Promise<{ key: string; lastModified: Date }[]> {
+    return this.call(async () => {
+      const out: { key: string; lastModified: Date }[] = [];
+      let token: string | undefined;
+      do {
+        const res = await this.clientOf(bucket).send(
+          new ListObjectsV2Command({ Bucket: this.buckets[bucket], Prefix: prefix, ContinuationToken: token }),
+        );
+        for (const o of res.Contents ?? []) {
+          if (o.Key) out.push({ key: o.Key, lastModified: o.LastModified ?? new Date() });
+        }
+        token = res.IsTruncated ? res.NextContinuationToken : undefined;
+      } while (token);
+      return out;
+    });
+  }
+
+  // Xoá cả thư mục (HLS của một video = playlist + hàng trăm segment). DeleteObjects nhận tối đa 1.000 key mỗi lần.
+  async deletePrefix(bucket: Bucket, prefix: string): Promise<void> {
+    const keys = (await this.list(bucket, prefix)).map((o) => o.key);
+    await this.call(async () => {
+      for (let i = 0; i < keys.length; i += 1000) {
+        await this.clientOf(bucket).send(
+          new DeleteObjectsCommand({
+            Bucket: this.buckets[bucket],
+            Delete: { Objects: keys.slice(i, i + 1000).map((Key) => ({ Key })), Quiet: true },
+          }),
+        );
+      }
     });
   }
 

@@ -1,9 +1,9 @@
-// Thư viện file của giảng viên (/instructor/library). Hợp đồng API đề xuất, BE chưa làm:
+// Thư viện file của giảng viên (/instructor/library):
 //   GET    /instructor/assets/library?page&pageSize&q&filter&order → LibraryPage
 //   GET    /instructor/assets/:id/usages                         → FileUsage[]
-//   DELETE /instructor/assets/:id                                 → 204 (409 nếu đang dùng)
-//   GET    /instructor/assets/:id/url?download=1                  → { url } (Content-Disposition: attachment)
-// BE coi asset `uploading` quá 1 giờ là `failed` lúc đọc (chưa có cron dọn).
+//   DELETE /instructor/assets/:id                                 → 204 (409 kèm code nếu đang dùng / đang xử lý)
+//   GET    /instructor/assets/:id/url?download=1                  → { url } (tải về với tên file gốc)
+// File tải lên bỏ dở quá 1 giờ được trả về với status `failed`.
 
 export type FileKind = 'document' | 'video';
 export type FileStatus = 'uploading' | 'processing' | 'ready' | 'failed';
@@ -35,7 +35,10 @@ export interface LibraryPage {
   items: LibraryFile[];
   total: number; // số file khớp filter + q, để phân trang
   counts: Record<LibraryFilter, number>; // theo q, không theo filter
-  totalBytes: number; // cả thư viện
+  totalBytes: number; // dung lượng đang dùng của cả thư viện
+  quotaBytes: number; // hạn mức dung lượng của tài khoản
+  videoSecondsUsed: number | null; // video đã tải lên trong tháng; null = không áp hạn mức
+  videoSecondsLimit: number | null;
 }
 
 export interface FileUsage {

@@ -155,7 +155,7 @@ const SECTIONS: LegalSection[] = [
         </Table>
         <p>Aolumi không dùng cookie quảng cáo và không có công cụ theo dõi của mạng xã hội.</p>
         <LegalNote title="Thay đổi lựa chọn của bạn:">
-          bạn đổi ý hoặc rút lại sự đồng ý được bất cứ lúc nào. Khi bạn chọn “Chỉ thiết yếu”, công cụ chẩn đoán lỗi dừng ngay trên
+          bạn đổi ý hoặc rút lại sự đồng ý được bất cứ lúc nào. Khi bạn chọn “Từ chối”, công cụ chẩn đoán lỗi dừng ngay trên
           trình duyệt của bạn.{' '}
           <CookieSettingsButton className="font-semibold text-primary underline underline-offset-4" />
         </LegalNote>

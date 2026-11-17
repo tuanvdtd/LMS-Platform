@@ -123,6 +123,7 @@ const SECTIONS: LegalSection[] = [
           <li>Giá khoá học cố định từ lần xuất bản đầu tiên; muốn giảm giá sau đó thì dùng mã giảm giá.</li>
           <li>Bạn cam kết sở hữu hoặc có quyền sử dụng toàn bộ nội dung đăng lên (video, hình ảnh, mã nguồn, tài liệu, đề bài) và tự chịu trách nhiệm nếu có khiếu nại về bản quyền.</li>
           <li>Bạn tự chịu trách nhiệm về nghĩa vụ thuế đối với thu nhập nhận được từ Aolumi.</li>
+          <li>File bạn tải lên phải phục vụ khoá học trên Aolumi. Mỗi tài khoản có hạn mức dung lượng và hạn mức thời lượng video tải lên mỗi tháng, hiển thị trong Thư viện file. Tài khoản dùng Aolumi làm nơi lưu trữ cá nhân có thể bị khoá.</li>
         </ul>
         <p>
           Bạn giữ quyền sở hữu nội dung của mình. Bạn cấp cho Aolumi quyền lưu trữ, xử lý kỹ thuật (ví dụ chuyển mã video), hiển

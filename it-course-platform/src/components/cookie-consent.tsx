@@ -39,13 +39,13 @@ export function CookieConsent() {
           </p>
           {consent !== 'unset' && (
             <p className="text-xs text-muted-foreground">
-              Lựa chọn hiện tại: <strong className="text-foreground">{consent === 'accepted' ? 'Đồng ý tất cả' : 'Chỉ thiết yếu'}</strong>
+              Lựa chọn hiện tại: <strong className="text-foreground">{consent === 'accepted' ? 'Đồng ý tất cả' : 'Từ chối'}</strong>
             </p>
           )}
         </div>
         <div className="flex shrink-0 gap-2">
           <Button variant="outline" className="h-10 flex-1 sm:flex-none" onClick={() => choose('rejected')}>
-            Chỉ thiết yếu
+            Từ chối
           </Button>
           <Button className="h-10 flex-1 sm:flex-none" onClick={() => choose('accepted')}>
             Đồng ý tất cả

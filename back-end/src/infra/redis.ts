@@ -26,6 +26,14 @@ async function incrWindow(redis: Redis, key: string, ttl: number) {
 export const rateLimit = async (redis: Redis, key: string, limit: number, windowSec: number) =>
   (await incrWindow(redis, key, windowSec)) <= limit;
 
+// Cộng (amount âm = hoàn lại) vào bộ đếm có hạn dùng. TTL chỉ đặt lúc tạo key, trả giá trị sau khi cộng.
+export async function incrBy(redis: Redis, key: string, amount: number, ttlSec: number) {
+  const result = await redis.multi().set(key, 0, 'EX', ttlSec, 'NX').incrby(key, amount).exec();
+  const [err, count] = result?.[1] ?? [new Error('Redis MULTI bị huỷ')];
+  if (err) throw err;
+  return count as number;
+}
+
 // ponytail: Redis lỗi thì mọi request có auth lỗi theo (dựa vào độ ổn định của Upstash).
 // Nâng cấp: bắt lỗi trong get/set, trả null để Better Auth đọc session từ DB.
 export function redisStorage(redis: Redis): SecondaryStorage {
