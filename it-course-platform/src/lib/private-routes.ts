@@ -2,7 +2,7 @@
 // File thuần, không import alias → test bằng node:test.
 export const PRIVATE_PREFIXES = [
   '/my-learning', '/cart', '/orders', '/settings', '/skills', '/certificates', '/notifications',
-  '/messages', '/learn', '/onboarding', '/checkout', '/instructor', '/admin', '/home',
+  '/messages', '/learn', '/onboarding', '/checkout', '/instructor', '/admin', '/home', '/posts',
 ] as const;
 
 // Khớp theo đoạn: '/learn' khớp '/learn/x' nhưng không khớp '/learning-x'.

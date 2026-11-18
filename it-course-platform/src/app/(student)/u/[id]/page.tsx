@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { ProfileSkeleton } from '@/components/skeletons/profile-skeleton';
 import { getProfile } from '@/lib/api/catalog';
+import { getUserPosts } from '@/lib/api/posts';
 import { ProfileView } from './_components/profile-view';
 
 export async function generateMetadata({ params }: PageProps<'/u/[id]'>): Promise<Metadata> {
@@ -22,7 +23,8 @@ export default function ProfilePage(props: PageProps<'/u/[id]'>) {
 }
 
 async function Body({ params }: PageProps<'/u/[id]'>) {
-  const p = await getProfile((await params).id);
+  const { id } = await params;
+  const [p, posts] = await Promise.all([getProfile(id), getUserPosts(id)]);
   if (!p) notFound();
-  return <ProfileView p={p} />;
+  return <ProfileView p={p} posts={posts} />;
 }

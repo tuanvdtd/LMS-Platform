@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BadgeCheck, ChevronDown, ClipboardCheck, House, Library, LockKeyhole, LogOut, Menu, Settings, ShieldUser, Wallet, X, type LucideIcon } from 'lucide-react';
+import { BadgeCheck, ChevronDown, ClipboardCheck, House, Library, LockKeyhole, LogOut, Menu, PenLine, Settings, ShieldUser, Wallet, X, type LucideIcon } from 'lucide-react';
 import { SignOutDialog } from '@/components/layout/sign-out-dialog';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -41,6 +41,8 @@ const GROUPS: { label: string; links: NavLink[] }[] = [
       { href: '/admin/skill-bank', label: 'Ngân hàng kỹ năng', icon: Library },
       { href: '/admin/payouts', label: 'Thanh toán giảng viên', icon: Wallet, adminOnly: true },
       { href: '/admin/moderators', label: 'Moderator', icon: ShieldUser, adminOnly: true },
+      // Khu soạn bài dùng chung (/posts) nằm ngoài khung quản trị, có header chung.
+      { href: '/posts', label: 'Bài viết của tôi', icon: PenLine, adminOnly: true },
     ],
   },
   {

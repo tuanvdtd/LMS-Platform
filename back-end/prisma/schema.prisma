@@ -104,6 +104,7 @@ model User {
   qaRepliesReceived     CourseAnswer[]          @relation("qaAnswerReplyTo")
   moderatorCategories   ModeratorCategory[]
   notifications         Notification[]
+  posts                 Post[]
 
   @@index([role])
   @@map("user")
@@ -380,6 +381,7 @@ model Course {
   coupons       Coupon[]
   announcements Announcement[]
   qaQuestions   CourseQuestion[]
+  posts         Post[]
 
   @@index([instructorId])
   @@index([status, categoryId, level]) // duyệt danh mục
@@ -754,6 +756,7 @@ model Topic {
   skillQuestions SkillQuestion[]
   skillAttempts  SkillAttempt[]
   userSkills     UserTopicSkill[]
+  posts          PostTopic[]
 
   // Autocomplete ô "Tìm kiếm topic" ở bước 2 onboarding (name % $1). Cần extension pg_trgm.
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_topics_name_trgm")
@@ -1406,6 +1409,54 @@ model CourseAnswer {
   @@index([userId])
   @@index([replyToAnswerId])
   @@map("course_answers")
+}
+
+// ============================================================================
+//  BLOG — bài viết công khai của giảng viên và admin
+// ============================================================================
+
+enum PostStatus {
+  draft
+  published
+  removed // admin gỡ; tác giả không tự xuất bản lại
+}
+
+model Post {
+  id              String     @id @default(uuid(7)) @db.Uuid
+  authorId        String     @db.Uuid
+  slug            String?    @unique // null tới lần xuất bản đầu, sau đó giữ nguyên
+  title           String     @default("")
+  excerpt         String? // tác giả nhập; trống thì hiển thị autoExcerpt
+  autoExcerpt     String     @default("") // cắt từ bodyHtml lúc lưu
+  coverUrl        String?
+  bodyHtml        String     @default("") // HTML Tiptap, CHƯA lọc: FE lọc lúc hiển thị (lib/post-html.ts)
+  readingMinutes  Int        @default(1)
+  status          PostStatus @default(draft)
+  relatedCourseId String?    @db.Uuid
+  publishedAt     DateTime?
+  removedReason   String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  author        User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  relatedCourse Course?     @relation(fields: [relatedCourseId], references: [id], onDelete: SetNull)
+  topics        PostTopic[]
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([authorId, status])
+  @@map("posts")
+}
+
+model PostTopic {
+  postId  String @db.Uuid
+  topicId String @db.Uuid
+
+  post  Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([postId, topicId])
+  @@index([topicId])
+  @@map("post_topics")
 }
 
 // ============================================================================

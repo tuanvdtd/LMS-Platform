@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { Bell, ChevronLeft, ChevronRight, CircleUser, LogOut, Menu, MessageCircle, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, CircleUser, LogOut, Menu, MessageCircle, Moon, PenLine, ShieldCheck, Sun, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { categoryHref, topicHref } from '@/lib/category-links';
 import { Button } from '@/components/ui/button';
@@ -22,11 +22,13 @@ export function MobileNav({
   categories,
   user,
   isPending,
+  canWritePosts,
   onSignOut,
 }: {
   categories: CategoryNode[];
   user: NavUser | undefined;
   isPending: boolean;
+  canWritePosts: boolean;
   onSignOut: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -135,6 +137,12 @@ export function MobileNav({
                     </Link>
                   </>
                 )}
+                {canWritePosts && (
+                  <Link href="/posts" onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
+                    <PenLine size={15} className="text-muted-foreground" />
+                    Bài viết của tôi
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -149,6 +157,7 @@ export function MobileNav({
               </div>
             )}
             <div className="mt-2 border-t py-2">
+              <Link href="/blog" onClick={close} className="block px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">Blog</Link>
               {!staff && (
                 <Link href={teachHref(user)} onClick={close} className="block px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">Dạy học</Link>
               )}

@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { Check, ChevronDown, CodeXml, ListChecks, MessageCircle, Play } from 'lucide-react';
-import { SiteFooter } from '@/components/layout/site-footer';
-import { getCategoryTree } from '@/lib/api/categories';
 import { TeachCta } from './_components/teach-cta';
 
 export const metadata: Metadata = { title: 'Trở thành giảng viên | Aolumi' };
@@ -51,8 +49,7 @@ const NEEDS = [
   { title: 'Không cần hồ sơ trước', desc: 'Xác minh danh tính chỉ khi bạn đặt giá cho khoá.' },
 ];
 
-export default async function TeachPage() {
-  const categories = await getCategoryTree();
+export default function TeachPage() {
   return (
     <>
       {/* 2 · Hero */}
@@ -243,7 +240,6 @@ export default async function TeachPage() {
         </div>
       </section>
 
-      <SiteFooter categories={categories} />
     </>
   );
 }

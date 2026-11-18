@@ -1,7 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Award, BookOpen, ChevronDown, CircleCheck, Lock } from 'lucide-react';
+import { PostCardView } from '@/components/post/post-card';
 import { CatalogCourseCard, COURSE_GRID_WITH_SIDEBAR } from '@/components/shared/catalog-course-card';
+import type { PostCard } from '@/types/post';
 import type { PublicProfile } from '@/types/profile';
 
 const dateFmt = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
@@ -14,11 +16,12 @@ const CERT_FIRST = 6;
 const ROW_FIRST = 5;
 
 // Danh sách mục có nội dung, theo đúng thứ tự hiển thị. Dùng chung cho thân trang và thanh mục.
-export function sectionsOf(p: PublicProfile) {
+export function sectionsOf(p: PublicProfile, posts: PostCard[]) {
   const l = p.learning;
   return [
     p.bio && { id: 'gioi-thieu', label: 'Giới thiệu' },
     p.teaching && { id: 'giang-day', label: 'Giảng dạy' },
+    posts.length && { id: 'bai-viet', label: 'Bài viết' },
     l?.skills.length && { id: 'ky-nang', label: 'Kỹ năng' },
     l?.inProgress.length && { id: 'dang-hoc', label: 'Đang học' },
     l?.completed.length && { id: 'da-hoan-thanh', label: 'Đã hoàn thành' },
@@ -119,8 +122,10 @@ function CertCard({ c }: { c: Cert }) {
 }
 
 const CERT_GRID = 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3';
+const POST_GRID = 'grid gap-6 sm:grid-cols-2 lg:grid-cols-3';
+const POST_FIRST = 6;
 
-export function ProfileSections({ profile: p }: { profile: PublicProfile }) {
+export function ProfileSections({ profile: p, posts }: { profile: PublicProfile; posts: PostCard[] }) {
   const l = p.learning;
   const hasLearning = !!l && (l.skills.length > 0 || l.inProgress.length > 0 || l.completed.length > 0 || l.certificates.length > 0);
 
@@ -143,6 +148,23 @@ export function ProfileSections({ profile: p }: { profile: PublicProfile }) {
           ) : (
             <p className="text-sm text-muted-foreground">{p.name} chưa xuất bản khoá học nào.</p>
           )}
+        </Section>
+      )}
+
+      {posts.length > 0 && (
+        <Section id="bai-viet" title="Bài viết" count={posts.length}>
+          <div className={POST_GRID}>
+            {posts.slice(0, POST_FIRST).map((post) => (
+              <PostCardView key={post.id} post={post} />
+            ))}
+          </div>
+          <More count={posts.length - POST_FIRST} noun="bài viết">
+            <div className={`mt-6 ${POST_GRID}`}>
+              {posts.slice(POST_FIRST).map((post) => (
+                <PostCardView key={post.id} post={post} />
+              ))}
+            </div>
+          </More>
         </Section>
       )}
 
