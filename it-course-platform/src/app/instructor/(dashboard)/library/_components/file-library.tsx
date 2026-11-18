@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Progress, ProgressLabel } from '@/components/ui/progress';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { deleteLibraryFile, listLibraryFiles, uploadToLibrary } from '@/lib/api/library';
 import { uploadErrorMessage } from '@/lib/upload';
@@ -43,6 +44,20 @@ const KindIcon = ({ file, className }: { file: Pick<LibraryFile, 'kind'>; classN
   const Icon = file.kind === 'video' ? FileVideo : FileText;
   return <Icon className={cn('size-5 shrink-0 text-muted-foreground', className)} />;
 };
+
+// Mức đã dùng so với hạn mức của tài khoản. Thanh chuyển màu cảnh báo khi đã dùng từ 90%.
+function UsageMeter({ label, value, used, limit }: { label: string; value: string; used: number; limit: number }) {
+  const percent = Math.min(100, Math.round((used / limit) * 100));
+  return (
+    <Progress
+      value={percent}
+      className={cn('min-w-0 flex-1 gap-2', percent >= 90 && '[&_[data-slot=progress-indicator]]:bg-destructive')}
+    >
+      <ProgressLabel className="font-normal text-muted-foreground">{label}</ProgressLabel>
+      <span className="ml-auto text-sm tabular-nums">{value}</span>
+    </Progress>
+  );
+}
 
 export function FileLibrary() {
   const [query, setQuery] = useState<LibraryQuery>({ page: 1, q: '', filter: 'all', order: 'desc' });
@@ -115,8 +130,15 @@ export function FileLibrary() {
       await deleteLibraryFile(toDelete.id);
       toast.success('Đã xoá file');
     } catch (err) {
-      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
-      toast.error(status === 409 ? 'File vừa được gắn vào bài giảng, không xoá được' : 'Xoá thất bại, thử lại');
+      const res = axios.isAxiosError(err) ? err.response : undefined;
+      const code = (res?.data as { code?: string } | undefined)?.code;
+      toast.error(
+        code === 'ASSET_PROCESSING'
+          ? 'Video đang xử lý, đợi xử lý xong rồi xoá'
+          : res?.status === 409
+            ? 'File đang được dùng ở bài giảng, gỡ khỏi bài giảng trước'
+            : 'Xoá thất bại, thử lại',
+      );
     } finally {
       setDeleting(false);
       setToDelete(null);
@@ -238,7 +260,7 @@ export function FileLibrary() {
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold text-balance">Thư viện file</h1>
             <p className="mt-1 max-w-[55ch] text-sm text-pretty text-muted-foreground">
-              {data ? `Đã dùng ${formatBytes(data.totalBytes)}. ` : ''}File đã tải lên dùng lại được ở mọi khoá học của bạn.
+              File đã tải lên dùng lại được ở mọi khoá học của bạn.
             </p>
           </div>
           <label className={cn(buttonVariants(), 'cursor-pointer has-focus-visible:ring-3 has-focus-visible:ring-ring/50')}>
@@ -256,6 +278,25 @@ export function FileLibrary() {
             Tải lên PDF
           </label>
         </header>
+
+        {data && (
+          <section aria-label="Hạn mức của bạn" className="flex flex-col gap-5 rounded-xl bg-muted/60 p-4 sm:flex-row sm:gap-10">
+            <UsageMeter
+              label="Dung lượng đã dùng"
+              value={`${formatBytes(data.totalBytes)} / ${formatBytes(data.quotaBytes)}`}
+              used={data.totalBytes}
+              limit={data.quotaBytes}
+            />
+            {data.videoSecondsUsed !== null && data.videoSecondsLimit !== null && (
+              <UsageMeter
+                label="Video tải lên tháng này"
+                value={`${Math.floor(data.videoSecondsUsed / 60)} / ${data.videoSecondsLimit / 60} phút`}
+                used={data.videoSecondsUsed}
+                limit={data.videoSecondsLimit}
+              />
+            )}
+          </section>
+        )}
 
         {!libraryEmpty && (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

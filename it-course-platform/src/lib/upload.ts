@@ -102,6 +102,7 @@ export function uploadErrorMessage(err: unknown): string | null {
   const first = (res?.data as { errors?: { message: string }[] } | undefined)?.errors?.[0]?.message;
   if (res?.status === 400 && first) return first;
   if (res?.status === 409) return 'Khoá học đang chờ duyệt, không sửa được';
+  if (res?.status === 429) return 'Bạn tải lên quá nhiều lượt, thử lại sau ít phút';
   if (res?.status === 502) return 'Lưu trữ đang lỗi, thử lại';
   return 'Tải lên thất bại, thử lại';
 }

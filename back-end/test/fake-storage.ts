@@ -2,7 +2,17 @@ import type { Bucket, ByteRange, StorageService } from '../src/infra/storage.ser
 
 type StoragePort = Pick<
   StorageService,
-  'presignPut' | 'presignGet' | 'head' | 'read' | 'delete' | 'publicUrl' | 'keyOfPublicUrl' | 'hasCdn' | 'signVideoPrefix'
+  | 'presignPut'
+  | 'presignGet'
+  | 'head'
+  | 'read'
+  | 'delete'
+  | 'list'
+  | 'deletePrefix'
+  | 'publicUrl'
+  | 'keyOfPublicUrl'
+  | 'hasCdn'
+  | 'signVideoPrefix'
 >;
 
 // Thay R2 trong e2e: object nằm trong Map, URL ký là chuỗi giả.
@@ -17,8 +27,12 @@ export class FakeStorage implements StoragePort {
     return Promise.resolve(`https://cf.test/${key}?Policy=p&Signature=s&Key-Pair-Id=k`);
   }
 
-  put(bucket: Bucket, key: string, body: Buffer) {
+  private readonly modified = new Map<string, Date>();
+
+  // lastModified truyền vào để test dựng object "cũ".
+  put(bucket: Bucket, key: string, body: Buffer, lastModified = new Date()) {
     this.objects.set(`${bucket}/${key}`, body);
+    this.modified.set(`${bucket}/${key}`, lastModified);
   }
   has(bucket: Bucket, key: string) {
     return this.objects.has(`${bucket}/${key}`);
@@ -42,7 +56,19 @@ export class FakeStorage implements StoragePort {
   }
   delete(bucket: Bucket, key: string) {
     this.objects.delete(`${bucket}/${key}`);
+    this.modified.delete(`${bucket}/${key}`);
     return Promise.resolve();
+  }
+  list(bucket: Bucket, prefix: string) {
+    const start = `${bucket}/${prefix}`;
+    return Promise.resolve(
+      [...this.objects.keys()]
+        .filter((k) => k.startsWith(start))
+        .map((k) => ({ key: k.slice(bucket.length + 1), lastModified: this.modified.get(k) ?? new Date() })),
+    );
+  }
+  async deletePrefix(bucket: Bucket, prefix: string) {
+    for (const { key } of await this.list(bucket, prefix)) await this.delete(bucket, key);
   }
   publicUrl(key: string) {
     return `${FakeStorage.PUBLIC}/${key}`;

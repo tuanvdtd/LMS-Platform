@@ -1,13 +1,24 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { AssetKind, Prisma } from '@prisma/client';
+import { tooManyRequests } from '../common/http.js';
 import { isGuid, validationError } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
-import { StorageService } from '../infra/storage.service.js';
+import { RedisService, incrBy, rateLimit } from '../infra/redis.js';
+import { type Bucket, StorageService } from '../infra/storage.service.js';
 import type { CreateUploadInput } from './assets.schemas.js';
 import { hlsPrefix } from '../hls/hls-job.js';
 import { HlsService } from '../hls/hls.service.js';
 import { IMAGE_EXT, isPdf, mp4Duration, type Mp4Size, mp4Size, videoSizeProblem } from './file-check.js';
+import {
+  STALE_UPLOAD_MS,
+  UPLOADS_PER_HOUR,
+  VIDEO_COUNTER_TTL_SEC,
+  storageFullMessage,
+  videoMinutesFullMessage,
+  videoMonthKey,
+} from './limits.js';
+import { StorageUsageService } from './usage.service.js';
 
 const LIBRARY_SELECT = {
   id: true,
@@ -36,18 +47,21 @@ const toLibraryAsset = (a: LibraryRow) => ({
   sizeBytes: Number(a.sizeBytes),
 });
 
-// ponytail: không cron dọn. PUT lỗi thì không có object; asset kẹt uploading/failed chỉ
-// là dòng DB; video bị thay vẫn nằm trong thư viện để dùng lại. Thêm cron @nestjs/schedule khi rác đáng kể.
+// Dòng uploading / failed bỏ lại và video giới thiệu không dùng do AssetsCleanupService dọn định kỳ.
+// Video bị thay vẫn nằm trong thư viện để dùng lại; giảng viên tự xoá khi cần chỗ.
 @Injectable()
 export class AssetsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly hls: HlsService,
+    private readonly redis: RedisService,
+    private readonly usage: StorageUsageService,
   ) {}
 
   // Key do BE sinh (người dùng không chọn đường dẫn), URL ký hạn 10 phút.
   async createUpload(ownerId: string, body: CreateUploadInput) {
+    if (!(await rateLimit(this.redis, `rl:upload:${ownerId}`, UPLOADS_PER_HOUR, 3600))) throw tooManyRequests();
     const headers = { 'Content-Type': body.mimeType };
     if (body.kind === 'thumbnail' || body.kind === 'avatar' || body.kind === 'promo') {
       // Ảnh bìa, ảnh hồ sơ, video giới thiệu: R2 public, không vào assets.
@@ -57,6 +71,22 @@ export class AssetsService {
           : `${body.kind === 'avatar' ? 'avatars' : 'thumbnails'}/${ownerId}/${randomUUID()}.${IMAGE_EXT[body.mimeType]}`;
       const uploadUrl = await this.storage.presignPut('public', key, body.mimeType, body.sizeBytes);
       return { assetId: null, key, uploadUrl, headers };
+    }
+    // ponytail: hai lượt xin link song song có thể cùng lọt (vượt tối đa một file); cần chặt hơn thì khoá theo người dùng.
+    const limits = await this.usage.limitsOf(ownerId);
+    const used = await this.usage.usedBytes(ownerId);
+    if (used + body.sizeBytes > limits.storageBytes) {
+      throw validationError([{ path: ['file'], message: storageFullMessage(used, limits.storageBytes) }]);
+    }
+    // Chỉ đọc bộ đếm: báo sớm để người dùng khỏi tải cả file rồi mới biết. Cộng thật ở complete.
+    // ponytail: thời lượng do trình duyệt gửi; cần chặt hơn thì đọc từ file ở complete (mp4Duration).
+    if (body.kind === 'video' && this.hls.enabled) {
+      const seconds = await this.usage.videoSecondsUsed(ownerId);
+      if (seconds + body.durationSec > limits.videoSecondsPerMonth) {
+        throw validationError([
+          { path: ['file'], message: videoMinutesFullMessage(seconds, limits.videoSecondsPerMonth) },
+        ]);
+      }
     }
     const key =
       body.kind === 'video' ? `videos/${ownerId}/${randomUUID()}.mp4` : `documents/${ownerId}/${randomUUID()}.pdf`;
@@ -83,7 +113,7 @@ export class AssetsService {
     const asset = isGuid(id)
       ? await this.prisma.asset.findFirst({
           where: { id, ownerId, kind: { in: CONTENT_KINDS }, status: 'uploading' },
-          select: { kind: true, storageKey: true, sizeBytes: true },
+          select: { kind: true, storageKey: true, sizeBytes: true, createdAt: true, durationSec: true },
         })
       : null;
     if (!asset) throw new NotFoundException();
@@ -100,16 +130,42 @@ export class AssetsService {
       });
       throw validationError([{ path: ['file'], message: checked }]);
     }
-    // Video + HLS bật: gửi job trước (lỗi → 502, asset vẫn uploading để bấm lại), rồi processing.
-    // Điều kiện uploading: bấm complete 2 lần song song thì lần sau 404; job thừa vô hại (webhook không tìm thấy asset).
+    const limits = await this.usage.limitsOf(ownerId);
+    // Tải lâu hơn 1 giờ: dòng đã không còn được tính vào dung lượng lúc người khác xin link → kiểm lại trước khi nhận.
+    if (asset.createdAt.getTime() < Date.now() - STALE_UPLOAD_MS) {
+      const used = await this.usage.usedBytes(ownerId);
+      if (used + Number(asset.sizeBytes) > limits.storageBytes) {
+        throw await this.reject(id, bucket, asset.storageKey, storageFullMessage(used, limits.storageBytes));
+      }
+    }
+    // Video + HLS bật: cộng phút, gửi job (lỗi → 502, asset vẫn uploading để bấm lại), rồi processing.
     if (checked && this.hls.enabled) {
-      const hlsJobId = await this.hls.submit({ id, storageKey: asset.storageKey }, checked);
-      const { count } = await this.prisma.asset.updateMany({
-        where: { id, status: 'uploading' },
-        data: { status: 'processing', hlsJobId },
-      });
-      if (count === 0) throw new NotFoundException();
-      return toLibraryAsset(await this.prisma.asset.findUniqueOrThrow({ where: { id }, select: LIBRARY_SELECT }));
+      const seconds = asset.durationSec ?? 0;
+      const counterKey = videoMonthKey(ownerId);
+      const total = await incrBy(this.redis, counterKey, seconds, VIDEO_COUNTER_TTL_SEC);
+      const refund = () => incrBy(this.redis, counterKey, -seconds, VIDEO_COUNTER_TTL_SEC);
+      if (total > limits.videoSecondsPerMonth) {
+        await refund();
+        throw await this.reject(
+          id,
+          bucket,
+          asset.storageKey,
+          videoMinutesFullMessage(total - seconds, limits.videoSecondsPerMonth),
+        );
+      }
+      try {
+        const hlsJobId = await this.hls.submit({ id, storageKey: asset.storageKey }, checked);
+        // Điều kiện uploading: bấm complete 2 lần song song thì lần sau 404 (và hoàn phút ở catch); job thừa vô hại (webhook không tìm thấy asset).
+        const { count } = await this.prisma.asset.updateMany({
+          where: { id, status: 'uploading' },
+          data: { status: 'processing', hlsJobId },
+        });
+        if (count === 0) throw new NotFoundException();
+        return toLibraryAsset(await this.prisma.asset.findUniqueOrThrow({ where: { id }, select: LIBRARY_SELECT }));
+      } catch (err) {
+        await refund();
+        throw err;
+      }
     }
     const ready = await this.prisma.asset.update({
       where: { id },
@@ -134,17 +190,29 @@ export class AssetsService {
     return rows.map(toLibraryAsset);
   }
 
-  // Giảng viên xem lại PDF / video của mình.
-  async viewUrl(ownerId: string, id: string) {
+  // Giảng viên xem lại PDF / video của mình. download: link tải về với tên file gốc (video là bản MP4 gốc, không phải HLS).
+  async viewUrl(ownerId: string, id: string, download = false) {
     const asset = isGuid(id)
       ? await this.prisma.asset.findFirst({
           where: { id, ownerId, kind: { in: CONTENT_KINDS }, status: 'ready' },
-          select: { id: true, kind: true, storageKey: true, hlsKey: true },
+          select: { id: true, kind: true, fileName: true, storageKey: true, hlsKey: true },
         })
       : null;
     if (!asset) throw new NotFoundException();
+    if (download) {
+      return {
+        url: await this.storage.presignGet(bucketOf(asset.kind), asset.storageKey, 300, { fileName: asset.fileName }),
+      };
+    }
     if (asset.kind === 'video') return { url: await videoUrl(this.storage, asset) };
     return { url: await this.storage.presignGet('private', asset.storageKey, 300) };
+  }
+
+  // Từ chối file đã tải lên vì hết hạn mức: bỏ object (xoá lỗi chỉ để lại rác, job dọn sẽ xoá sau), đánh dấu lỗi, trả 400.
+  private async reject(id: string, bucket: Bucket, storageKey: string, message: string) {
+    await this.storage.delete(bucket, storageKey).catch(() => undefined);
+    await this.prisma.asset.update({ where: { id }, data: { status: 'failed' } });
+    return validationError([{ path: ['file'], message }]);
   }
 
   private async checkPdf(key: string, size: number): Promise<string | null> {
