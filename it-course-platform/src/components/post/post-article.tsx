@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, MessageCircle } from 'lucide-react';
 import { CatalogCourseCard } from '@/components/shared/catalog-course-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { buttonVariants } from '@/components/ui/button';
@@ -8,7 +8,9 @@ import { renderPostHtml } from '@/lib/post-html';
 import { cn } from '@/lib/utils';
 import type { PostDetail } from '@/types/post';
 import { PostTree } from './post-body';
-import { postDate, PostRow } from './post-card';
+import { EngagementCounts, postDate, PostRow } from './post-card';
+import { PostComments } from './post-comments';
+import { PostLikeButton } from './post-like-button';
 import { PostToc } from './post-toc';
 
 // Trang đọc bài (kiểu "Tối giản" sếp chốt 2026-11-18): đầu bài canh trái, ảnh bìa dải ngang 21:9,
@@ -43,6 +45,14 @@ function AuthorLine({ post }: { post: PostDetail }) {
       <span>
         <span className="tabular-nums">{post.readingMinutes}</span> phút đọc
       </span>
+      {(post.likeCount > 0 || post.commentCount > 0) && (
+        <>
+          <span aria-hidden>·</span>
+          <a href="#comments" className="rounded-sm outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">
+            <EngagementCounts likeCount={post.likeCount} commentCount={post.commentCount} />
+          </a>
+        </>
+      )}
       {updated && (
         <>
           <span aria-hidden>·</span>
@@ -76,11 +86,21 @@ function Topics({ post }: { post: PostDetail }) {
   );
 }
 
-// Cuối bài, cùng cột 68ch với nội dung.
-function Ending({ post }: { post: PostDetail }) {
+// Cuối bài, cùng cột 68ch với nội dung: tim + nút mở bình luận sát nội dung, rồi tác giả, bài liên quan.
+// preview: bản xem trước (tác giả soạn bài, trang xem thử) → tim không gọi API, không có bình luận.
+function Ending({ post, preview }: { post: PostDetail; preview: boolean }) {
   const a = post.author;
   return (
-    <div className="mt-14 flex max-w-[68ch] flex-col gap-12">
+    <div className="mt-10 flex max-w-[68ch] flex-col gap-12">
+      <div className="flex items-center gap-2">
+        <PostLikeButton slug={post.slug} initialCount={post.likeCount} preview={preview} />
+        {!preview && (
+          <a href="#comments" aria-label={`Xem ${post.commentCount} bình luận`} className={buttonVariants({ variant: 'outline' })}>
+            <MessageCircle data-icon="inline-start" />
+            <span className="tabular-nums">{post.commentCount}</span>
+          </a>
+        )}
+      </div>
       <section aria-labelledby="about-author" className="border-y py-6">
         <div className="flex items-start gap-4">
           <Avatar className="size-14">
@@ -116,6 +136,7 @@ function Ending({ post }: { post: PostDetail }) {
         )}
       </section>
 
+
       {post.relatedCourse && (
         <section aria-labelledby="related-course">
           <h2 id="related-course" className="mb-4 text-xl font-bold tracking-tight text-foreground">
@@ -145,7 +166,7 @@ function Ending({ post }: { post: PostDetail }) {
   );
 }
 
-export function PostArticle({ post, actions }: { post: PostDetail; actions?: React.ReactNode }) {
+export function PostArticle({ post, actions, preview = false }: { post: PostDetail; actions?: React.ReactNode; preview?: boolean }) {
   const { tree, headings } = renderPostHtml(post.bodyHtml);
   return (
     <article className="mx-auto max-w-5xl px-4 pb-24">
@@ -168,10 +189,12 @@ export function PostArticle({ post, actions }: { post: PostDetail; actions?: Rea
       <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,68ch)_13rem] lg:justify-between">
         <div className="min-w-0">
           <PostTree tree={tree} />
-          <Ending post={post} />
+          <Ending post={post} preview={preview} />
         </div>
         <PostToc headings={headings.filter((h) => h.level === 2)} className="sticky top-24 hidden self-start lg:block" />
       </div>
+      {/* Drawer, mở bằng link "#comments": nằm ngoài luồng nội dung. */}
+      {!preview && <PostComments slug={post.slug} postAuthorId={post.author.id} />}
     </article>
   );
 }

@@ -55,3 +55,21 @@ export const removePostSchema = z
   .object({ reason: z.string().trim().min(1, 'Hãy nhập lý do').max(500).refine(noNul, BAD_CHAR) })
   .strict();
 export type RemovePostInput = z.output<typeof removePostSchema>;
+
+// Bình luận blog: 1 ô Markdown như Hỏi đáp.
+export const COMMENT_MAX = 2000;
+export const createCommentSchema = z
+  .object({
+    body: z
+      .string()
+      .trim()
+      .min(1, 'Bình luận đang trống')
+      .max(COMMENT_MAX, `Tối đa ${COMMENT_MAX} ký tự`)
+      .refine(noNul, BAD_CHAR),
+    replyToCommentId: z.guid().optional(),
+  })
+  .strict();
+export type CreateCommentInput = z.output<typeof createCommentSchema>;
+
+export const commentsQuery = z.object({ cursor: z.guid().optional() });
+export type CommentsQuery = z.output<typeof commentsQuery>;

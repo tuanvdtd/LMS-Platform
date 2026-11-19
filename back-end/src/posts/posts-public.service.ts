@@ -17,6 +17,8 @@ const CARD = {
   coverUrl: true,
   readingMinutes: true,
   publishedAt: true,
+  likeCount: true,
+  commentCount: true,
   topics: { select: { topic: { select: { slug: true, name: true } } } },
   author: { select: { id: true, name: true, image: true, role: true } },
 } satisfies Prisma.PostSelect;
@@ -36,6 +38,8 @@ const toCard = (r: CardRow) => ({
   coverUrl: r.coverUrl,
   readingMinutes: r.readingMinutes,
   publishedAt: r.publishedAt,
+  likeCount: r.likeCount,
+  commentCount: r.commentCount,
   topics: r.topics.map((t) => t.topic),
   author: authorOf(r.author),
 });

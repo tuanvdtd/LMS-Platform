@@ -1,7 +1,7 @@
-// Hành động khách bấm dở ở trang khoá học, chạy lại sau khi đăng nhập.
+// Hành động khách bấm dở (trang khoá học, nút tim bài viết), chạy lại sau khi đăng nhập.
 // File thuần, không import alias → test bằng node:test.
-export type ResumeAction = 'add-to-cart' | 'enroll' | 'buy-now';
-const ACTIONS: readonly string[] = ['add-to-cart', 'enroll', 'buy-now'];
+export type ResumeAction = 'add-to-cart' | 'enroll' | 'buy-now' | 'like';
+const ACTIONS: readonly string[] = ['add-to-cart', 'enroll', 'buy-now', 'like'];
 
 export function parseAction(value: string | null): ResumeAction | null {
   return value && ACTIONS.includes(value) ? (value as ResumeAction) : null;

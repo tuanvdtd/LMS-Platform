@@ -1,12 +1,37 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { FileText } from 'lucide-react';
+import { FileText, Heart, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { PostCard } from '@/types/post';
 
 const dateFmt = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
 export const postDate = (iso: string) => dateFmt.format(new Date(iso));
+
+// Số tim / bình luận trên thẻ và trang đọc. Cả hai bằng 0 → không hiện gì (không hiện "0").
+export function EngagementCounts({ likeCount, commentCount }: { likeCount: number; commentCount: number }) {
+  if (!likeCount && !commentCount) return null;
+  return (
+    <span className="inline-flex items-center gap-2.5">
+      {likeCount > 0 && (
+        <span className="inline-flex items-center gap-1">
+          <Heart className="size-3.5" aria-hidden />
+          <span className="tabular-nums">{likeCount}</span>
+          <span className="sr-only">lượt thích</span>
+        </span>
+      )}
+      {commentCount > 0 && (
+        <span className="inline-flex items-center gap-1">
+          <MessageCircle className="size-3.5" aria-hidden />
+          <span className="tabular-nums">{commentCount}</span>
+          <span className="sr-only">bình luận</span>
+        </span>
+      )}
+    </span>
+  );
+}
+
+const hasEngagement = (p: PostCard) => p.likeCount > 0 || p.commentCount > 0;
 
 // Thẻ bài viết: /blog, cuối trang đọc, tab Bài viết ở trang cá nhân. Cả thẻ là một link nên tên tác giả là chữ thường.
 // featured: bài mới nhất ở đầu /blog, ảnh và chữ nằm ngang từ md.
@@ -69,6 +94,12 @@ export function PostCardView({ post, featured = false }: { post: PostCard; featu
           <span>
             <span className="tabular-nums">{post.readingMinutes}</span> phút đọc
           </span>
+          {hasEngagement(post) && (
+            <>
+              <span aria-hidden>·</span>
+              <EngagementCounts likeCount={post.likeCount} commentCount={post.commentCount} />
+            </>
+          )}
         </p>
       </div>
     </Link>
@@ -113,6 +144,12 @@ export function PostRow({ post, showAuthor = true }: { post: PostCard; showAutho
           <span>
             <span className="tabular-nums">{post.readingMinutes}</span> phút đọc
           </span>
+          {hasEngagement(post) && (
+            <>
+              <span aria-hidden>·</span>
+              <EngagementCounts likeCount={post.likeCount} commentCount={post.commentCount} />
+            </>
+          )}
         </p>
       </div>
     </Link>

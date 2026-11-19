@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ExternalLink, FileText, Loader2, PenLine, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { EngagementCounts } from '@/components/post/post-card';
 import { EmptyState } from '@/components/shared/product-ui';
 import { MyPostsSkeleton } from '@/components/skeletons/my-posts-skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -55,11 +56,19 @@ function Row({ post, onChange, onDelete }: { post: MyPostRow; onChange: (p: MyPo
           </Link>
           {post.status === 'removed' && <Badge variant="destructive">Bị gỡ</Badge>}
         </div>
-        <p className="text-sm text-muted-foreground">
-          {post.status === 'published' && post.publishedAt ? 'Xuất bản' : 'Sửa lần cuối'}{' '}
-          <time dateTime={post.updatedAt} title={fullTime(post.updatedAt)}>
-            {timeAgo(post.status === 'published' && post.publishedAt ? post.publishedAt : post.updatedAt).toLowerCase()}
-          </time>
+        <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+          <span>
+            {post.status === 'published' && post.publishedAt ? 'Xuất bản' : 'Sửa lần cuối'}{' '}
+            <time dateTime={post.updatedAt} title={fullTime(post.updatedAt)}>
+              {timeAgo(post.status === 'published' && post.publishedAt ? post.publishedAt : post.updatedAt).toLowerCase()}
+            </time>
+          </span>
+          {post.status === 'published' && (post.likeCount > 0 || post.commentCount > 0) && (
+            <>
+              <span aria-hidden>·</span>
+              <EngagementCounts likeCount={post.likeCount} commentCount={post.commentCount} />
+            </>
+          )}
         </p>
         {post.status === 'removed' && post.removedReason && (
           <p className="text-sm text-destructive">Lý do: {post.removedReason}</p>

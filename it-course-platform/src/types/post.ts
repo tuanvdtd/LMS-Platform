@@ -18,6 +18,8 @@ export interface PostCard {
   coverUrl: string | null;
   readingMinutes: number;
   publishedAt: string;
+  likeCount: number;
+  commentCount: number;
   topics: { slug: string; name: string }[];
   author: PostAuthor;
 }
@@ -53,6 +55,8 @@ export interface MyPostRow {
   updatedAt: string;
   publishedAt: string | null;
   removedReason: string | null;
+  likeCount: number;
+  commentCount: number;
 }
 
 export interface MyPost extends MyPostRow {
@@ -77,4 +81,37 @@ export interface PostUploadTicket {
   uploadUrl: string;
   headers: Record<string, string>;
   publicUrl: string;
+}
+
+// Bình luận blog. id null: tài khoản quản trị, đứng tên "Aolumi".
+export interface CommentAuthor {
+  id: string | null;
+  name: string;
+  image: string | null;
+}
+
+export interface PostComment {
+  id: string;
+  body: string;
+  createdAt: string;
+  parentId: string | null;
+  author: CommentAuthor;
+  // Trả lời một trả lời khác → "@Tên". commentId null: bình luận đó đã bị xoá.
+  replyTo: { id: string | null; name: string; commentId: string | null } | null;
+}
+
+export interface PostCommentThread extends PostComment {
+  replyCount: number;
+  replies: PostComment[];
+}
+
+export interface PostCommentPage {
+  items: PostCommentThread[];
+  commentCount: number;
+  nextCursor: string | null;
+}
+
+export interface LikeState {
+  liked: boolean;
+  likeCount: number;
 }
