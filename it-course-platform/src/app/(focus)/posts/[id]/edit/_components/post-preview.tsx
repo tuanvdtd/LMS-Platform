@@ -91,6 +91,8 @@ export function PostPreview({ input }: { input: PreviewInput }) {
     excerpt: input.excerpt.trim() || autoExcerpt(input.bodyHtml),
     coverUrl: input.coverUrl,
     readingMinutes: readingMinutes(input.bodyHtml),
+    likeCount: 0,
+    commentCount: 0,
     publishedAt: input.publishedAt ?? now,
     updatedAt: input.publishedAt ? input.updatedAt : now,
     topics: input.topics,
@@ -118,7 +120,7 @@ export function PostPreview({ input }: { input: PreviewInput }) {
         Bản xem trước: đây là trang người đọc thấy sau khi bài xuất bản.
         {sections < 2 && ' Bài có từ 2 "Tiêu đề lớn" trở lên thì bên phải sẽ hiện mục lục.'}
       </p>
-      <PostArticle post={post} />
+      <PostArticle post={post} preview />
     </>
   );
 }

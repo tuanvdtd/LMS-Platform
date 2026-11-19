@@ -69,6 +69,9 @@ const card = (n: number, title: string, photo: string | null, minutes: number, b
   excerpt: '',
   coverUrl: photo && img(photo, 800),
   readingMinutes: minutes,
+  // Vài bài 0 tim 0 bình luận để thấy thẻ không hiện số.
+  likeCount: n % 3 === 0 ? 0 : n * 4,
+  commentCount: n % 3 === 0 ? 0 : n,
   publishedAt: `2026-11-0${n}T02:00:00.000Z`,
   topics: [{ slug: 'react', name: 'React' }],
   author: by,
@@ -82,6 +85,8 @@ const SAMPLE: PostDetail = {
     'useEffect không phải "chạy khi component hiện lên". Nó là công cụ đồng bộ component với thế giới bên ngoài, và hiểu vậy thì hết lỗi vòng lặp.',
   coverUrl: img('photo-1517694712202-14dd9538aa97', 2000),
   readingMinutes: 7,
+  likeCount: 12,
+  commentCount: 5,
   publishedAt: '2026-11-10T02:00:00.000Z',
   updatedAt: '2026-11-15T08:30:00.000Z',
   topics: [
@@ -125,5 +130,5 @@ const SAMPLE: PostDetail = {
 
 export default function PostPreviewPage() {
   if (process.env.NODE_ENV === 'production') notFound();
-  return <PostArticle post={SAMPLE} />;
+  return <PostArticle post={SAMPLE} preview />;
 }

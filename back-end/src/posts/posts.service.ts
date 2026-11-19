@@ -28,6 +28,8 @@ const ROW = {
   updatedAt: true,
   publishedAt: true,
   removedReason: true,
+  likeCount: true,
+  commentCount: true,
 } satisfies Prisma.PostSelect;
 const MINE = {
   ...ROW,

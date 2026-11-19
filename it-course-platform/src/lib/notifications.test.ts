@@ -28,6 +28,6 @@ test('metaOf: loại đã khai lấy đúng, loại lạ / key prototype trả m
 });
 
 test('typesFor: học viên chỉ thấy loại của học viên, giảng viên thấy hết', () => {
-  assert.deepEqual(typesFor(false), ['verdict', 'qa_answer']);
-  assert.deepEqual(typesFor(true), ['verdict', 'qa_answer', 'qa_question', 'course_review', 'instructor_application']);
+  assert.deepEqual(typesFor(false), ['verdict', 'qa_answer', 'post_comment']);
+  assert.deepEqual(typesFor(true), ['verdict', 'qa_answer', 'qa_question', 'course_review', 'instructor_application', 'post_comment']);
 });

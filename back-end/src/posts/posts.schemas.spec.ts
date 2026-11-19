@@ -1,4 +1,4 @@
-import { listPostsQuery, postUploadSchema, removePostSchema, savePostSchema } from './posts.schemas.js';
+import { createCommentSchema, listPostsQuery, postUploadSchema, removePostSchema, savePostSchema } from './posts.schemas.js';
 
 const id = '0192f0c0-0000-7000-8000-000000000001';
 
@@ -50,5 +50,17 @@ describe('removePostSchema', () => {
   it('bắt buộc có lý do', () => {
     expect(removePostSchema.safeParse({ reason: '  ' }).success).toBe(false);
     expect(removePostSchema.parse({ reason: ' Quảng cáo ' })).toEqual({ reason: 'Quảng cáo' });
+  });
+});
+
+describe('createCommentSchema', () => {
+  it('trim, chặn rỗng / quá dài / NUL, replyToCommentId là GUID', () => {
+    expect(createCommentSchema.parse({ body: '  hi  ' })).toEqual({ body: 'hi' });
+    expect(createCommentSchema.parse({ body: 'a', replyToCommentId: id })).toEqual({ body: 'a', replyToCommentId: id });
+    expect(createCommentSchema.safeParse({ body: '   ' }).success).toBe(false);
+    expect(createCommentSchema.safeParse({ body: 'x'.repeat(2001) }).success).toBe(false);
+    expect(createCommentSchema.safeParse({ body: 'a\u0000' }).success).toBe(false);
+    expect(createCommentSchema.safeParse({ body: 'a', replyToCommentId: 'nope' }).success).toBe(false);
+    expect(createCommentSchema.safeParse({ body: 'a', extra: 1 }).success).toBe(false);
   });
 });

@@ -24,6 +24,7 @@ test('parseAction chỉ nhận giá trị hợp lệ', () => {
   assert.equal(parseAction('add-to-cart'), 'add-to-cart');
   assert.equal(parseAction('enroll'), 'enroll');
   assert.equal(parseAction('buy-now'), 'buy-now');
+  assert.equal(parseAction('like'), 'like');
   assert.equal(parseAction('delete-all'), null);
   assert.equal(parseAction(null), null);
 });

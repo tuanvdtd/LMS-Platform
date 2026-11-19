@@ -18,7 +18,36 @@ import { apiMessage } from '@/lib/api/checkout';
 import { apiErrorCode } from '@/lib/api/learn-quiz';
 import { authClient } from '@/lib/auth-client';
 import type { Answer, QaAuthor, Question, QuestionPage } from '@/types/qa';
-import { Composer, Thread, type LocalAnswer, type LocalQuestion, type ThreadHandlers } from './qa-thread';
+import { Composer, Thread, type LocalAnswer, type LocalQuestion, type RoleOf, type ThreadHandlers } from './qa-thread';
+
+// Chữ khác nhau giữa Hỏi đáp và bình luận bài viết.
+export type QaCopy = {
+  askPlaceholder: string;
+  askSubmit: string;
+  more: string;
+  loadError: string;
+  moreError: string;
+  sendError: string;
+  openError: string;
+  notFound: string;
+  notFoundCode: string;
+  deleteRootTitle: string;
+  deleteRootDescription: string;
+};
+
+const QA_COPY: QaCopy = {
+  askPlaceholder: 'Đặt câu hỏi về bài học…',
+  askSubmit: 'Gửi câu hỏi',
+  more: 'Xem thêm câu hỏi',
+  loadError: 'Không tải được hỏi đáp',
+  moreError: 'Không tải thêm được câu hỏi',
+  sendError: 'Không gửi được câu hỏi',
+  openError: 'Không mở được câu hỏi',
+  notFound: 'Câu hỏi này đã bị xoá',
+  notFoundCode: 'QUESTION_NOT_FOUND',
+  deleteRootTitle: 'Xoá câu hỏi này?',
+  deleteRootDescription: 'Mọi trả lời của câu hỏi cũng bị xoá. Không hoàn tác được.',
+};
 
 // Cùng một UI cho học viên và giảng viên, khác nhau ở bộ hàm gọi API.
 export type QaApi = {
@@ -47,14 +76,29 @@ export function QaBoard({
   empty,
   context,
   focus,
+  copy,
+  composerOnTop = false,
+  countReplies = false,
+  roleOf,
+  guestPrompt,
+  autoLoadMore = false,
+  bubble = false,
 }: {
   api: QaApi;
   title: string;
   empty: string;
   context?: (q: LocalQuestion) => ReactNode; // dòng "Khoá · Bài" ở trang giảng viên
   focus?: { questionId: string; answerId?: string }; // mở từ thông báo: ghim câu hỏi, cuộn tới câu trả lời
+  copy?: Partial<QaCopy>;
+  composerOnTop?: boolean; // danh sách mới nhất trước → ô viết nằm trên, gần chỗ bình luận mới hiện ra
+  countReplies?: boolean; // số cạnh tiêu đề tính cả trả lời (bình luận bài viết)
+  roleOf?: RoleOf;
+  guestPrompt?: ReactNode; // chưa đăng nhập: hiện ở chỗ ô viết
+  autoLoadMore?: boolean; // cuộn tới cuối danh sách là tự tải tiếp (bình luận trong drawer); mặc định là nút "Xem thêm"
+  bubble?: boolean; // bình luận dạng bong bóng, không kẻ ngang; ô viết thu một dòng (bình luận ngắn, nhiều)
 }) {
-  const { data: session } = authClient.useSession();
+  const t = { ...QA_COPY, ...copy };
+  const { data: session, isPending } = authClient.useSession();
   const me: QaAuthor = { id: session?.user.id ?? '', name: session?.user.name ?? '', image: session?.user.image ?? null };
   const [items, setItems] = useState<LocalQuestion[] | null>(null);
   const [total, setTotal] = useState(0);
@@ -69,15 +113,18 @@ export function QaBoard({
   // Câu hỏi đang mở từ thông báo; token đổi → remount Thread để mở rộng + cuộn lại.
   const [pin, setPin] = useState<{ questionId: string; answerId?: string; token: number } | null>(null);
   const handled = useRef<string | null>(null);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const [moreFailed, setMoreFailed] = useState(false); // lỗi khi tự tải → chờ người dùng bấm "Thử lại", không tự gọi lại liên tục
 
+  const loadError = t.loadError; // chuỗi: ổn định giữa các lần render, khác object t
   useEffect(() => {
     let cancelled = false;
     api.list().then(
       (p) => { if (!cancelled) { setItems(p.items.map((q) => fromServer(q))); setTotal(p.total); setCursor(p.nextCursor); } },
-      (e) => { if (!cancelled) setError(apiMessage(e, 'Không tải được hỏi đáp')); },
+      (e) => { if (!cancelled) setError(apiMessage(e, loadError)); },
     );
     return () => { cancelled = true; };
-  }, [api, reload]);
+  }, [api, reload, loadError]);
 
   const openFocus = useEffectEvent(async (f: { questionId: string; answerId?: string }) => {
     // Nhường 1 microtask: setState không chạy đồng bộ trong effect.
@@ -89,7 +136,7 @@ export function QaBoard({
         // Ghim lên đầu; "Xem thêm câu hỏi" sau này không thêm trùng (xem more()).
         setItems((l) => (l && !l.some((q) => q.id === saved.id) ? [fromServer(saved), ...l] : l));
       } catch (e) {
-        toast.error(apiErrorCode(e) === 'QUESTION_NOT_FOUND' ? 'Câu hỏi này đã bị xoá' : 'Không mở được câu hỏi');
+        toast.error(apiErrorCode(e) === t.notFoundCode ? t.notFound : t.openError);
         return;
       }
     }
@@ -130,7 +177,7 @@ export function QaBoard({
         setTotal((n) => n + 1);
       } catch (e) {
         patchQuestion(q.key, (x) => ({ ...x, status: 'failed' }));
-        toast.error(apiMessage(e, 'Không gửi được câu hỏi'));
+        toast.error(apiMessage(e, t.sendError));
       }
     });
 
@@ -141,6 +188,7 @@ export function QaBoard({
       try {
         const saved = await api.answer(q.id, a.body, a.replyToAnswerId);
         patchAnswer(q.key, a.key, () => fromAnswer(saved, a.key));
+        if (countReplies) setTotal((n) => n + 1);
       } catch (e) {
         patchAnswer(q.key, a.key, (x) => ({ ...x, status: 'failed' }));
         toast.error(apiMessage(e, 'Không gửi được câu trả lời'));
@@ -163,8 +211,10 @@ export function QaBoard({
     };
     setItems((l) => [q, ...(l ?? [])]);
     void sendQuestion(q);
-    // Ô hỏi nằm cuối, câu mới nằm đầu danh sách → cuộn tới để người gửi thấy.
-    requestAnimationFrame(() => document.getElementById(q.key)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+    // Ô hỏi nằm cuối, câu mới nằm đầu danh sách → cuộn tới để người gửi thấy. Ô viết ở trên thì câu mới đã ngay dưới nó.
+    if (!composerOnTop) {
+      requestAnimationFrame(() => document.getElementById(q.key)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+    }
   }
 
   const handlers: ThreadHandlers = {
@@ -203,10 +253,13 @@ export function QaBoard({
       if (a) {
         await api.removeAnswer(a.id);
         patchAnswer(q.key, a.key, () => null);
+        if (countReplies) setTotal((n) => Math.max(0, n - 1));
       } else {
         await api.removeQuestion(q.id);
         patchQuestion(q.key, () => null);
-        setTotal((n) => Math.max(0, n - 1));
+        // Server xoá luôn các trả lời của gốc; chỉ trừ những trả lời đã gửi xong.
+        const replies = countReplies ? q.answers.filter((x) => x.status === 'sent').length : 0;
+        setTotal((n) => Math.max(0, n - 1 - replies));
       }
       setConfirming(false);
     } catch (e) {
@@ -216,8 +269,10 @@ export function QaBoard({
     }
   }
 
+  const moreInflight = useRef(false); // state loadingMore chưa kịp cập nhật khi observer gọi 2 lần liền
   async function more() {
-    if (!cursor || loadingMore) return;
+    if (!cursor || moreInflight.current) return;
+    moreInflight.current = true;
     setLoadingMore(true);
     try {
       const p = await api.list(cursor);
@@ -227,17 +282,37 @@ export function QaBoard({
       });
       setCursor(p.nextCursor);
     } catch (e) {
-      toast.error(apiMessage(e, 'Không tải thêm được câu hỏi'));
+      toast.error(apiMessage(e, t.moreError));
+      setMoreFailed(true);
     } finally {
+      moreInflight.current = false;
       setLoadingMore(false);
     }
   }
+
+  // Cuộn vô hạn: mốc cuối danh sách lọt vào tầm nhìn thì tải trang sau. Gắn lại khi cursor đổi:
+  // trang vừa tải chưa lấp đầy khung thì mốc vẫn đang hiện → tải tiếp ngay.
+  const loadMore = useEffectEvent(() => void more());
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!autoLoadMore || !el || !cursor || moreFailed) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) loadMore();
+    }, { rootMargin: '200px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [autoLoadMore, cursor, moreFailed, items]);
+
+  // Chỉ cho viết khi danh sách đã tải xong (không bị lần tải đầu ghi đè bài vừa gửi) và đã có session (tên + avatar).
+  const askBox =
+    api.ask && items && (session ? <Composer me={me} placeholder={t.askPlaceholder} submitLabel={t.askSubmit} collapsible={bubble} onSubmit={ask} /> : guestPrompt);
 
   return (
     <section className="max-w-2xl">
       <h2 className="mb-3 text-base font-semibold text-foreground">
         {title} {items && <span className="font-normal text-muted-foreground">{total}</span>}
       </h2>
+      {composerOnTop && askBox && <div className="mb-5">{askBox}</div>}
       {error ? (
         <div role="alert" className="flex flex-col items-start gap-2 py-6 text-sm text-destructive">
           {error}
@@ -248,7 +323,7 @@ export function QaBoard({
       ) : items.length === 0 ? (
         <p className="py-10 text-center text-sm text-muted-foreground">{empty}</p>
       ) : (
-        <div className="divide-y divide-border">
+        <div className={bubble ? 'flex flex-col gap-3' : 'divide-y divide-border'}>
           {items.map((q) => (
             <div key={q.key} id={q.key}>
               {context?.(q)}
@@ -258,29 +333,39 @@ export function QaBoard({
                 me={me}
                 handlers={handlers}
                 focus={pin?.questionId === q.id ? pin : undefined}
+                roleOf={roleOf}
+                // Lúc session đang tải vẫn hiện "Trả lời" như trước; chỉ khách thật mới ẩn.
+                canReply={!!session || isPending}
+                bubble={bubble}
               />
             </div>
           ))}
         </div>
       )}
-      {cursor && (
+      {cursor && autoLoadMore && items && (
+        moreFailed ? (
+          <Button variant="ghost" size="sm" className="mt-2 w-full text-muted-foreground" onClick={() => { setMoreFailed(false); void more(); }}>
+            Thử lại
+          </Button>
+        ) : (
+          <div ref={sentinel} className="flex justify-center py-4 text-sm text-muted-foreground" role="status">
+            {loadingMore && 'Đang tải thêm…'}
+          </div>
+        )
+      )}
+      {cursor && !autoLoadMore && (
         <Button variant="ghost" size="sm" className="mt-2 w-full text-muted-foreground" disabled={loadingMore} onClick={() => void more()}>
-          {loadingMore ? 'Đang tải…' : 'Xem thêm câu hỏi'}
+          {loadingMore ? 'Đang tải…' : t.more}
         </Button>
       )}
-      {/* Chỉ cho hỏi khi danh sách đã tải xong (không bị lần tải đầu ghi đè câu vừa gửi) và đã có session (tên + avatar). */}
-      {api.ask && items && session && (
-        <div className="mt-5 border-t border-border pt-5">
-          <Composer me={me} placeholder="Đặt câu hỏi về bài học…" submitLabel="Gửi câu hỏi" onSubmit={ask} />
-        </div>
-      )}
+      {!composerOnTop && askBox && <div className="mt-5 border-t border-border pt-5">{askBox}</div>}
 
       <AlertDialog open={confirming} onOpenChange={(o) => { if (!o) setConfirming(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{target?.answer ? 'Xoá bình luận này?' : 'Xoá câu hỏi này?'}</AlertDialogTitle>
+            <AlertDialogTitle>{target?.answer ? 'Xoá bình luận này?' : t.deleteRootTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              {target?.answer ? 'Không hoàn tác được.' : 'Mọi trả lời của câu hỏi cũng bị xoá. Không hoàn tác được.'}
+              {target?.answer ? 'Không hoàn tác được.' : t.deleteRootDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

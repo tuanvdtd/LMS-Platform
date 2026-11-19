@@ -105,6 +105,9 @@ model User {
   moderatorCategories   ModeratorCategory[]
   notifications         Notification[]
   posts                 Post[]
+  postLikes             PostLike[]
+  postComments          PostComment[]           @relation("postCommentAuthor")
+  postCommentReplies    PostComment[]           @relation("postCommentReplyTo")
 
   @@index([role])
   @@map("user")
@@ -1061,7 +1064,7 @@ model Notification {
   title     String
   body      String
   link      String?
-  // verdict: { submissionId, status, score, certificateSerial? }; qa_answer: { questionId, answerId }; course_review: { courseId, approvalId, approved }; instructor_application: { applicationId, approved }
+  // verdict: { submissionId, status, score, certificateSerial? }; qa_answer: { questionId, answerId }; course_review: { courseId, approvalId, approved }; instructor_application: { applicationId, approved }; post_comment: { postId, commentId, parentId }
   data      Json             @default("{}")
   readAt    DateTime?
   createdAt DateTime         @default(now())
@@ -1078,6 +1081,7 @@ enum NotificationType {
   qa_question
   course_review
   instructor_application
+  post_comment
 }
 
 // ============================================================================
@@ -1437,10 +1441,14 @@ model Post {
   removedReason   String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+  likeCount       Int        @default(0) // cộng/trừ cùng transaction với post_likes
+  commentCount    Int        @default(0) // gốc + trả lời; cộng/trừ cùng transaction với post_comments
 
   author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   relatedCourse Course?        @relation(fields: [relatedCourseId], references: [id], onDelete: SetNull)
   topics        PostTopic[]
+  likes         PostLike[]
+  comments      PostComment[]
   imageUses     PostImageUse[]
 
   @@index([status, publishedAt(sort: Desc)])
@@ -1458,6 +1466,46 @@ model PostTopic {
   @@id([postId, topicId])
   @@index([topicId])
   @@map("post_topics")
+}
+
+model PostLike {
+  postId    String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@index([userId])
+  @@map("post_likes")
+}
+
+// Bình luận blog, 1 cấp: trả lời luôn trỏ parentId về gốc; "@Tên" chỉ khi trả lời một trả lời khác.
+model PostComment {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  postId           String   @db.Uuid
+  userId           String   @db.Uuid
+  parentId         String?  @db.Uuid // null = gốc
+  replyToCommentId String?  @db.Uuid // trả lời đang được trả lời → FE bấm "@Tên" cuộn tới; bị xoá → NULL
+  replyToUserId    String?  @db.Uuid // người được "@"
+  body             String // Markdown ≤2000 (zod)
+  replyCount       Int      @default(0) // chỉ có nghĩa ở gốc
+  createdAt        DateTime @default(now())
+
+  post           Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user           User          @relation("postCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  parent         PostComment?  @relation("postCommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies        PostComment[] @relation("postCommentThread")
+  replyToComment PostComment?  @relation("postCommentReply", fields: [replyToCommentId], references: [id], onDelete: SetNull)
+  repliedBy      PostComment[] @relation("postCommentReply")
+  replyTo        User?         @relation("postCommentReplyTo", fields: [replyToUserId], references: [id], onDelete: SetNull)
+
+  @@index([postId, parentId, id])
+  @@index([parentId, id])
+  @@index([userId])
+  @@index([replyToCommentId])
+  @@map("post_comments")
 }
 
 // Mỗi file ảnh bài viết trên R2 (ảnh trong nội dung + ảnh bìa). Job dọn xoá file mồ côi quá 24 giờ.
