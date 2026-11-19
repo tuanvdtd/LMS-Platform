@@ -11,10 +11,18 @@ import type { PostDetail } from '@/types/post';
 
 const plain = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
-// Cùng công thức với BE (post-rules.ts): 200 từ một phút, tóm tắt tự cắt 300 ký tự ở ranh giới từ.
+const wordCount = (html: string) => plain(html).split(' ').filter(Boolean).length;
+
+// Cùng công thức với BE (post-rules.ts): văn xuôi 200 từ/phút, chữ trong khối code 100 từ/phút,
+// ảnh đầu 12 giây rồi bớt 1 giây mỗi ảnh (tối thiểu 3 giây). Tóm tắt tự cắt 300 ký tự ở ranh giới từ.
 function readingMinutes(html: string) {
-  const words = plain(html).split(' ').filter(Boolean).length;
-  return Math.max(1, Math.round(words / 200));
+  const codeBlocks = html.match(/<pre[\s\S]*?<\/pre>/gi) ?? [];
+  const codeWords = codeBlocks.reduce((n, block) => n + wordCount(block), 0);
+  const proseWords = wordCount(html.replace(/<pre[\s\S]*?<\/pre>/gi, ' '));
+  const images = html.match(/<img\s/gi)?.length ?? 0;
+  let seconds = (proseWords * 60) / 200 + (codeWords * 60) / 100;
+  for (let i = 0; i < images; i++) seconds += Math.max(3, 12 - i);
+  return Math.max(1, Math.round(seconds / 60));
 }
 function autoExcerpt(html: string, max = 300) {
   const text = plain(html);

@@ -1438,9 +1438,10 @@ model Post {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  author        User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  relatedCourse Course?     @relation(fields: [relatedCourseId], references: [id], onDelete: SetNull)
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  relatedCourse Course?        @relation(fields: [relatedCourseId], references: [id], onDelete: SetNull)
   topics        PostTopic[]
+  imageUses     PostImageUse[]
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([authorId, status])
@@ -1457,6 +1458,30 @@ model PostTopic {
   @@id([postId, topicId])
   @@index([topicId])
   @@map("post_topics")
+}
+
+// Mỗi file ảnh bài viết trên R2 (ảnh trong nội dung + ảnh bìa). Job dọn xoá file mồ côi quá 24 giờ.
+model PostImage {
+  key        String         @id // posts/<userId>/<uuid>.<ext>
+  createdAt  DateTime       @default(now())
+  orphanedAt DateTime? // lúc bắt đầu không bài nào dùng; null = đang được dùng. Chỉ là dấu hiệu, sự thật nằm ở uses
+  uses       PostImageUse[]
+
+  @@index([orphanedAt])
+  @@map("post_images")
+}
+
+// Bài nào đang dùng file nào. Một file có thể nằm ở nhiều bài (dán lại đoạn có ảnh sang bài khác chỉ chép link).
+model PostImageUse {
+  postId String @db.Uuid
+  key    String
+
+  post  Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  image PostImage @relation(fields: [key], references: [key], onDelete: Restrict)
+
+  @@id([postId, key])
+  @@index([key])
+  @@map("post_image_uses")
 }
 
 // ============================================================================
