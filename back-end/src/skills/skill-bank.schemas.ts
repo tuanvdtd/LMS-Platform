@@ -2,8 +2,12 @@ import { SkillDifficulty } from '@prisma/client';
 import { z } from 'zod';
 import { questionSchema } from '../quiz/quiz.schemas.js';
 
-// Cùng luật soạn câu với quiz (độ dài, 2–5 đáp án, số đáp án đúng) + độ khó. safeExtend giữ superRefine của quiz.
-export const skillQuestionSchema = questionSchema.safeExtend({ difficulty: z.enum(SkillDifficulty) });
+// Cùng luật soạn câu với quiz (độ dài, 2–5 đáp án, số đáp án đúng) + độ khó + domain. safeExtend giữ superRefine của quiz.
+// domain: chuỗi tự do (tiếng Anh theo thuật ngữ docs), rỗng/thiếu → null.
+export const skillQuestionSchema = questionSchema.safeExtend({
+  difficulty: z.enum(SkillDifficulty),
+  domain: z.string().trim().max(60, 'Domain tối đa 60 ký tự').nullish().transform((v) => v || null),
+});
 export type SkillQuestionInput = z.output<typeof skillQuestionSchema>;
 
 export const importSkillQuestionsSchema = z

@@ -51,7 +51,22 @@ describe('validateBank', () => {
   it('strict: html đạt mọi guard chống lộ đáp án', () => {
     expect(guards(SKILL_BANK.html)).toBe('');
   });
-  it('strict: đủ 8 topic × 40 câu, độ khó 12–14 / 13–15 / 12–14', () => {
+  it('bắt câu của topic có domain mà thiếu domain hoặc domain lạ', () => {
+    const errs = validateBank({ git: [q(), q({ stem: 'Đề 2', domain: 'Branching' })] }, { strict: false }).join('\n');
+    expect(errs).toMatch(/git #1: domain "" không thuộc/);
+    expect(errs).toMatch(/git #2: domain "Branching" không thuộc/);
+    expect(validateBank({ git: [q({ domain: 'Undo & recovery' })] }, { strict: false })).toEqual([]);
+  });
+  it('bắt câu của topic chưa có danh sách domain mà lại gắn domain', () => {
+    expect(validateBank({ html: [q({ domain: 'Forms' })] }, { strict: false }).join()).toMatch(/không được gắn domain/);
+  });
+  it('strict: bắt domain thiếu câu hoặc thiếu một độ khó', () => {
+    const errs = validateBank({ git: [q({ domain: 'Undo & recovery' })] }, { strict: true }).join('\n');
+    expect(errs).toMatch(/domain "Undo & recovery" có 1 câu, cần ≥ 6/);
+    expect(errs).toMatch(/domain "Undo & recovery" có 0 câu hard, cần ≥ 2/);
+    expect(errs).toMatch(/domain "Staging & commits" có 0 câu/);
+  });
+  it('strict: đủ 11 topic × 40 câu, độ khó 12–14 / 13–15 / 12–14, domain đủ phân bố', () => {
     expect(validateBank(SKILL_BANK, { strict: true })).toEqual([]);
   });
 });

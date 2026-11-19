@@ -10,7 +10,7 @@ import type { ImportSkillQuestionsInput, ListQuestionsQuery, SkillQuestionInput 
 const TX = { ...TX_OPTIONS, timeout: 60_000 }; // import 200 câu trên DB dev chậm
 
 const SELECT = {
-  id: true, type: true, stem: true, difficulty: true, rating: true, answerCount: true, correctCount: true, archivedAt: true,
+  id: true, type: true, stem: true, difficulty: true, domain: true, rating: true, answerCount: true, correctCount: true, archivedAt: true,
   options: { orderBy: { position: 'asc' }, select: { id: true, content: true, isCorrect: true, explanation: true } },
 } satisfies Prisma.SkillQuestionSelect;
 type Row = Prisma.SkillQuestionGetPayload<{ select: typeof SELECT }>;
@@ -57,7 +57,7 @@ export class SkillBankService {
     await this.topic(topicId);
     const row = await this.prisma.skillQuestion.create({
       data: {
-        topicId, type: input.type, stem: input.stem, difficulty: input.difficulty, rating: DIFFICULTY_RATING[input.difficulty],
+        topicId, type: input.type, stem: input.stem, difficulty: input.difficulty, domain: input.domain, rating: DIFFICULTY_RATING[input.difficulty],
         options: { create: optionRows(input) },
       },
       select: SELECT,
@@ -71,7 +71,9 @@ export class SkillBankService {
     const rows = input.questions.map((q) => ({ id: randomUUID(), q }));
     await this.prisma.$transaction([
       this.prisma.skillQuestion.createMany({
-        data: rows.map(({ id, q }) => ({ id, topicId, type: q.type, stem: q.stem, difficulty: q.difficulty, rating: DIFFICULTY_RATING[q.difficulty] })),
+        data: rows.map(({ id, q }) => ({
+          id, topicId, type: q.type, stem: q.stem, difficulty: q.difficulty, domain: q.domain, rating: DIFFICULTY_RATING[q.difficulty],
+        })),
       }),
       this.prisma.skillQuestionOption.createMany({
         data: rows.flatMap(({ id, q }) => optionRows(q).map((o) => ({ ...o, questionId: id }))),
@@ -92,7 +94,7 @@ export class SkillBankService {
       return tx.skillQuestion.update({
         where: { id },
         data: {
-          stem: input.stem, difficulty: input.difficulty,
+          stem: input.stem, difficulty: input.difficulty, domain: input.domain,
           ...(reset && { rating: DIFFICULTY_RATING[input.difficulty], answerCount: 0, correctCount: 0 }),
           options: { create: optionRows(input) },
         },

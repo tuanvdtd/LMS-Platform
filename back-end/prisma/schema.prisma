@@ -1102,6 +1102,7 @@ model SkillQuestion {
   type         QuestionType
   stem         String // Markdown
   difficulty   SkillDifficulty
+  domain       String? // phần kiến thức nhỏ trong topic, tiếng Anh (vd "Branching & merging"); câu cũ để null
   rating       Float
   answerCount  Int             @default(0)
   correctCount Int             @default(0)
