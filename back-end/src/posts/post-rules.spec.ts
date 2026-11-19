@@ -17,6 +17,18 @@ describe('readingMinutes', () => {
   it('200 từ một phút, làm tròn', () => {
     expect(readingMinutes(`<p>${'từ '.repeat(900)}</p>`)).toBe(5);
   });
+  it('chữ trong khối code tính 100 từ một phút', () => {
+    expect(readingMinutes(`<pre><code class="language-js">${'x '.repeat(300)}</code></pre>`)).toBe(3);
+  });
+  it('ảnh 12 giây, mỗi ảnh sau bớt 1 giây, tối thiểu 3 giây', () => {
+    // 12+11+…+3 = 75 giây cho 10 ảnh đầu, 10 ảnh sau mỗi ảnh 3 giây = 105 giây
+    expect(readingMinutes('<img src="a.png">'.repeat(20))).toBe(2);
+  });
+  it('cộng cả văn xuôi, code và ảnh', () => {
+    // 200 từ (60s) + 200 từ code (120s) + 1 ảnh (12s) = 192s
+    const html = `<p>${'từ '.repeat(200)}</p><pre><code>${'x '.repeat(200)}</code></pre><p><img src="a.png"></p>`;
+    expect(readingMinutes(html)).toBe(3);
+  });
 });
 
 describe('excerptOf', () => {

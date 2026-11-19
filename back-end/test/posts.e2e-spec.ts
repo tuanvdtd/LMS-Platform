@@ -4,6 +4,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import request, { type Response } from 'supertest';
 import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
+import { AssetsCleanupService } from '../src/assets/assets-cleanup.service.js';
 import { requireEnv } from '../src/env.js';
 import { PrismaService } from '../src/infra/prisma.service.js';
 import { StorageService } from '../src/infra/storage.service.js';
@@ -23,6 +24,7 @@ type Method = 'get' | 'post' | 'patch' | 'delete';
 describe('Blog (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  const storage = new FakeStorage();
   const emails: string[] = [];
   let author: TestUser; // có khoá published → được viết
   let other: TestUser; // có khoá published → được viết, dùng để thử sửa bài người khác
@@ -63,7 +65,7 @@ describe('Blog (e2e)', () => {
       .overrideProvider(MailService)
       .useValue({ sendVerification: vi.fn(), sendResetPassword: vi.fn() })
       .overrideProvider(StorageService)
-      .useValue(new FakeStorage())
+      .useValue(storage)
       .compile();
     app = moduleRef.createNestApplication({ bodyParser: false });
     setupApp(app);
@@ -88,6 +90,8 @@ describe('Blog (e2e)', () => {
   afterAll(async () => {
     const ids = [author, other, plain, admin].filter(Boolean).map((u) => u.id);
     await prisma?.post.deleteMany({ where: { authorId: { in: ids } } });
+    // post_images không cascade theo user: xoá theo thư mục của từng user test.
+    await prisma?.postImage.deleteMany({ where: { OR: ids.map((id) => ({ key: { startsWith: `posts/${id}/` } })) } });
     await prisma?.course.deleteMany({ where: { instructorId: { in: ids } } });
     if (topicId) await prisma?.topic.deleteMany({ where: { id: topicId } });
     await prisma?.user.deleteMany({ where: { email: { in: emails } } });
@@ -394,5 +398,137 @@ describe('Blog (e2e)', () => {
       },
       SLOW,
     );
+  });
+
+  describe('ảnh bài viết', () => {
+    const key = (u: TestUser, name: string) => `posts/${u.id}/${name}-${TAG}.png`;
+    const url = (k: string) => `${FakeStorage.PUBLIC}/${k}`;
+    const body = (...keys: string[]) => keys.map((k) => `<p><img src="${url(k)}" alt=""></p>`).join('') || '<p>chữ</p>';
+    const image = (k: string) =>
+      prisma.postImage.findUnique({ where: { key: k }, select: { orphanedAt: true, uses: { select: { postId: true } } } });
+    const draft = async (u: TestUser) => (await me('post', '', u).expect(201)).body.id as string;
+
+    it(
+      'ký URL upload → có dòng, đang mồ côi',
+      async () => {
+        const res = await me('post', '/uploads', author, { fileName: 'a.png', mimeType: 'image/png', sizeBytes: 1000 }).expect(201);
+        const row = await image(res.body.key as string);
+        expect(row?.orphanedAt).toBeInstanceOf(Date);
+        expect(row?.uses).toEqual([]);
+      },
+      SLOW,
+    );
+
+    it(
+      'lưu bài có ảnh → đang dùng; lưu lại bỏ ảnh → mồ côi',
+      async () => {
+        const id = await draft(author);
+        const a = key(author, 'luu-a');
+        const b = key(author, 'luu-b');
+        await me('patch', `/${id}`, author, { bodyHtml: body(a, b) }).expect(200);
+        expect(await image(a)).toEqual({ orphanedAt: null, uses: [{ postId: id }] });
+        expect(await image(b)).toEqual({ orphanedAt: null, uses: [{ postId: id }] });
+
+        await me('patch', `/${id}`, author, { bodyHtml: body(a) }).expect(200);
+        expect((await image(a))?.orphanedAt).toBeNull();
+        const gone = await image(b);
+        expect(gone?.uses).toEqual([]);
+        expect(gone?.orphanedAt).toBeInstanceOf(Date);
+      },
+      SLOW,
+    );
+
+    it(
+      'thay ảnh bìa → ảnh bìa cũ mồ côi',
+      async () => {
+        const id = await draft(author);
+        const oldCover = key(author, 'bia-cu');
+        const newCover = key(author, 'bia-moi');
+        await me('patch', `/${id}`, author, { coverUrl: url(oldCover) }).expect(200);
+        await me('patch', `/${id}`, author, { coverUrl: url(newCover) }).expect(200);
+        expect((await image(oldCover))?.orphanedAt).toBeInstanceOf(Date);
+        expect(await image(newCover)).toEqual({ orphanedAt: null, uses: [{ postId: id }] });
+      },
+      SLOW,
+    );
+
+    it(
+      'ảnh dùng ở hai bài (kể cả bài người khác), bỏ ở một bài → vẫn đang dùng',
+      async () => {
+        const mine = await draft(author);
+        const theirs = await draft(other);
+        const shared = key(author, 'dung-chung');
+        await me('patch', `/${mine}`, author, { bodyHtml: body(shared) }).expect(200);
+        await me('patch', `/${theirs}`, other, { bodyHtml: body(shared) }).expect(200);
+        await me('patch', `/${mine}`, author, { bodyHtml: body() }).expect(200);
+        expect(await image(shared)).toEqual({ orphanedAt: null, uses: [{ postId: theirs }] });
+      },
+      SLOW,
+    );
+
+    it(
+      'xoá bài → ảnh mồ côi',
+      async () => {
+        const id = await draft(author);
+        const k = key(author, 'xoa-bai');
+        await me('patch', `/${id}`, author, { bodyHtml: body(k) }).expect(200);
+        await me('delete', `/${id}`, author).expect(204);
+        const row = await image(k);
+        expect(row?.uses).toEqual([]);
+        expect(row?.orphanedAt).toBeInstanceOf(Date);
+      },
+      SLOW,
+    );
+
+    describe('job dọn', () => {
+      const DAY = 24 * 3_600_000;
+      const prefix = () => `posts/${author.id}/job-${TAG}-`;
+      const png = Buffer.from('png');
+      const seed = async (name: string, orphanedAt: Date | null) => {
+        const k = `${prefix()}${name}.png`;
+        await prisma.postImage.create({ data: { key: k, orphanedAt } });
+        storage.put('public', k, png);
+        return k;
+      };
+      const purge = () => app.get(AssetsCleanupService).purgeOrphanPostImages(prefix());
+
+      it(
+        'mồ côi quá 24 giờ → xoá dòng và file; dưới 24 giờ hoặc có bài dùng → giữ',
+        async () => {
+          const old = new Date(Date.now() - DAY - 3_600_000);
+          const stale = await seed('cu', old);
+          const fresh = await seed('moi', new Date());
+          // orphanedAt cũ nhưng có cặp dùng (không đặt lại orphanedAt) → kiểm đúng điều kiện "không bài nào dùng".
+          const used = await seed('dang-dung', old);
+          const id = await draft(author);
+          await prisma.postImageUse.create({ data: { postId: id, key: used } });
+
+          expect(await purge()).toBe(1);
+          expect(await image(stale)).toBeNull();
+          expect(storage.has('public', stale)).toBe(false);
+          expect(storage.has('public', fresh)).toBe(true);
+          expect(storage.has('public', used)).toBe(true);
+          expect((await image(used))?.uses).toEqual([{ postId: id }]);
+        },
+        SLOW,
+      );
+
+      it(
+        'xoá file lỗi → dòng được tạo lại với orphanedAt cũ để lượt sau thử lại',
+        async () => {
+          const old = new Date(Date.now() - DAY - 3_600_000);
+          const k = await seed('loi', old);
+          const spy = vi.spyOn(storage, 'delete').mockRejectedValueOnce(new Error('R2 lỗi'));
+          try {
+            expect(await purge()).toBe(0);
+          } finally {
+            spy.mockRestore();
+          }
+          expect((await image(k))?.orphanedAt?.getTime()).toBe(old.getTime());
+          expect(storage.has('public', k)).toBe(true);
+        },
+        SLOW,
+      );
+    });
   });
 });
