@@ -9,7 +9,7 @@ export const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build';
 // 404 → null (trang gọi notFound()). Lỗi khác → Sentry rồi ném ra: trang tĩnh đang dựng lại thì Next giữ
 // bản tốt gần nhất và thử lại ở request sau, thay vì lưu trang rỗng. Riêng lúc build (BE có thể đang tắt)
 // trả null để build không hỏng.
-async function fetchJson<T>(path: string): Promise<T | null> {
+export async function fetchJson<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(`${BASE}${path}`, { signal: AbortSignal.timeout(5000), next: { revalidate: 60 } });
     if (res.status === 404) return null;

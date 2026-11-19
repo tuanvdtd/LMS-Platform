@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { CircleUser, LogOut, MessageCircle, Moon, Search, ShieldCheck, ShoppingCart, Sun, User, X } from 'lucide-react';
+import { CircleUser, LogOut, MessageCircle, Moon, PenLine, Search, ShieldCheck, ShoppingCart, Sun, User, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { cn } from '@/lib/utils';
 import { authClient } from '@/lib/auth-client';
+import { useCanWritePosts } from '@/lib/use-can-write-posts';
 import { isInstructor, isStaff, teachHref } from '@/lib/instructor-role';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -40,6 +41,8 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
   const userId = user?.id;
   // Tài khoản nghiệp vụ không mua/học/dạy (BE trả 403) → ẩn giỏ, link học viên, "Dạy học"; thay bằng "Khu quản trị".
   const staff = isStaff(user);
+  // Giảng viên thật và admin viết blog được (BE quyết định); moderator thì không.
+  const canWritePosts = useCanWritePosts(userId);
 
   const cartCount = useCartStore((s) => s.cart?.items.length ?? 0);
 
@@ -56,7 +59,7 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
     <header className="sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
       <div className="relative mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4">
         <div className="lg:hidden">
-          <MobileNav categories={categories} user={user} isPending={isPending} onSignOut={() => setSignOutOpen(true)} />
+          <MobileNav categories={categories} user={user} isPending={isPending} canWritePosts={canWritePosts} onSignOut={() => setSignOutOpen(true)} />
         </div>
 
         {/* Logo: giữa trên mobile, trái trên desktop */}
@@ -77,6 +80,12 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
         <CourseSearch className="mx-2 hidden max-w-2xl flex-1 lg:flex" />
 
         <div className="ml-auto flex items-center gap-1">
+          <Link
+            href="/blog"
+            className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted hover:text-primary lg:block"
+          >
+            Blog
+          </Link>
           <Link
             href={staff ? '/admin' : teachHref(user)}
             className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted hover:text-primary lg:block"
@@ -181,6 +190,12 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
                         Chuyển sang Giảng viên
                       </DropdownMenuItem>
                     </>
+                  )}
+                  {canWritePosts && (
+                    <DropdownMenuItem render={<Link href="/posts" />}>
+                      <PenLine size={15} className="text-muted-foreground" />
+                      Bài viết của tôi
+                    </DropdownMenuItem>
                   )}
                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setSignOutOpen(true)}>
                     <LogOut size={15} />

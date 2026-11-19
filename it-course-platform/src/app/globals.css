@@ -393,3 +393,93 @@
     animation-delay: 0s !important;
   }
 }
+
+/* Nội dung bài blog (components/post/post-body.tsx) và vùng soạn (components/post-editor): CÙNG một lớp để soạn sao hiện vậy.
+   Cột chữ ~68 ký tự. */
+.post-body {
+  max-width: 68ch;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--foreground);
+  overflow-wrap: break-word;
+}
+/* Nhịp: hai đoạn văn liền nhau sát hơn (mỗi Enter trong trình soạn là một đoạn mới); quanh khối (code, ảnh, ghi chú, bảng) rộng hơn. */
+.post-body > * + * { margin-top: 1.25em; }
+.post-body > p + p { margin-top: 0.25em; }
+.post-body h2 { margin-top: 2.2em; font-size: 1.45em; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em; scroll-margin-top: 7rem; }
+.post-body h3 { margin-top: 1.8em; font-size: 1.15em; line-height: 1.35; font-weight: 700; scroll-margin-top: 7rem; }
+.post-body h2 + *, .post-body h3 + * { margin-top: 0.7em; }
+.post-body > :first-child { margin-top: 0; }
+.post-body a { color: var(--primary); text-decoration: underline; text-decoration-thickness: 1px; }
+.post-body a:hover { text-decoration-thickness: 2px; }
+.post-body a:focus-visible { border-radius: 2px; outline: 2px solid var(--ring); outline-offset: 2px; }
+.post-body strong { font-weight: 700; }
+.post-body mark { border-radius: 0.2em; background: var(--brand-accent-soft); padding: 0.05em 0.2em; color: inherit; }
+.post-body ul { list-style: disc; padding-left: 1.4em; }
+.post-body ol { list-style: decimal; padding-left: 1.4em; }
+.post-body li + li { margin-top: 0.4em; }
+.post-body li > p { margin: 0; }
+.post-body li::marker { color: var(--muted-foreground); }
+/* Trích dẫn: thụt vào + chữ lớn hơn một bậc. Không dùng vạch màu dày bên trái (DESIGN.md). */
+.post-body blockquote { border-left: 1px solid var(--border); padding-left: 1.25em; font-size: 1.08em; font-style: italic; color: var(--secondary-foreground); }
+.post-body hr { margin-block: 2.5em; border: 0; border-top: 1px solid var(--border); }
+.post-body :not(pre) > code { border-radius: 0.3em; background: var(--secondary); padding: 0.12em 0.36em; font-family: var(--font-code); font-size: 0.86em; }
+
+/* Ảnh: luôn rộng bằng cột chữ (thẳng mép với đoạn văn). Ảnh nhỏ hơn cột sẽ bị phóng lên. Cao tối đa ~70% màn hình
+   nhưng không dưới 32rem: ảnh ngang 3:2 ở cột 68ch (~490px) luôn lọt, chỉ ảnh dọc/vuông chạm trần → object-fit contain
+   đặt ảnh giữa khung nền muted, không méo. */
+.post-body figure { margin-inline: 0; }
+.post-body figure img, .post-editing img { display: block; width: 100%; height: auto; max-height: clamp(32rem, 70vh, 40rem); object-fit: contain; border-radius: var(--radius-xl); border: 1px solid var(--border); background: var(--muted); }
+.post-body figcaption { margin-top: 0.7em; text-align: center; font-size: 0.8em; line-height: 1.5; color: var(--muted-foreground); }
+
+/* Khối code luôn nền tối ở cả hai theme (như dải ink). */
+.post-body .post-code { overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--ink-border); background: var(--ink); color: var(--ink-foreground); }
+.post-body .post-code-bar { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--ink-border); padding: 0.3rem 0.4rem 0.3rem 1rem; font-family: var(--font-code); font-size: 0.75rem; line-height: 1.4; color: var(--ink-muted); }
+.post-body .post-code-bar button { display: inline-flex; min-height: 2rem; align-items: center; gap: 0.4rem; border-radius: var(--radius-sm); padding: 0 0.6rem; font-family: var(--font-body); font-weight: 500; color: var(--ink-muted); transition: background-color 150ms, color 150ms; }
+.post-body .post-code-bar button:hover { background: var(--ink-hover); color: var(--ink-foreground); }
+.post-body .post-code-bar button:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.post-body .post-code-bar svg { width: 0.875rem; height: 0.875rem; }
+.post-body pre { overflow-x: auto; padding: 1rem 1.1rem; font-family: var(--font-code); font-size: 0.8125rem; line-height: 1.7; tab-size: 2; scrollbar-color: var(--ink-border) transparent; }
+.post-body pre:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.post-body pre ::selection { background: color-mix(in oklch, #60a5fa 40%, transparent); }
+.post-body .hljs-keyword, .post-body .hljs-selector-tag, .post-body .hljs-literal { color: #ff7b72; }
+.post-body .hljs-string, .post-body .hljs-attr { color: #a5d6ff; }
+.post-body .hljs-number, .post-body .hljs-built_in { color: #79c0ff; }
+.post-body .hljs-title, .post-body .hljs-function { color: #d2a8ff; }
+.post-body .hljs-comment { color: #8b949e; font-style: italic; }
+.post-body .hljs-name, .post-body .hljs-selector-id, .post-body .hljs-selector-class { color: #7ee787; }
+.post-body .hljs-type, .post-body .hljs-meta, .post-body .hljs-variable.language_ { color: #ffa657; }
+.post-body .hljs-regexp, .post-body .hljs-symbol { color: #a5d6ff; }
+.post-body .hljs-attribute, .post-body .hljs-property { color: #79c0ff; }
+
+/* Khối ghi chú: nền nhạt + viền 1px + nhãn chữ (trạng thái không chỉ dựa vào màu). */
+.post-body aside[data-callout] { border: 1px solid var(--callout-border); border-radius: var(--radius-lg); background: var(--callout-bg); padding: 0.9em 1.1em 1em; font-size: 0.94em; }
+.post-body aside[data-callout]::before { display: block; margin-bottom: 0.25em; font-size: 0.8em; font-weight: 700; color: var(--callout-fg); }
+.post-body aside[data-callout] > * + * { margin-top: 0.6em; }
+.post-body aside[data-callout='note'] { --callout-bg: var(--primary-light); --callout-border: color-mix(in oklch, var(--primary) 28%, transparent); --callout-fg: var(--primary); }
+.post-body aside[data-callout='note']::before { content: 'Lưu ý'; }
+.post-body aside[data-callout='tip'] { --callout-bg: var(--success-soft); --callout-border: var(--success-border); --callout-fg: var(--success); }
+.post-body aside[data-callout='tip']::before { content: 'Mẹo'; }
+.post-body aside[data-callout='warning'] { --callout-bg: var(--warning-soft); --callout-border: var(--warning-border); --callout-fg: var(--warning); }
+.post-body aside[data-callout='warning']::before { content: 'Cảnh báo'; }
+
+/* Bảng: cuộn ngang khi hẹp, không vỡ bố cục. */
+.post-body table { display: block; width: max-content; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: 0.9em; line-height: 1.55; }
+.post-body th, .post-body td { border: 1px solid var(--border); padding: 0.55em 0.85em; text-align: left; vertical-align: top; }
+.post-body th { background: var(--muted); font-weight: 700; }
+.post-body th > p, .post-body td > p { margin: 0; }
+
+@media (max-width: 640px) {
+  .post-body { line-height: 1.7; }
+}
+
+/* Vùng soạn (components/post-editor) dùng chung kiểu chữ .post-body; chỉ thêm phần chỉ có lúc soạn. */
+/* min-height ~ chiều cao cột thẻ bên phải trang soạn, để đáy hai cột gần bằng nhau khi bài còn trống. */
+.post-editing { min-height: 34rem; max-width: none; outline: none; }
+.post-editing p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; height: 0; pointer-events: none; color: var(--muted-foreground); }
+.post-editing img { cursor: pointer; transition: outline-color 150ms; outline: 2px solid transparent; outline-offset: 2px; }
+.post-editing img:hover { outline-color: color-mix(in oklch, var(--ring) 45%, transparent); }
+.post-editing img.ProseMirror-selectednode { outline: 3px solid var(--ring); outline-offset: 2px; }
+.post-editing pre { border-radius: var(--radius-lg); border: 1px solid var(--ink-border); background: var(--ink); color: var(--ink-foreground); }
+.post-editing .selectedCell { background: color-mix(in oklch, var(--primary) 12%, transparent); }
+.post-editing .tableWrapper { overflow-x: auto; }

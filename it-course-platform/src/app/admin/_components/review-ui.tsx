@@ -144,6 +144,9 @@ export function RejectDialog({
   max,
   busy,
   onConfirm,
+  reasonLabel = 'Lý do từ chối',
+  placeholder = 'Người gửi sẽ đọc lý do này để sửa và gửi lại.',
+  confirmLabel = 'Xác nhận từ chối',
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -153,6 +156,9 @@ export function RejectDialog({
   max: number;
   busy: boolean;
   onConfirm: (reason: string) => void;
+  reasonLabel?: string;
+  placeholder?: string;
+  confirmLabel?: string;
 }) {
   const id = useId();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -198,7 +204,7 @@ export function RejectDialog({
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor={`${id}-reason`}>Lý do từ chối</Label>
+            <Label htmlFor={`${id}-reason`}>{reasonLabel}</Label>
             <Textarea
               ref={inputRef}
               id={`${id}-reason`}
@@ -206,7 +212,7 @@ export function RejectDialog({
               maxLength={max}
               rows={5}
               aria-describedby={`${id}-count`}
-              placeholder="Người gửi sẽ đọc lý do này để sửa và gửi lại."
+              placeholder={placeholder}
               onChange={(e) => setReason(e.target.value)}
             />
             <p id={`${id}-count`} className="text-right text-xs text-muted-foreground tabular-nums">
@@ -220,7 +226,7 @@ export function RejectDialog({
           </Button>
           <Button variant="destructive" disabled={!reason.trim() || busy} onClick={() => onConfirm(reason.trim())}>
             {busy && <Spinner />}
-            Xác nhận từ chối
+            {confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,6 +1,4 @@
 import Link from 'next/link';
-import { SiteFooter } from '@/components/layout/site-footer';
-import { getCategoryTree } from '@/lib/api/categories';
 
 // Khung chung cho trang Điều khoản và Chính sách bảo mật: mục lục dính bên trái, cột đọc ~72 ký tự.
 export const SUPPORT_EMAIL = 'support@tuandt.me';
@@ -10,14 +8,12 @@ export type LegalSection = { id: string; title: string; body: React.ReactNode };
 
 const tocLink = 'block rounded-md py-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring';
 
-export async function LegalPage({ title, intro, sections, other }: {
+export function LegalPage({ title, intro, sections, other }: {
   title: string;
   intro: React.ReactNode;
   sections: LegalSection[];
   other: { href: string; label: string };
 }) {
-  // API sập thì footer thiếu cột danh mục, nhưng văn bản pháp lý vẫn phải đọc được.
-  const categories = await getCategoryTree().catch(() => []);
   // Số thứ tự giữ lại vì văn bản pháp lý được dẫn chiếu theo số mục ("xem mục 4").
   const toc = (
     <ol className="flex flex-col">
@@ -64,7 +60,6 @@ export async function LegalPage({ title, intro, sections, other }: {
           </article>
         </div>
       </div>
-      <SiteFooter categories={categories} />
     </>
   );
 }

@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { CourseCardSkeleton } from '@/components/skeletons/course-card-skeleton';
 import { getCategoryTree } from '@/lib/api/categories';
 import { CategoryCards } from './category-cards';
@@ -22,7 +21,6 @@ export async function GuestHome() {
       <StepsSection />
       <TeachSection />
       <SignupSection />
-      <SiteFooter categories={categories} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { ArrowUpRight, BadgeCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { buttonVariants } from '@/components/ui/button';
+import type { PostCard } from '@/types/post';
 import type { PublicProfile } from '@/types/profile';
 import { OwnerBar } from './owner-bar';
 import { ProfileSections, sectionsOf } from './profile-sections';
@@ -9,11 +10,12 @@ const joinedFmt = new Intl.DateTimeFormat('vi-VN', { month: 'numeric', year: 'nu
 const num = (n: number) => n.toLocaleString('vi-VN');
 
 // Chỉ đếm thứ có thật; ô nào bằng 0 thì bỏ, không hiện "0 chứng chỉ" như một thành tích.
-function facts(p: PublicProfile) {
+function facts(p: PublicProfile, posts: PostCard[]) {
   const l = p.learning;
   return [
     { n: p.teaching?.courses.length ?? 0, label: 'khoá giảng dạy' },
     { n: p.teaching?.studentCount ?? 0, label: 'học viên' },
+    { n: posts.length, label: 'bài viết' },
     { n: l?.completed.length ?? 0, label: 'khoá đã hoàn thành' },
     { n: l?.certificates.length ?? 0, label: 'chứng chỉ' },
     { n: l?.skills.length ?? 0, label: 'kỹ năng đã đo' },
@@ -30,11 +32,11 @@ function linksOf(p: PublicProfile) {
 }
 
 // Toàn bộ trang cá nhân từ một PublicProfile: bìa, khối tên, số liệu, thanh mục, các mục nội dung.
-export function ProfileView({ p }: { p: PublicProfile }) {
+export function ProfileView({ p, posts }: { p: PublicProfile; posts: PostCard[] }) {
   const role = p.verified ? 'Giảng viên đã xác minh' : p.isInstructor ? 'Giảng viên' : 'Học viên';
-  const stats = facts(p);
+  const stats = facts(p, posts);
   const links = linksOf(p);
-  const sections = sectionsOf(p);
+  const sections = sectionsOf(p, posts);
 
   return (
     <article>
@@ -112,7 +114,7 @@ export function ProfileView({ p }: { p: PublicProfile }) {
         )}
 
         <div className="pt-8 pb-20">
-          <ProfileSections profile={p} />
+          <ProfileSections profile={p} posts={posts} />
         </div>
       </div>
     </article>

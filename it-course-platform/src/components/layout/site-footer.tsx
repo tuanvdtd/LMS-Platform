@@ -3,16 +3,24 @@ import { QrCode, ShieldCheck } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { CookieSettingsButton } from '@/components/cookie-consent';
+import { FooterAccountLinks } from '@/components/layout/footer-account-links';
 import { categoryHref } from '@/lib/category-links';
 import type { CategoryNode } from '@/types';
 
 const link = 'inline-flex min-h-8 items-center text-sm outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-white/50';
 
+const links = (items: { label: string; href: string }[]) => (
+  <ul className="grid gap-1">
+    {items.map((i) => <li key={i.href}><Link href={i.href} className={link}>{i.label}</Link></li>)}
+  </ul>
+);
+
+// Footer chung, gắn ở layout (student): trang công khai và trang học viên. Không gắn ở khu học, dạy, quản trị, thanh toán.
 export function SiteFooter({ categories }: { categories: CategoryNode[] }) {
-  const cols: [string, { label: string; href: string }[]][] = [
-    ['Khám phá', [...categories.map((c) => ({ label: c.name, href: categoryHref(c.slug) })), { label: 'Tất cả khoá học', href: '/courses' }]],
-    ['Học viên', [{ label: 'Đăng ký miễn phí', href: '/register' }, { label: 'Đăng nhập', href: '/login' }]],
-    ['Giảng viên', [{ label: 'Dạy học trên Aolumi', href: '/teach' }]],
+  const cols: [string, React.ReactNode][] = [
+    ['Khám phá', links([...categories.map((c) => ({ label: c.name, href: categoryHref(c.slug) })), { label: 'Tất cả khoá học', href: '/courses' }, { label: 'Blog', href: '/blog' }])],
+    ['Học viên', <FooterAccountLinks key="hv" className={link} />],
+    ['Giảng viên', links([{ label: 'Dạy học trên Aolumi', href: '/teach' }])],
   ];
   return (
     <footer className="bg-foreground text-white/70 dark:border-t dark:bg-card">
@@ -28,12 +36,10 @@ export function SiteFooter({ categories }: { categories: CategoryNode[] }) {
             <li className="flex items-center gap-2"><QrCode className="size-4 text-white/50" aria-hidden />Chứng chỉ xác thực bằng mã QR</li>
           </ul>
         </div>
-        {cols.map(([title, items]) => (
+        {cols.map(([title, list]) => (
           <nav key={title} aria-label={title} className="flex flex-col gap-3">
             <h3 className="text-sm font-semibold text-white">{title}</h3>
-            <ul className="grid gap-1">
-              {items.map((i) => <li key={i.href}><Link href={i.href} className={link}>{i.label}</Link></li>)}
-            </ul>
+            {list}
           </nav>
         ))}
       </div>
