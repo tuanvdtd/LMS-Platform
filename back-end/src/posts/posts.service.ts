@@ -8,6 +8,7 @@ import { PrismaService } from '../infra/prisma.service.js';
 import { StorageService } from '../infra/storage.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
 import { courseSlug, slugify } from '../instructor-courses/slugify.js';
+import { markOrphans, postImageKeys, syncPostImages } from './post-images.js';
 import { canWriteFrom, excerptOf, publishProblems, readingMinutes } from './post-rules.js';
 import type { PostUploadInput, SavePostInput } from './posts.schemas.js';
 
@@ -119,6 +120,14 @@ export class PostsService {
         await tx.postTopic.deleteMany({ where: { postId: id } });
         await tx.postTopic.createMany({ data: topicIds.map((topicId) => ({ postId: id, topicId })) });
       }
+      if (fields.bodyHtml !== undefined || fields.coverUrl !== undefined) {
+        const keys = postImageKeys(
+          fields.bodyHtml ?? post.bodyHtml,
+          fields.coverUrl === undefined ? post.coverUrl : fields.coverUrl,
+          (url) => this.storage.keyOfPublicUrl(url),
+        );
+        await syncPostImages(tx, id, keys);
+      }
     }, TX_OPTIONS);
     return this.get(user.id, id);
   }
@@ -170,10 +179,15 @@ export class PostsService {
     return this.get(user.id, id);
   }
 
-  // ponytail: không xoá ảnh trên R2 khi xoá bài (ảnh có thể đang dùng ở bài khác của cùng tác giả). Thêm job dọn khi rác đáng kể.
+  // Xoá bài thì cặp bài–ảnh mất theo (cascade); ảnh không còn bài nào dùng được đánh dấu để job dọn.
   async remove(user: User, id: string) {
-    const { count } = isGuid(id) ? await this.prisma.post.deleteMany({ where: { id, authorId: user.id } }) : { count: 0 };
-    if (count === 0) throw postNotFound();
+    if (!isGuid(id)) throw postNotFound();
+    await this.prisma.$transaction(async (tx) => {
+      const keys = (await tx.postImageUse.findMany({ where: { postId: id }, select: { key: true } })).map((u) => u.key);
+      const { count } = await tx.post.deleteMany({ where: { id, authorId: user.id } });
+      if (count === 0) throw postNotFound();
+      await markOrphans(tx, keys);
+    }, TX_OPTIONS);
   }
 
   // Key do BE sinh, nằm trong thư mục của chính người tải; chữ ký gắn Content-Type + Content-Length.
@@ -181,6 +195,8 @@ export class PostsService {
     await this.assertCanWrite(user);
     const key = `posts/${user.id}/${randomUUID()}.${IMAGE_EXT[body.mimeType]}`;
     const uploadUrl = await this.storage.presignPut('public', key, body.mimeType, body.sizeBytes);
+    // Ảnh vừa ký chưa thuộc bài nào: mồ côi ngay từ đầu, upload bỏ ngang thì job dọn xoá sau 24 giờ.
+    await this.prisma.postImage.create({ data: { key, orphanedAt: new Date() } });
     return { key, uploadUrl, headers: { 'Content-Type': body.mimeType }, publicUrl: this.storage.publicUrl(key) };
   }
 
