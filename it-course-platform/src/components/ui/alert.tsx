@@ -7,9 +7,12 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-card text-card-foreground",
+        // Mặc định là thông báo thông tin: nền xanh sương, icon xanh, chữ giữ màu thường cho dễ đọc
+        default: "border-primary/20 bg-primary-soft text-foreground *:[svg]:text-primary",
         destructive:
-          "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
+          "border-danger-border bg-danger-soft text-danger *:data-[slot=alert-description]:text-danger/90 *:[svg]:text-current",
+        warning: "border-warning-border bg-warning-soft text-warning *:data-[slot=alert-description]:text-foreground/80",
+        success: "border-success-border bg-success-soft text-success *:data-[slot=alert-description]:text-foreground/80",
       },
     },
     defaultVariants: {

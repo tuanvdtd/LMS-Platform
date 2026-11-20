@@ -5,7 +5,9 @@ import Link from 'next/link';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Lock } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getApplication } from '@/lib/api/instructor-application';
@@ -54,16 +56,24 @@ export function PricingForm() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Định giá" description="Chọn mức giá cho khoá học. Giá sẽ khoá sau lần xuất bản đầu tiên." />
       {priceLocked ? (
-        <Alert>
-          <AlertDescription>
-            Giá đã khoá từ lần xuất bản đầu ({formatPrice(course.priceAmount)}). Đổi giá bằng coupon.
-          </AlertDescription>
-        </Alert>
+        <Card className="max-w-xl">
+          <CardHeader>
+            <CardTitle className="text-base">Giá bán</CardTitle>
+            <CardDescription>Giá đã khoá từ lần xuất bản đầu. Đổi giá bằng coupon ở mục Khuyến mại.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center gap-3">
+            <span className="text-3xl font-extrabold tracking-tight tabular-nums">{formatPrice(course.priceAmount)}</span>
+            <span className="flex items-center gap-1 rounded-full border bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">
+              <Lock className="size-3" aria-hidden />
+              Đã khoá
+            </span>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {account && !account.verified && (
             <Alert>
-              <AlertDescription className="flex flex-wrap items-center gap-3">
+              <AlertDescription className="flex flex-wrap items-center justify-between gap-3 text-foreground">
                 {pending
                   ? 'Đơn giảng viên cao cấp đang chờ duyệt. Trong lúc chờ, khoá vẫn xuất bản miễn phí được.'
                   : 'Đăng ký giảng viên cao cấp để bán khoá trả phí. Khoá miễn phí không cần đăng ký.'}
@@ -75,7 +85,7 @@ export function PricingForm() {
           )}
           {account?.verified && !account.account && (
             <Alert>
-              <AlertDescription className="flex flex-wrap items-center gap-3">
+              <AlertDescription className="flex flex-wrap items-center justify-between gap-3 text-foreground">
                 Khai tài khoản ngân hàng để nhận doanh thu trước khi bán khoá trả phí.
                 <Link href="/instructor/profile" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
                   Khai tài khoản ngân hàng
@@ -83,29 +93,34 @@ export function PricingForm() {
               </AlertDescription>
             </Alert>
           )}
-          <div className="flex max-w-sm flex-col gap-2">
-            <Label htmlFor="price">Mức giá</Label>
-            <Select items={ITEMS} value={String(price)} onValueChange={(v) => v && setPrice(Number(v))} disabled={locked}>
-              <SelectTrigger id="price" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {PRICE_TIERS.map((p) => (
-                    <SelectItem key={p} value={String(p)} disabled={p > 0 && !canSell}>
-                      {formatPrice(p)}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Đơn vị VND.</p>
-          </div>
-          <div>
-            <Button onClick={save} disabled={locked || saving || price === course.priceAmount}>
-              Lưu
-            </Button>
-          </div>
+          <Card className="max-w-xl">
+            <CardHeader>
+              <CardTitle className="text-base">Giá bán</CardTitle>
+              <CardDescription>Đơn vị VND. Giá trả phí cần giảng viên cao cấp và tài khoản ngân hàng.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Label htmlFor="price">Mức giá</Label>
+              <Select items={ITEMS} value={String(price)} onValueChange={(v) => v && setPrice(Number(v))} disabled={locked}>
+                <SelectTrigger id="price" className="w-full sm:w-72">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {PRICE_TIERS.map((p) => (
+                      <SelectItem key={p} value={String(p)} disabled={p > 0 && !canSell}>
+                        {formatPrice(p)}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </CardContent>
+            <CardFooter className="justify-end border-t bg-muted/50 py-4">
+              <Button onClick={save} isLoading={saving} disabled={locked || price === course.priceAmount}>
+                Lưu giá
+              </Button>
+            </CardFooter>
+          </Card>
         </>
       )}
     </div>

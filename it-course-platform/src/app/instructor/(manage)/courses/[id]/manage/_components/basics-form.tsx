@@ -104,6 +104,9 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
       <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
         <fieldset disabled={locked} className="flex min-w-0 flex-col gap-5">
           <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Giới thiệu khoá học</CardTitle>
+            </CardHeader>
             <CardContent className="flex flex-col gap-5">
               <FormField label="Tiêu đề khoá học" htmlFor="title" error={errors.title?.message} counter={`${TITLE_MAX - title.length}`}
                 hint="Ngắn gọn, có từ khoá chính. Ví dụ: “NestJS từ cơ bản đến triển khai thực tế”.">
@@ -135,7 +138,7 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
                   id="description"
                   rows={8}
                   placeholder="Khoá học dạy gì, học xong làm được gì, phù hợp với ai…"
-                  className="min-h-40"
+                  className="min-h-40 max-h-[30rem]"
                   aria-invalid={!!errors.description}
                   {...register('description')}
                 />
@@ -208,7 +211,7 @@ export function BasicsForm({ categories }: { categories: CategoryNode[] }) {
         </fieldset>
 
         <aside className="flex flex-col gap-2.5 lg:sticky lg:top-23">
-          <p className="text-xs font-bold tracking-wider text-muted-foreground uppercase">Xem trước thẻ khoá học</p>
+          <p className="text-sm font-semibold text-foreground">Xem trước thẻ khoá học</p>
           <Card className="gap-0 overflow-hidden py-0">
             {course.thumbnailUrl ? (
               <Image src={course.thumbnailUrl} alt="" width={300} height={169} unoptimized className="aspect-video w-full object-cover" />

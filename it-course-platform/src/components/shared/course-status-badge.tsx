@@ -2,13 +2,13 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { COURSE_STATUS_LABEL, type CourseStatus } from '@/types/instructor-course';
 
-const TONE: Record<CourseStatus, string> = {
-  draft: 'bg-secondary text-secondary-foreground',
-  in_review: 'bg-warning-soft text-warning',
-  published: 'bg-success-soft text-success',
-  unpublished: 'bg-muted text-muted-foreground',
-};
+const TONE = {
+  draft: 'secondary',
+  in_review: 'warning',
+  published: 'success',
+  unpublished: 'outline',
+} as const satisfies Record<CourseStatus, string>;
 
 export function CourseStatusBadge({ status, className }: { status: CourseStatus; className?: string }) {
-  return <Badge className={cn(TONE[status], className)}>{COURSE_STATUS_LABEL[status]}</Badge>;
+  return <Badge variant={TONE[status]} className={cn(status === 'unpublished' && 'text-muted-foreground', className)}>{COURSE_STATUS_LABEL[status]}</Badge>;
 }

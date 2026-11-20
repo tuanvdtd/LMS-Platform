@@ -30,10 +30,20 @@ colors:
   ink-border: "#334155"
   background: "#ffffff"
   foreground: "#0f172a"
-  secondary: "#f1f5f9"
+  secondary: "#eef3fa"
   secondary-foreground: "#334155"
-  muted: "#f8fafc"
-  muted-foreground: "#64748b"
+  muted: "#f6f8fc"
+  muted-foreground: "#586a82"
+  ui-accent: "#eaf1fe"
+  ui-accent-foreground: "#1e40af"
+  tone-blue: "#1d4ed8"
+  tone-blue-soft: "#e6eefe"
+  tone-violet: "#6d28d9"
+  tone-violet-soft: "#f0eafe"
+  tone-teal: "#0f766e"
+  tone-teal-soft: "#e0f5f2"
+  tone-rose: "#be123c"
+  tone-rose-soft: "#fde9ee"
   border: "#e2e8f0"
 typography:
   display:
@@ -104,7 +114,7 @@ components:
     padding: "0 16px"
     height: "36px"
   input:
-    backgroundColor: "{colors.background}"
+    backgroundColor: "{colors.muted}"
     textColor: "{colors.foreground}"
     rounded: "{rounded.md}"
     padding: "4px 10px"
@@ -179,10 +189,15 @@ Bảng màu tiết chế: neutral slate hơi ngả xanh, một màu chính, mộ
 
 ### Neutral
 - **Giấy trắng** (background) và **mực slate** (foreground): nền và chữ chính.
-- **Sương slate** (secondary / muted): nền phụ, hàng hover, placeholder ảnh bìa.
+- **Sương slate** (secondary / muted): nền phụ, nền ô nhập, đầu bảng. Ngả nhẹ về hue xanh thương hiệu để nền phụ không thành xám chết.
+- **Xanh hover** (ui-accent / ui-accent-foreground, class `bg-accent`): mục đang trỏ trong menu, select, gợi ý tìm kiếm.
 - **Chữ phụ** (muted-foreground): mô tả, meta, ngày giờ.
 - **Đường kẻ** (border): mọi viền 1px.
 - **Ink** (ink / ink-foreground / ink-muted / ink-border): dải nền tối cố định. Ở theme tối, ink tối hơn nền trang một bậc (`#020617`) để dải vẫn tách khỏi trang.
+
+### Category Tones
+- **Tông lĩnh vực** (tone-blue / violet / teal / rose, mỗi màu có `-soft`): icon và ô icon của danh mục cấp 1 (`categoryTone()` trong `category-icon.tsx`): Phát triển xanh, Trí tuệ nhân tạo tím, CNTT & Phần mềm xanh ngọc, Thiết kế hồng. Chỉ để nhận ra lĩnh vực, không mang nghĩa trạng thái, nên cố ý tránh xanh lá / vàng / đỏ.
+- **Bìa trống** (`cover-placeholder` trong `globals.css`): khoá chưa có ảnh bìa dùng nền `primary-soft` + lưới chấm, icon `text-primary/70`. Không dùng ô xám.
 
 ### Named Rules
 **The Meaning-First Rule.** Màu ngữ nghĩa chỉ xuất hiện khi trạng thái đó có thật. Không dùng xanh lá để trang trí, không dùng đỏ để gây chú ý.
@@ -226,6 +241,7 @@ Kết hợp hai cách: viền 1px `border` là lớp tách chính, bóng là l�
 - **Nghỉ** (`shadow-sm`: `0 1px 3px rgb(15 23 42 / .06), 0 1px 2px -1px rgb(15 23 42 / .04)`): card ở trạng thái thường.
 - **Nâng** (`shadow-md`: `0 6px 16px -4px rgb(15 23 42 / .10), 0 2px 4px -2px rgb(15 23 42 / .05)`): card khoá học khi hover, kèm nhích lên 2px.
 - **Nổi** (`shadow-lg`: `0 14px 32px -8px rgb(15 23 42 / .14), 0 4px 8px -4px rgb(15 23 42 / .06)`): popover, dropdown, card minh hoạ trên hero.
+- **Nút đặc** (`shadow-brand`, `shadow-buy`): nút primary / accent có bóng ngả đúng màu nút cộng vệt sáng 1px ở mép trên, hover sâu hơn (`shadow-brand-hover`), bấm thì mất bóng. Theme tối thay bằng bóng tối trung tính.
 - **Lơ lửng** (`shadow-xl`: `0 24px 48px -12px rgb(15 23 42 / .22), 0 8px 16px -8px rgb(15 23 42 / .08)`): thanh lưu nổi, dialog.
 
 ### Named Rules
@@ -248,15 +264,18 @@ Góc bo mềm, đọc như đồ vật thân thiện, không tròn như đồ ch
 ### Buttons
 Chắc tay nhưng mềm: cao 36px, bo 8px, chữ semibold 14px. Khi bấm, nút nhích xuống 1px.
 - **Shape:** bo 8px (`rounded-md`). Cỡ `lg` cao 44px cho CTA chính trên hero và trang khoá.
-- **Primary:** nền xanh Aolumi, chữ trắng. Hover sang xanh đậm.
-- **Accent:** nền cam, chữ trắng đậm. Chỉ dùng cho hành động mua, mỗi màn tối đa một nút.
-- **Outline / Secondary / Ghost:** nền trắng có viền, nền slate nhạt, hoặc trong suốt. Hover dùng nền `secondary`.
+- **Primary:** nền xanh Aolumi, chữ trắng, bóng `shadow-brand`. Hover sang xanh đậm và bóng sâu hơn.
+- **Accent:** nền cam, chữ trắng đậm, bóng `shadow-buy`. Chỉ dùng cho hành động mua, mỗi màn tối đa một nút.
+- **Outline:** nền trắng, viền, bóng `shadow-xs`. Hover chuyển nền `primary-soft`, chữ `primary`, viền `primary/30`.
+- **Secondary / Ghost:** nền slate nhạt hoặc trong suốt. Hover dùng nền `secondary`.
 - **Destructive:** nền đỏ 10% với chữ `danger`, không dùng nền đỏ đặc.
 - **Focus:** viền `ring` cộng quầng 3px `ring/50`.
 
 ### Chips / Badges
 - **Style:** tròn, nền `*-soft`, chữ màu gốc của tông, 12px semibold, padding 2px × 10px.
+- **Variants của `<Badge>`:** `info`, `success`, `warning`, `danger`, `accent`, `tertiary`: nền `*-soft`, viền 1px cùng tông, chữ màu gốc. Dùng variant thay vì tự viết class màu.
 - **State:** Nháp (`secondary`), Chờ duyệt (`warning`), Đã duyệt / Đang bán (`success`), Bị từ chối (`danger`), Đã ẩn (`secondary`, chữ slate đậm).
+- **Alert:** mặc định là thông tin (nền `primary-soft`, icon `primary`); thêm `warning`, `success`, `destructive` (nền `danger-soft`).
 
 ### Cards / Containers
 - **Corner Style:** 14px.
@@ -269,8 +288,9 @@ Chắc tay nhưng mềm: cao 36px, bo 8px, chữ semibold 14px. Khi bấm, nút 
 - **Internal Padding:** 16px cho card khoá học, 20–24px cho panel dashboard.
 
 ### Inputs / Fields
-- **Style:** viền 1px `input`, nền trong suốt, bo 8px, cao 36px. Ô tìm kiếm ở header bo tròn hẳn.
-- **Focus:** viền đổi sang `ring` cộng quầng 3px `ring/50`. Con trỏ nhập liệu màu primary.
+- **Style:** viền 1px `input`, nền `muted` có bóng trong rất nhẹ, bo 8px, cao 36px (select cũng 36px). Hover viền đậm lên một bậc. Ô tìm kiếm ở header bo tròn hẳn.
+- **Focus:** nền chuyển trắng, viền đổi sang `ring` cộng quầng 3px `ring/50`. Con trỏ nhập liệu màu primary. Select đang mở giữ trạng thái này.
+- **Menu / Select / Dialog:** mục đang trỏ nền `ui-accent` chữ xanh đậm. Popup dùng `shadow-lg`. Lớp phủ dialog là `ink/45`, không blur; hộp thoại `shadow-xl`, tiêu đề 18px đậm.
 - **Error / Disabled:** viền `destructive` và quầng đỏ 20%. Disabled giảm opacity 50%.
 
 ### Navigation
@@ -279,13 +299,21 @@ Chắc tay nhưng mềm: cao 36px, bo 8px, chữ semibold 14px. Khi bấm, nút 
 - **Dải ink quản lý khoá:** cao 60px, nền ink, chữ `ink-foreground`, nút viền `ink-border`, hover `ink-hover`.
 - **Khung học (trang learn):** header ink (`bg-ink`) cao 56px, nối với dải tiến độ ink ở đầu mục lục thành hình chữ L. Sếp chọn bản ink này sau khi xem 3 bản preview (header trắng bị chê nhạt). Khi mục lục đang hiện, header chia 2 cột thẳng với layout: nhóm trái (nút mục lục, logo) rộng bằng mục lục, viền phải nối liền viền mục lục; tên khoá thẳng hàng với tên bài. Bên phải header: chip tiến độ (chỉ khi mục lục không trên màn), link "Học tập của tôi", và "Bài tiếp" trên trang quiz/code. Mọi mục bấm được trên header cao 44px, chữ `ink-foreground`, hover `ink-hover`, viền `ink-border`. Nội dung các tab (Tổng quan, Ghi chú, Hỏi đáp) đặt thẳng trên nền trang, không đóng khung card. Sếp đã thử khung card + nền canvas và thấy xấu. Mục lục bên trái rộng 352px (lg) / 384px (xl). Thu gọn/mở mục lục có trượt 300ms ease-out (`cubic-bezier(0.16,1,0.3,1)`): cột co giãn bề rộng, nội dung bên trong trượt bằng translate, nhóm trái của header co cùng nhịp. Có tôn trọng reduced-motion, và cột chuyển `inert` khi thu gọn. Đầu mục lục là dải tiến độ nền ink, có số % lớn màu primary và thanh tiến độ rãnh `ink-hover`. Mở một chương thì chương hiện ngay (không giãn chiều cao), rồi khung mục lục cuộn mượt để tiêu đề chương lên sát mép trên, giống Udemy, nên mọi bài của chương đều lọt khung nhìn. Chương cuối thì cuộn hết cỡ. Icon loại bài trong mục lục tô màu theo loại: bài giảng primary, quiz tertiary, bài code cam đất. Dưới video là dải bài học: tên bài, dòng "Phần · Bài · thời lượng" kèm chip trạng thái ("Xem đủ 90% để hoàn thành" / "✓ Đã hoàn thành"), bên phải chỉ có nút "Bài tiếp" (không có "Bài trước", quay lại thì dùng mục lục). Thanh tab gạch chân dính dưới header. Trang quiz và bài code đặt nút "Bài tiếp" trên header. Hết video thì hiện lớp phủ ink "Bài tiếp", chỉ chuyển khi người học bấm. Bấm chuột rồi nhấn phím không vẽ viền focus (`usePointerFocus`); Tab thì viền hiện lại.
 - **Khung quản trị (admin / moderator):** header trắng 56px (logo, chip ink "Quản trị"/"Kiểm duyệt", menu tài khoản). Sidebar trái 256px chia nhóm (Hàng đợi duyệt · Vận hành · Hệ thống), mục đang chọn nền `primary-soft` chữ `primary`, số việc đang chờ hiện bằng chip `warning-soft`. Trên mobile sidebar thành ngăn trượt. Nội dung đặt trên nền `muted`, rộng tối đa 1152px. Hàng đợi là card có tab gạch chân kèm số lượng, mỗi dòng là một link, chip "Chờ x ngày" chuyển sang tông cảnh báo khi chờ ≥ 3 ngày. Trang chi tiết có header của bài nộp, cột trái là nội dung, cột phải là "Quyết định" dính gồm giá, ghi chú, **Kiểm tra tự động** (✓/⚠ kèm chữ) và nút Duyệt/Từ chối. Hộp từ chối có lý do soạn sẵn dạng bật/tắt. Sau khi ra quyết định có nút "Sang mục chờ tiếp theo".
-- **Tab:** gạch chân 2px màu foreground dưới tab đang chọn.
+- **Khu soạn khoá (instructor manage):** tiêu đề trang cách nội dung 32px, các card cách nhau 20px. Mỗi nhóm là một card có tiêu đề (kể cả card đầu); card chỉ có nội dung vẫn có padding 24px ở mép trên. Form có nút gửi đặt ở chân card (nền `muted`, viền trên, nút căn phải). Bảng nằm trong card, bảng rỗng hiện trạng thái trống có icon. Trong khung chương trình, nhãn "Bài giảng 3" / "Phần 2" nằm trên tên để tên mọi dòng thẳng một cột; nút thao tác của dòng rộng cố định 120px.
+- **Tab:** gạch chân 2px màu `primary` dưới tab đang chọn, chữ tab chọn đậm và giữ màu chữ thường. Kiểu pill: tab chọn nền trắng chữ `primary`.
 
 ### Skill Bar (signature)
 Thanh năng lực là chữ ký của hệ thống. Bên trái là tên topic, bên phải là `35% · Yếu`. Bên dưới là thanh cao 8px bo tròn, nền `secondary`, phần đã đạt tô bằng `skill-weak` / `skill-mid` / `skill-strong`. Lý do gợi ý đặt ngay dưới thanh, trong một khối nền `muted`, mở đầu bằng "Gợi ý vì bạn đạt …".
 
 ### Verdict Line (signature)
 Kết quả chấm code luôn có dạng icon + tên verdict + số test + thời gian chạy, ví dụ `✓ Accepted · 5/5 test · 42 ms`. Phần số viết bằng mono. Accepted dùng `success`, Wrong Answer dùng `danger`, Time Limit dùng `warning`, Runtime/Compile Error dùng `tertiary`, đang chấm dùng `muted-foreground`.
+
+## Guest Home (trang chủ khách)
+
+- **Mạch:** hero (định vị: nền tảng chia sẻ khoá học + tự học; thẻ "Ví dụ" gồm khoá do giảng viên chia sẻ đã duyệt và tiến độ của người học) → nỗi đau người tự học → 2 điểm khác biệt, mỗi điểm một mảnh giao diện có nhãn "Ví dụ" (máy chấm code, bài đánh giá 12 câu) → lĩnh vực → khoá nổi bật → giảng viên + kiểm duyệt → hỏi đáp → CTA. Nền xen kẽ trắng / sương. Hero là dải ink phẳng (không blob, không quầng sáng; nút trên nền ink tắt bóng màu). CTA cuối là panel xanh sương trên nền trắng (không dùng ink để khỏi dính vào footer tối): trái là lời kêu gọi + nút, phải là thẻ "3 bước để bắt đầu" có thời gian từng bước.
+- **Mascot Lumi:** chính ký hiệu Aolumi (bong bóng chữ "a"), lỗ chữ "a" là khuôn mặt. Vẽ SVG phẳng theo token trong `guest-illustrations.tsx`; ảnh 3D gen ngoài chỉ dùng khi bản gốc rộng ≥ 2 lần khung hiển thị (màn Retina), nếu không sẽ mờ. Không bắt chước mascot của nền tảng khác.
+- **Chuyển động (thư viện `motion`):** `MotionConfig reducedMotion="user"`. Khoảnh khắc chính: thanh năng lực hero chạy từ 0 khi tải. Khối dưới màn đầu hiện dần một lần (lên 24px, 0,7s, expo-out), danh sách so le 90ms. Máy chấm minh hoạ chạy từng test khi lọt màn hình. Vòng lặp chỉ trong SVG (chớp mắt, lơ lửng) và dừng khi giảm chuyển động.
+- **Ảnh tìm trên web:** chỉ giấy phép CC0 / PD / CC BY, ghi nguồn nhỏ ngay dưới khối dùng ảnh. Hiện trang không dùng ảnh web nào.
 
 ## Do's and Don'ts
 

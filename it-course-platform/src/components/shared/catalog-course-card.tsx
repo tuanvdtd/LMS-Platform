@@ -20,7 +20,7 @@ export function CatalogCourseCard({ course }: { course: CourseCard }) {
       href={`/course/${course.slug}`}
       className="group card-interactive @container flex h-full gap-3 overflow-hidden p-3 sm:flex-col sm:gap-0 sm:p-0"
     >
-      <div className="relative flex aspect-video w-28 shrink-0 items-center justify-center self-start overflow-hidden rounded-md bg-muted sm:w-full sm:rounded-none">
+      <div className="relative flex aspect-video w-28 shrink-0 items-center justify-center self-start overflow-hidden rounded-md cover-placeholder sm:w-full sm:rounded-none">
         {/* Khoá chưa có ảnh bìa: BE trả chuỗi rỗng → không render <img src=""> (ảnh vỡ + tải lại trang). */}
         {course.thumbnailUrl ? (
           <Image
@@ -32,7 +32,7 @@ export function CatalogCourseCard({ course }: { course: CourseCard }) {
             className="object-cover"
           />
         ) : (
-          <BookOpen className="size-6 text-muted-foreground sm:size-8" aria-hidden />
+          <BookOpen className="size-6 text-primary/70 sm:size-8" aria-hidden />
         )}
       </div>
 

@@ -40,6 +40,7 @@
     "hast-util-to-jsx-runtime": "^2.3.7",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.48.0",
+    "motion": "^14.14.0",
     "next": "16.4.6",
     "next-themes": "^0.4.6",
     "pdfjs-dist": "^6.4.299",

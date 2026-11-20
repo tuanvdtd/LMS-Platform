@@ -8,9 +8,9 @@ const buttonVariantsRaw = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
+        default: "bg-primary text-primary-foreground shadow-brand hover:bg-primary-hover hover:shadow-brand-hover active:shadow-none",
         outline:
-          "border-border bg-background hover:bg-secondary hover:text-foreground aria-expanded:bg-secondary aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border bg-background shadow-xs hover:border-primary/30 hover:bg-primary-soft hover:text-primary aria-expanded:border-primary/30 aria-expanded:bg-primary-soft aria-expanded:text-primary dark:border-input dark:bg-input/30",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
@@ -18,7 +18,7 @@ const buttonVariantsRaw = cva(
         destructive:
           "bg-destructive/10 text-danger hover:bg-destructive/15 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
-        accent: "bg-brand-accent text-white hover:bg-brand-accent/90",
+        accent: "bg-brand-accent text-white shadow-buy hover:bg-[var(--accent-hover)] active:shadow-none",
       },
       size: {
         default:

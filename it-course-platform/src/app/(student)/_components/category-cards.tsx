@@ -2,26 +2,28 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { categoryHref } from '@/lib/category-links';
 import type { CategoryNode } from '@/types';
-import { CategoryIcon } from './category-icon';
+import { cn } from '@/lib/utils';
+import { CategoryIcon, categoryTone } from './category-icon';
+import { Reveal, RevealItem, RevealList } from './guest-motion';
 
 export function CategoryCards({ categories }: { categories: CategoryNode[] }) {
   if (!categories.length) return null;
   return (
-    <section aria-labelledby="guest-categories" className="border-y bg-secondary">
-      <div className="mx-auto w-full max-w-screen-xl px-4 py-16 lg:py-20">
-        <div className="mb-8 max-w-2xl">
-          <h2 id="guest-categories" className="text-2xl font-bold text-foreground md:text-3xl">Khám phá theo lĩnh vực</h2>
-          <p className="mt-2 text-secondary-foreground">Chỉ các chủ đề công nghệ thông tin, mỗi khoá đều qua kiểm duyệt.</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <section aria-labelledby="guest-categories" className="bg-background">
+      <div className="mx-auto w-full max-w-screen-xl px-4 py-20 lg:py-28">
+        <Reveal className="mb-10 max-w-2xl">
+          <h2 id="guest-categories" className="text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">Khám phá theo lĩnh vực</h2>
+          <p className="mt-3 text-lg/relaxed text-secondary-foreground">Chỉ các chủ đề công nghệ thông tin, mỗi khoá đều được chuyên gia đúng lĩnh vực duyệt.</p>
+        </Reveal>
+        <RevealList className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {categories.map((c) => (
+            <RevealItem key={c.slug}>
             <Link
-              key={c.slug}
               href={categoryHref(c.slug)}
-              className="group card-interactive flex flex-col gap-4 p-5"
+              className="group card-interactive flex h-full flex-col gap-4 p-5"
             >
-              <span className="grid size-10 place-items-center rounded-lg bg-[var(--primary-light)] text-primary">
-                <CategoryIcon slug={c.slug} className="size-5" />
+              <span className={cn('grid size-11 place-items-center rounded-xl', categoryTone(c.slug))}>
+                <CategoryIcon slug={c.slug} className="size-5.5" />
               </span>
               <div>
                 <p className="font-bold">{c.name}</p>
@@ -37,8 +39,9 @@ export function CategoryCards({ categories }: { categories: CategoryNode[] }) {
                 />
               </span>
             </Link>
+            </RevealItem>
           ))}
-        </div>
+        </RevealList>
       </div>
     </section>
   );

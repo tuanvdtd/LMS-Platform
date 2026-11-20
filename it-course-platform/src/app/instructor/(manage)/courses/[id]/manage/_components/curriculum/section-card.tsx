@@ -47,16 +47,20 @@ export function SectionCard({
         isDragging && 'relative z-10 opacity-80 shadow-xl',
       )}
     >
-      <div className="flex items-center gap-2 border-b bg-muted/70 py-2 pr-3 pl-2">
+      <div className="flex items-center gap-3 border-b bg-muted/70 py-2.5 pr-3 pl-2">
         <DragHandle ref={setActivatorNodeRef} label={`Kéo để đổi chỗ ${name}`} disabled={locked} {...attributes} {...listeners} />
-        <span className="shrink-0 text-[15px] font-bold">{name}:</span>
-        <InlineTitle
-          className="[&_input]:text-[15px] [&_input]:font-semibold"
-          value={section.title}
-          label={`Tên ${name}`}
-          disabled={locked}
-          onSave={(title) => run(() => renameSection(courseId, section.id, title))}
-        />
+        {/* Cùng nhịp với dòng mục bên dưới: "Phần 1" là nhãn nhỏ, tên phần đậm ngay dưới.
+            ml-11 = ô icon 32px + gap 12px của dòng mục → tên phần và tên bài thẳng một cột. */}
+        <div className="ml-11 flex min-w-0 flex-1 flex-col">
+          <span className="pl-[calc(0.5rem+1px)] text-xs font-semibold text-muted-foreground">{name}</span>
+          <InlineTitle
+            className="-mt-0.5 [&_input]:text-base [&_input]:font-bold"
+            value={section.title}
+            label={`Tên ${name}`}
+            disabled={locked}
+            onSave={(title) => run(() => renameSection(courseId, section.id, title))}
+          />
+        </div>
         <Button variant="ghost" size="icon-sm" aria-label={`Xoá ${name}`} disabled={locked} onClick={remove}>
           <Trash2 />
         </Button>
@@ -69,7 +73,7 @@ export function SectionCard({
           ))}
         </ul>
       </SortableContext>
-      <div className={cn('px-3 py-1.5', section.items.length > 0 && 'border-t')}>
+      <div className={cn('px-2 py-1.5', section.items.length > 0 && 'border-t')}>
         <AddItemForm sectionId={section.id} />
       </div>
     </section>

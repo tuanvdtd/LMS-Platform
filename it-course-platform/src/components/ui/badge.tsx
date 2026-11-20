@@ -10,7 +10,14 @@ const badgeVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         secondary:
-          "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
+          "border-border bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
+        // Tông trạng thái: nền nhạt + viền cùng tông + chữ màu gốc (đạt 4.5:1). Luôn đi kèm chữ, không chỉ dựa vào màu.
+        info: "border-primary/20 bg-primary-soft text-primary",
+        success: "border-success-border bg-success-soft text-success",
+        warning: "border-warning-border bg-warning-soft text-warning",
+        danger: "border-danger-border bg-danger-soft text-danger",
+        accent: "border-brand-accent/25 bg-brand-accent-soft text-brand-accent-strong",
+        tertiary: "border-tertiary/20 bg-tertiary-soft text-tertiary",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
         outline:

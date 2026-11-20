@@ -70,24 +70,28 @@ export function ItemRow({ item, label }: { item: CurriculumItem; label: string }
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn('group bg-card', isDragging && 'relative z-10 rounded-lg opacity-80 shadow-lg')}
     >
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 py-2 pr-3 pl-2 sm:flex-nowrap">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2 pr-3 pl-2 sm:flex-nowrap">
         <DragHandle ref={setActivatorNodeRef} label={`Kéo để đổi chỗ ${label}`} disabled={dragLocked} {...attributes} {...listeners} />
         <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg', iconClass)} aria-hidden>
           <TypeIcon className="size-4" />
         </span>
-        <span className="shrink-0 text-[13px] font-medium text-muted-foreground">{label}:</span>
-        <InlineTitle
-          className="min-w-40"
-          value={item.title}
-          label={`Tên ${label}`}
-          disabled={locked}
-          onSave={(title) => run(() => updateItem(courseId, item.id, { title }))}
-        />
+        {/* Nhãn loại nằm trên tên: tên mọi mục bắt đầu cùng một cột dù nhãn dài ngắn khác nhau ("Bài giảng 10", "Bài tập coding 1").
+            pl = px-2 + viền 1px của ô sửa tên, để nhãn thẳng mép chữ bên dưới. */}
+        <div className="flex min-w-40 flex-1 flex-col">
+          <span className="pl-[calc(0.5rem+1px)] text-xs font-medium text-muted-foreground">{label}</span>
+          <InlineTitle
+            className="-mt-0.5"
+            value={item.title}
+            label={`Tên ${label}`}
+            disabled={locked}
+            onSave={(title) => run(() => updateItem(courseId, item.id, { title }))}
+          />
+        </div>
         <span className={cn('shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold', chip.className)}>
           {chip.text}
         </span>
         {item.type === 'lecture' ? (
-          <Button variant="outline" size="sm" aria-expanded={open} onClick={() => toggleItem(item.id)}>
+          <Button variant="outline" size="sm" className="w-30" aria-expanded={open} onClick={() => toggleItem(item.id)}>
             {item.lectureKind ? (
               <>
                 Nội dung
@@ -104,12 +108,12 @@ export function ItemRow({ item, label }: { item: CurriculumItem; label: string }
           <GuardedLink
             href={`/instructor/courses/${courseId}/manage/${item.type === 'quiz' ? 'quizzes' : 'exercises'}/${item.id}`}
             transitionTypes={item.type === 'quiz' ? ['nav-forward'] : undefined} // trang soạn quiz trượt vào từ phải (PageSlide)
-            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            className={buttonVariants({ variant: 'outline', size: 'sm', className: 'w-30' })}
           >
             {item.type === 'quiz' ? 'Soạn câu hỏi' : 'Soạn bài tập'}
           </GuardedLink>
         ) : (
-          <Button variant="outline" size="sm" disabled title="Sắp có">
+          <Button variant="outline" size="sm" className="w-30" disabled title="Sắp có">
             Soạn câu hỏi
           </Button>
         )}

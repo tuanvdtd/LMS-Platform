@@ -14,7 +14,7 @@ export function EnrollmentCard({ enrollment: { course, progressPct } }: { enroll
         {course.thumbnailUrl ? (
           <Image src={course.thumbnailUrl} alt="" width={320} height={180} unoptimized className="aspect-video w-full object-cover" />
         ) : (
-          <div className="aspect-video w-full bg-muted" />
+          <div className="aspect-video w-full cover-placeholder" />
         )}
       </Link>
       <div className="flex flex-1 flex-col gap-2 p-3">

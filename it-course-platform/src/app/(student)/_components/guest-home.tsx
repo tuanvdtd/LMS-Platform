@@ -4,24 +4,28 @@ import { getCategoryTree } from '@/lib/api/categories';
 import { CategoryCards } from './category-cards';
 import { GuestFeatured } from './guest-featured';
 import { GuestHero } from './guest-hero';
-import { PillarsSection, SignupSection, StepsSection, TeachSection } from './guest-sections';
+import { MotionProvider } from './guest-motion';
+import { FaqSection, PainSection, ShowcaseSection, SignupSection, TeachSection } from './guest-sections';
 import { COURSE_GRID } from '@/components/shared/catalog-course-card';
 
-// Trang chủ khách, hero nền tối.
+// Trang chủ khách. Thứ tự là mạch lập luận: lời hứa (hero) → nỗi đau của người tự học → hai điểm khác biệt
+// có mảnh giao diện làm bằng chứng → duyệt khoá → giảng viên và kiểm duyệt → hỏi đáp → đăng ký.
+// Nền xen kẽ trắng / sương để chia nhịp.
 export async function GuestHome() {
   const categories = await getCategoryTree();
   return (
-    <>
+    <MotionProvider>
       <GuestHero />
+      <PainSection />
+      <ShowcaseSection />
       <CategoryCards categories={categories} />
       <Suspense fallback={<FeaturedFallback />}>
         <GuestFeatured categories={categories} />
       </Suspense>
-      <PillarsSection />
-      <StepsSection />
       <TeachSection />
+      <FaqSection />
       <SignupSection />
-    </>
+    </MotionProvider>
   );
 }
 

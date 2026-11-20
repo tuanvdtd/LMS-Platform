@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 
 export function PageHeader({ title, description }: { title: string; description: string }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    // pb-2: tiêu đề trang cách nội dung 32px, xa hơn khoảng cách giữa các card (20px) để đọc ra hai tầng
+    <div className="flex flex-col gap-1.5 pb-2">
       <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
       <p className="max-w-2xl text-sm/relaxed text-muted-foreground">{description}</p>
     </div>

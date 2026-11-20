@@ -44,14 +44,16 @@ export function CourseManageShell({ children }: { children: React.ReactNode }) {
           target="_blank"
           rel="noopener"
           title="Xem khoá học như học viên"
+          aria-label="Xem trước"
           className={buttonVariants({
             variant: 'outline',
             size: 'sm',
-            className: 'border-ink-border bg-transparent text-ink-foreground hover:bg-ink-hover hover:text-white',
+            // Dưới sm chỉ còn icon để tên khoá có chỗ hiện
+            className: 'shrink-0 border-ink-border bg-transparent text-ink-foreground hover:bg-ink-hover hover:text-white max-sm:size-8 max-sm:px-0',
           })}
         >
           <Eye data-icon="inline-start" />
-          Xem trước
+          <span className="max-sm:sr-only">Xem trước</span>
         </Link>
       </header>
       <div className="grid flex-1 md:grid-cols-[300px_minmax(0,1fr)]">

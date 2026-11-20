@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { TicketPercent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -81,8 +84,8 @@ export function PromotionsView() {
     return (
       <>
         <PageHeader title="Khuyến mại" description="Tạo mã giảm giá để chia sẻ khoá học." />
-        <Alert className="mt-6">
-          <AlertDescription>Chỉ tạo được coupon cho khoá có phí đã xuất bản.</AlertDescription>
+        <Alert>
+          <AlertDescription className="text-foreground">Chỉ tạo được coupon cho khoá có phí đã xuất bản.</AlertDescription>
         </Alert>
       </>
     );
@@ -94,7 +97,13 @@ export function PromotionsView() {
         title="Khuyến mại"
         description="Tạo mã giảm giá (giá cố định hoặc miễn phí) và chia sẻ link. Tối đa 3 coupon mỗi tháng."
       />
-      <form onSubmit={submit} className="my-8 grid gap-4 rounded-xl border p-5 sm:grid-cols-2">
+      <form onSubmit={submit}>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Tạo coupon</CardTitle>
+          <CardDescription>Học viên mở link kèm mã sẽ thấy giá sau giảm ngay trên trang khoá.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="coupon-type">Loại</Label>
           <Select
@@ -157,65 +166,80 @@ export function PromotionsView() {
           <Label htmlFor="days">Số ngày (tối đa {maxDays})</Label>
           <Input id="days" type="number" min={1} max={maxDays} value={days} onChange={(e) => setDays(e.target.value)} required />
         </div>
-        <div className="sm:col-span-2">
-          <Button type="submit" disabled={saving || (type === 'fixed_price' && !price)}>
+        </CardContent>
+        <CardFooter className="justify-end border-t bg-muted/50 py-4">
+          <Button type="submit" isLoading={saving} disabled={type === 'fixed_price' && !price}>
             Tạo coupon
           </Button>
-        </div>
+        </CardFooter>
+      </Card>
       </form>
 
-      <table className="w-full text-sm">
-        <thead className="text-left text-muted-foreground">
-          <tr>
-            <th className="py-2">Mã</th>
-            <th>Loại</th>
-            <th>Giá</th>
-            <th>Hiệu lực</th>
-            <th>Đã dùng</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {data?.items.map((c) => {
-            const ended = new Date(c.endsAt) <= new Date() || (!!c.maxRedemptions && c.redeemedCount >= c.maxRedemptions);
-            const active = !c.disabledAt && !ended;
-            return (
-              <tr key={c.id} className="border-t">
-                <td className="py-2 font-mono">{c.code}</td>
-                <td>{COUPON_TYPE_LABEL[c.type]}</td>
-                <td>{c.priceAmount ? formatVnd(c.priceAmount) : 'Miễn phí'}</td>
-                <td>
-                  {new Date(c.startsAt).toLocaleDateString('vi-VN')} – {new Date(c.endsAt).toLocaleDateString('vi-VN')}
-                </td>
-                <td>
-                  {c.redeemedCount}
-                  {c.maxRedemptions ? `/${c.maxRedemptions}` : ''}
-                </td>
-                <td className="py-2">
-                  <div className="flex gap-2">
-                  {active && (
-                    <Button size="sm" variant="outline" onClick={() => copyLink(c.code)}>
-                      Sao chép link
-                    </Button>
-                  )}
-                  {active && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={disabling === c.id}
-                      onClick={() => disable(c.id)}
-                    >
-                      Tắt
-                    </Button>
-                  )}
-                  {!active && <span className="text-muted-foreground">{c.disabledAt ? 'Đã tắt' : 'Đã kết thúc'}</span>}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Coupon đã tạo</CardTitle>
+        </CardHeader>
+        {data && data.items.length === 0 ? (
+          <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-primary-soft text-primary">
+              <TicketPercent className="size-5" aria-hidden />
+            </span>
+            <p className="text-sm font-semibold">Chưa có coupon nào</p>
+            <p className="max-w-sm text-sm text-muted-foreground">Coupon bạn tạo ở trên sẽ hiện ở đây kèm số lượt đã dùng và link chia sẻ.</p>
+          </CardContent>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-6">Mã</TableHead>
+                <TableHead>Loại</TableHead>
+                <TableHead>Giá</TableHead>
+                <TableHead>Hiệu lực</TableHead>
+                <TableHead className="text-right">Đã dùng</TableHead>
+                <TableHead className="pr-6">
+                  <span className="sr-only">Thao tác</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data?.items.map((c) => {
+                const ended = new Date(c.endsAt) <= new Date() || (!!c.maxRedemptions && c.redeemedCount >= c.maxRedemptions);
+                const active = !c.disabledAt && !ended;
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="pl-6 font-mono font-semibold">{c.code}</TableCell>
+                    <TableCell>{COUPON_TYPE_LABEL[c.type]}</TableCell>
+                    <TableCell className="tabular-nums">{c.priceAmount ? formatVnd(c.priceAmount) : 'Miễn phí'}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {new Date(c.startsAt).toLocaleDateString('vi-VN')} – {new Date(c.endsAt).toLocaleDateString('vi-VN')}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {c.redeemedCount}
+                      {c.maxRedemptions ? `/${c.maxRedemptions}` : ''}
+                    </TableCell>
+                    <TableCell className="pr-6">
+                      <div className="flex justify-end gap-2">
+                        {active ? (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => copyLink(c.code)}>
+                              Sao chép link
+                            </Button>
+                            <Button size="sm" variant="ghost" disabled={disabling === c.id} onClick={() => disable(c.id)}>
+                              Tắt
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">{c.disabledAt ? 'Đã tắt' : 'Đã kết thúc'}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
     </>
   );
 }

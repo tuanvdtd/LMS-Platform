@@ -1,7 +1,7 @@
 'use client';
 
 import { useFieldArray, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form';
-import { Plus, Trash2 } from 'lucide-react';
+import { Check, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { FieldError } from '@/components/ui/field';
@@ -72,12 +72,12 @@ export function StringListEditor({ name, anchor, title, hint, placeholder, min, 
         })}
         {listError?.message && <FieldError>{listError.message}</FieldError>}
       </CardContent>
-      <CardFooter className="flex-wrap justify-between gap-3">
+      <CardFooter className="-mt-2 flex-wrap justify-between gap-3">
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="text-primary"
+          className="-ml-1.5 text-primary hover:text-primary"
           disabled={fields.length >= MAX_ITEMS}
           onClick={() => append({ value: '' })}
         >
@@ -85,11 +85,11 @@ export function StringListEditor({ name, anchor, title, hint, placeholder, min, 
         </Button>
         <span
           className={cn(
-            'text-[12.5px] font-semibold',
+            'flex items-center gap-1 text-[12.5px] font-semibold',
             filled >= min ? 'text-success' : 'text-warning',
           )}
         >
-          {filled >= min ? '✓ Đủ yêu cầu' : `Cần thêm ${min - filled}`}
+          {filled >= min ? <><Check className="size-3.5" strokeWidth={3} aria-hidden />Đủ yêu cầu</> : `Cần thêm ${min - filled}`}
         </span>
       </CardFooter>
     </Card>

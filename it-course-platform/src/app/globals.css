@@ -11,6 +11,10 @@
   --shadow-md: 0 6px 16px -4px rgb(15 23 42 / 0.10), 0 2px 4px -2px rgb(15 23 42 / 0.05);
   --shadow-lg: 0 14px 32px -8px rgb(15 23 42 / 0.14), 0 4px 8px -4px rgb(15 23 42 / 0.06);
   --shadow-xl: 0 24px 48px -12px rgb(15 23 42 / 0.22), 0 8px 16px -8px rgb(15 23 42 / 0.08);
+  /* Nút đặc (primary / mua): bóng ngả đúng màu nút + vệt sáng 1px ở mép trên, để nút nổi khỏi nền trắng thay vì là ô màu phẳng */
+  --shadow-brand: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 2px rgb(29 78 216 / 0.25), 0 4px 12px -4px rgb(37 99 235 / 0.45);
+  --shadow-brand-hover: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 2px 4px rgb(29 78 216 / 0.25), 0 8px 20px -6px rgb(37 99 235 / 0.55);
+  --shadow-buy: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 1px 2px rgb(194 65 12 / 0.25), 0 4px 12px -4px rgb(249 115 22 / 0.5);
 }
 
 @theme inline {
@@ -47,12 +51,27 @@
   --color-tertiary: var(--tertiary);
   --color-tertiary-soft: var(--tertiary-soft);
   --color-rating: var(--rating);
+  /* Tông danh mục: mỗi lĩnh vực cấp 1 một màu nhận diện (icon, ô icon, bìa trống). Chỉ để phân biệt lĩnh vực, không mang nghĩa trạng thái. */
+  --color-tone-blue: var(--tone-blue);
+  --color-tone-blue-soft: var(--tone-blue-soft);
+  --color-tone-violet: var(--tone-violet);
+  --color-tone-violet-soft: var(--tone-violet-soft);
+  --color-tone-teal: var(--tone-teal);
+  --color-tone-teal-soft: var(--tone-teal-soft);
+  --color-tone-rose: var(--tone-rose);
+  --color-tone-rose-soft: var(--tone-rose-soft);
   /* Ink: dải nền tối cố định ở cả hai theme (thanh quản lý khoá, hero trang khoá, thanh lưu) */
   --color-ink: var(--ink);
   --color-ink-foreground: var(--ink-foreground);
   --color-ink-muted: var(--ink-muted);
   --color-ink-hover: var(--ink-hover);
   --color-ink-border: var(--ink-border);
+  /* Màu cú pháp + "đạt" trên khối code nền ink (ink tối ở cả hai theme nên các giá trị này cố định) */
+  --color-ink-keyword: var(--ink-keyword);
+  --color-ink-title: var(--ink-title);
+  --color-ink-builtin: var(--ink-builtin);
+  --color-ink-success: var(--ink-success);
+  --color-illus-glow: var(--illus-glow);
   /* Nền hover của mục bấm được trên bề mặt card (header khung học). Theme tối: secondary/muted trùng card nên cần tông riêng. */
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -82,15 +101,18 @@
   --primary-hover: #1d4ed8;
   --primary-light: #eff6ff;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
+  /* Neutral ngả nhẹ về hue xanh thương hiệu để nền phụ không thành xám chết. muted-foreground đậm hơn slate-500 một chút
+     để vẫn ≥ 4.5:1 trên nền secondary. */
+  --secondary: #eef3fa;
   --secondary-foreground: #334155;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
+  --muted: #f6f8fc;
+  --muted-foreground: #586a82;
   --accent: #f97316;
   --accent-hover: #ea580c;
   --accent-foreground: #ffffff;
-  --ui-accent: #f1f5f9;
-  --ui-accent-foreground: #0f172a;
+  /* Nền hover / mục đang trỏ trong menu, select, gợi ý tìm kiếm: xanh sương + chữ xanh đậm thay cho xám */
+  --ui-accent: #eaf1fe;
+  --ui-accent-foreground: #1e40af;
   --brand-accent: #f97316;
   --brand-accent-strong: #c2410c;
   --brand-accent-soft: #fff7ed;
@@ -119,6 +141,15 @@
   --tertiary-soft: #f5f3ff;
   --rating: #f59e0b;
 
+  --tone-blue: #1d4ed8;
+  --tone-blue-soft: #e6eefe;
+  --tone-violet: #6d28d9;
+  --tone-violet-soft: #f0eafe;
+  --tone-teal: #0f766e;
+  --tone-teal-soft: #e0f5f2;
+  --tone-rose: #be123c;
+  --tone-rose-soft: #fde9ee;
+
   --card-hover: #ffffff;
 
   --ink: #0f172a;
@@ -126,6 +157,12 @@
   --ink-muted: #94a3b8;
   --ink-hover: #1e293b;
   --ink-border: #334155;
+  --ink-keyword: #ff7b72;
+  --ink-title: #d2a8ff;
+  --ink-builtin: #79c0ff;
+  --ink-success: #4ade80;
+  /* Ánh đèn bàn / trăng trong minh hoạ trang chủ khách */
+  --illus-glow: #fde68a;
 
   /* Semantic colors */
   --skill-weak: #ef4444;
@@ -166,8 +203,8 @@
   --accent: #f97316;
   --accent-hover: #ea580c;
   --accent-foreground: #ffffff;
-  --ui-accent: #334155;
-  --ui-accent-foreground: #f8fafc;
+  --ui-accent: #1e3a5f;
+  --ui-accent-foreground: #dbeafe;
   --brand-accent: #f97316;
   --brand-accent-strong: #fb923c;
   --brand-accent-soft: #431407;
@@ -193,6 +230,20 @@
   --danger-border: #7f1d1d;
   --tertiary: #c4b5fd;
   --tertiary-soft: #2e1065;
+
+  --tone-blue: #93c5fd;
+  --tone-blue-soft: #172554;
+  --tone-violet: #c4b5fd;
+  --tone-violet-soft: #2e1065;
+  --tone-teal: #5eead4;
+  --tone-teal-soft: #042f2e;
+  --tone-rose: #fda4af;
+  --tone-rose-soft: #4c0519;
+
+  /* Bóng màu gần như vô hình trên nền tối và vệt sáng làm nút sáng nhạt đi: chỉ giữ một bóng tối mềm */
+  --shadow-brand: 0 4px 12px -4px rgb(0 0 0 / 0.5);
+  --shadow-brand-hover: 0 8px 20px -6px rgb(0 0 0 / 0.6);
+  --shadow-buy: 0 4px 12px -4px rgb(0 0 0 / 0.5);
 
   /* Bóng gần như vô hình trên nền tối: card hover sáng lên một bậc để vẫn thấy được */
   --card-hover: #243247;
@@ -261,6 +312,14 @@
       translate: none;
     }
   }
+}
+
+/* Ảnh bìa trống (khoá chưa có thumbnail): nền xanh sương + lưới chấm thay cho ô xám, icon bên trong dùng text-primary. */
+@utility cover-placeholder {
+  background-color: var(--primary-light);
+  background-image: radial-gradient(color-mix(in oklch, var(--primary) 22%, transparent) 1px, transparent 1.5px);
+  background-size: 14px 14px;
+  background-position: center;
 }
 
 /* Tailwind v4 mặc định viền = currentColor (đen); như template shadcn, viền mặc định dùng token --border.
@@ -483,3 +542,14 @@
 .post-editing pre { border-radius: var(--radius-lg); border: 1px solid var(--ink-border); background: var(--ink); color: var(--ink-foreground); }
 .post-editing .selectedCell { background: color-mix(in oklch, var(--primary) 12%, transparent); }
 .post-editing .tableWrapper { overflow-x: auto; }
+
+/* Minh hoạ trang chủ khách (guest-illustrations.tsx): vòng lặp nhỏ, chậm, chỉ trong SVG.
+   Giảm chuyển động thì đứng yên ở trạng thái đầy đủ. */
+@media (prefers-reduced-motion: no-preference) {
+  .gh-blink { animation: gh-blink 5s ease-in-out infinite; }
+  .gh-float { animation: gh-float 4s ease-in-out infinite; }
+  .gh-twinkle { animation: gh-twinkle 3.5s ease-in-out infinite; }
+}
+@keyframes gh-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+@keyframes gh-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes gh-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }

@@ -44,11 +44,11 @@ export function FeaturedTabs({ initial, categories }: { initial: CourseCard[] | 
   const state = byTab[tab] ?? 'loading';
 
   return (
-    <section aria-labelledby="guest-featured" className="bg-background">
-      <div className="mx-auto w-full max-w-screen-xl px-4 py-16 lg:py-20">
+    <section aria-labelledby="guest-featured" className="border-y bg-muted">
+      <div className="mx-auto w-full max-w-screen-xl px-4 py-20 lg:py-28">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <h2 id="guest-featured" className="text-2xl font-bold text-foreground md:text-3xl">Khoá học nổi bật</h2>
+            <h2 id="guest-featured" className="text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">Khoá học nổi bật</h2>
             <p className="mt-2 text-secondary-foreground">Khoá được học viên ghi danh nhiều nhất.</p>
           </div>
           <Link href="/courses?sort=popular" className="flex min-h-6 shrink-0 items-center gap-1 py-1 text-sm font-medium text-primary hover:underline">

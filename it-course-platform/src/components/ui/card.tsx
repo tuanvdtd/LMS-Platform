@@ -74,7 +74,8 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-content"
-      className={cn("p-6 pt-0", className)}
+      // Chỉ bỏ padding trên khi đứng ngay sau CardHeader; card không có header vẫn có đủ 24px ở mép trên.
+      className={cn("p-6 [[data-slot=card-header]+&]:pt-0", className)}
       {...props}
     />
   )
