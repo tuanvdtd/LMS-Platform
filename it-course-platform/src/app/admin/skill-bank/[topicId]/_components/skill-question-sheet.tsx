@@ -5,7 +5,8 @@ import axios from 'axios';
 import { TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert } from '@/components/ui/alert';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { createSkillQuestion, updateSkillQuestion } from '@/lib/api/skill-bank';
@@ -32,12 +33,14 @@ export function SkillQuestionSheet({
   onOpenChange,
   topicId,
   question,
+  domains,
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   topicId: string;
   question: AdminSkillQuestion | null;
+  domains: string[]; // domain đã có trong topic, để gợi ý
   onSaved: () => void;
 }) {
   return (
@@ -48,7 +51,16 @@ export function SkillQuestionSheet({
           <SheetDescription className="sr-only">Soạn câu hỏi cho ngân hàng kỹ năng.</SheetDescription>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto px-4 pb-4">
-          {open && <SheetBody key={question?.id ?? 'new'} topicId={topicId} question={question} onClose={() => onOpenChange(false)} onSaved={onSaved} />}
+          {open && (
+            <SheetBody
+              key={question?.id ?? 'new'}
+              topicId={topicId}
+              question={question}
+              domains={domains}
+              onClose={() => onOpenChange(false)}
+              onSaved={onSaved}
+            />
+          )}
         </div>
       </SheetContent>
     </Sheet>
@@ -58,20 +70,24 @@ export function SkillQuestionSheet({
 function SheetBody({
   topicId,
   question,
+  domains,
   onClose,
   onSaved,
 }: {
   topicId: string;
   question: AdminSkillQuestion | null;
+  domains: string[];
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [difficulty, setDifficulty] = useState<SkillDifficulty>(question?.difficulty ?? 'medium');
+  const [domain, setDomain] = useState(question?.domain ?? '');
   const changed = !!question && difficulty !== question.difficulty;
+  const domainChanged = !!question && domain.trim() !== (question.domain ?? '');
 
   async function save(body: QuestionPayload) {
     try {
-      const payload = { ...body, difficulty };
+      const payload = { ...body, difficulty, domain: domain.trim() || null };
       if (question) await updateSkillQuestion(question.id, payload);
       else await createSkillQuestion(topicId, payload);
     } catch (e) {
@@ -108,6 +124,25 @@ function SheetBody({
           </Alert>
         )}
       </Field>
+      <Field>
+        <FieldLabel htmlFor="skill-domain">Domain</FieldLabel>
+        <Input
+          id="skill-domain"
+          list="skill-domain-options"
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          maxLength={60}
+          placeholder="Ví dụ: Branching & merging"
+          autoComplete="off"
+          className="sm:w-80"
+        />
+        <datalist id="skill-domain-options">
+          {domains.map((d) => (
+            <option key={d} value={d} />
+          ))}
+        </datalist>
+        <FieldDescription>Phần kiến thức trong topic, ghi tiếng Anh. Để trống nếu topic chưa chia domain.</FieldDescription>
+      </Field>
       <QuestionForm
         question={question ? toQuizQuestion(question) : undefined}
         locked={false}
@@ -116,7 +151,7 @@ function SheetBody({
         after={null}
         onSave={save}
         onSkip={() => {}}
-        dirty={changed}
+        dirty={changed || domainChanged}
       />
     </div>
   );

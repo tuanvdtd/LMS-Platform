@@ -69,10 +69,11 @@ export interface AdminSkillQuestion {
   type: 'single_choice' | 'multiple_choice';
   stem: string;
   difficulty: SkillDifficulty;
+  domain: string | null; // phần kiến thức trong topic (tiếng Anh), câu cũ là null
   rating: number;
   answerCount: number;
   correctCount: number;
   archivedAt: string | null;
   options: { id: string; content: string; isCorrect: boolean; explanation: string | null }[];
 }
-export type SkillQuestionPayload = QuestionPayload & { difficulty: SkillDifficulty };
+export type SkillQuestionPayload = QuestionPayload & { difficulty: SkillDifficulty; domain?: string | null };

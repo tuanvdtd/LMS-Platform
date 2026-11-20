@@ -182,4 +182,13 @@ describe('Ngân hàng câu kỹ năng (e2e)', () => {
     expect(questions.length).toBeGreaterThanOrEqual(2);
     expect(questions.every((q: { difficulty: string }) => q.difficulty === 'hard')).toBe(true);
   }, SLOW);
+
+  it('domain: tạo cắt khoảng trắng, PATCH chuỗi rỗng về null, > 60 ký tự bị 400', async () => {
+    const q = (await create(admin, { ...body('Câu domain'), domain: '  Undo & recovery ' }).expect(201)).body;
+    expect(q.domain).toBe('Undo & recovery');
+    const res = await call('patch', `/api/admin/skill-questions/${q.id}`, admin, { ...body('Câu domain'), domain: '' }).expect(200);
+    expect(res.body.domain).toBeNull();
+    await create(admin, { ...body('Câu domain dài'), domain: 'x'.repeat(61) }).expect(400);
+    expect((await list()).questions.find((x: { id: string }) => x.id === q1.id).domain).toBeNull(); // câu không gửi domain
+  }, SLOW);
 });

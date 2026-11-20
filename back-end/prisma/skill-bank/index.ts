@@ -26,6 +26,7 @@ async function main() {
         prisma.skillQuestion.createMany({
           data: rows.map(({ id, q }) => ({
             id, topicId: topic.id, type: q.type, stem: q.stem, difficulty: q.difficulty, rating: DIFFICULTY_RATING[q.difficulty],
+            domain: q.domain ?? null,
           })),
         }),
         prisma.skillQuestionOption.createMany({

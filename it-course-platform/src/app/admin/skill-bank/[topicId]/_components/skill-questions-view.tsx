@@ -206,6 +206,7 @@ export function SkillQuestionsView({ topicId }: { topicId: string }) {
                   <TableCell className="pl-5 text-muted-foreground tabular-nums">{i + 1}</TableCell>
                   <TableCell className="max-w-0 w-full">
                     <p className="truncate font-medium text-foreground">{plain(q.stem)}</p>
+                    {q.domain && <p className="truncate text-xs text-muted-foreground">{q.domain}</p>}
                   </TableCell>
                   <TableCell className="hidden whitespace-nowrap md:table-cell">{QUESTION_TYPE_LABEL[q.type]}</TableCell>
                   <TableCell>
@@ -246,6 +247,7 @@ export function SkillQuestionsView({ topicId }: { topicId: string }) {
         onOpenChange={(o) => !o && setEditing(undefined)}
         topicId={topicId}
         question={editing ?? null}
+        domains={[...new Set(data?.questions.flatMap((q) => (q.domain ? [q.domain] : [])))].sort()}
         onSaved={refresh}
       />
       <ImportQuestionsDialog

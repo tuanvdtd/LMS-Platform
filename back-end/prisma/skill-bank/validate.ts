@@ -1,4 +1,4 @@
-import { PER_TOPIC, SKILL_BANK_TOPICS, type SkillSeedQuestion } from './types.ts';
+import { DOMAIN_MIN, PER_TOPIC, SKILL_BANK_TOPICS, SKILL_DOMAINS, type SkillSeedQuestion } from './types.ts';
 
 // Cùng giới hạn với quiz (QUIZ_LIMITS / quiz.schemas.ts): đề ≤ 5000, 2–5 đáp án, đáp án ≤ 500.
 const norm = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -18,9 +18,22 @@ export function validateBank(bank: Record<string, SkillSeedQuestion[]>, { strict
       }
     }
     if (strict) errs.push(...answerLeakErrors(slug, qs));
+    const domains = SKILL_DOMAINS[slug];
+    if (strict && domains) {
+      for (const d of domains) {
+        const inD = qs.filter((q) => q.domain === d);
+        if (inD.length < DOMAIN_MIN.total) errs.push(`${slug}: domain "${d}" có ${inD.length} câu, cần ≥ ${DOMAIN_MIN.total}`);
+        for (const lv of ['easy', 'medium', 'hard'] as const) {
+          const n = inD.filter((q) => q.difficulty === lv).length;
+          if (n < DOMAIN_MIN.perDifficulty) errs.push(`${slug}: domain "${d}" có ${n} câu ${lv}, cần ≥ ${DOMAIN_MIN.perDifficulty}`);
+        }
+      }
+    }
     const stems = new Set<string>();
     qs.forEach((q, i) => {
       const at = `${slug} #${i + 1}`;
+      if (domains && !domains.includes(q.domain ?? '')) errs.push(`${at}: domain "${q.domain ?? ''}" không thuộc danh sách của topic`);
+      if (!domains && q.domain !== undefined) errs.push(`${at}: topic chưa có danh sách domain, câu không được gắn domain`);
       if (!q.stem.trim() || q.stem.length > 5000) errs.push(`${at}: đề trống hoặc > 5000 ký tự`);
       if (stems.has(norm(q.stem))) errs.push(`${at}: đề trùng`);
       stems.add(norm(q.stem));
