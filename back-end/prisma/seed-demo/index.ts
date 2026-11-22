@@ -1,8 +1,8 @@
 import prismaPkg from '@prisma/client';
 import type { Occupation } from '@prisma/client';
 import { SEED_DATA } from './data/index.ts';
-import { validateData, validateDb, validateSkillAbilities, MIN_VIDEO_SEC } from './validate.ts';
-import { mulberry32 } from './rng.ts';
+import { validateData, validateDb, validateShowcase, validateSkillAbilities, MIN_VIDEO_SEC } from './validate.ts';
+import { DAY, mulberry32 } from './rng.ts';
 import { writeUsers } from './users.ts';
 import { courseSlug, writeCourse, type SeededCourse } from './courses.ts';
 import { SKILL_ABILITIES } from './data/skill-abilities.ts';
@@ -12,6 +12,10 @@ import { renderThumbnail, r2 as makeR2, type R2 } from './thumbnails.ts';
 import { coverageReport, recomputeStats } from './stats.ts';
 import { cleanSeed } from './clean.ts';
 import { DEMO_PASSWORD } from './users.ts';
+import { v7 as uuidv7 } from 'uuid';
+import { thetaBank } from './assessment-sim.ts';
+import { SHOWCASE } from './data/analytics-demo.ts';
+import { planShowcase, planShowcaseLearners } from './showcase.ts';
 
 const { PrismaClient } = prismaPkg;
 const SEED = 20261102;
@@ -30,7 +34,7 @@ async function main() {
     await cleanSeed(prisma, r2, log);
     if (cmd === 'clean') return;
 
-    const errors = [...validateData(SEED_DATA), ...validateSkillAbilities(SEED_DATA), ...(await validateDb(prisma, SEED_DATA))];
+    const errors = [...validateData(SEED_DATA), ...validateShowcase(SEED_DATA), ...validateSkillAbilities(SEED_DATA), ...(await validateDb(prisma, SEED_DATA))];
     if (errors.length || !r2) throw new Error(`Dữ liệu seed chưa hợp lệ:\n- ${errors.join('\n- ')}`);
 
     const rng = mulberry32(SEED);
@@ -53,6 +57,13 @@ async function main() {
     const users = await writeUsers(prisma, SEED_DATA.users, { rng, now, instructorEmails, topicIdBySlug, occupationTopicIds });
     log(`✓ ${users.size} user`);
 
+    // Khoá trình diễn dashboard: xuất bản cố định ~240 ngày trước; học viên giả lập dùng luồng rng riêng để không xáo dữ liệu khác.
+    const showRng = mulberry32(SEED + 2);
+    const showPublishedAt = new Date(now.getTime() - SHOWCASE.publishedDaysAgo * DAY);
+    const learners = planShowcaseLearners(showRng, { now, publishedAt: showPublishedAt, count: SHOWCASE.learners, mix: SHOWCASE.personaMix });
+    const showUsers = await writeUsers(prisma, learners.map((l) => l.user), { rng: showRng, now, instructorEmails, topicIdBySlug, occupationTopicIds });
+    log(`✓ ${showUsers.size} học viên giả lập cho khoá trình diễn`);
+
     const ctx = {
       rng, now, adminId: admin.id, users, categoryBySlug, topicIdBySlug,
       videos: videos.map((v) => ({ id: v.id, durationSec: v.durationSec! })), videoCursor: { i: 0 },
@@ -64,7 +75,7 @@ async function main() {
       const key = `thumbnails/${teacher.id}/${crypto.randomUUID()}.png`;
       const url = await r2.upload(key, renderThumbnail({ ...c.thumbnail, rootSlug: categoryBySlug.get(c.categorySlug)!.rootSlug, seed: slug }));
       try {
-        seeded.push(await writeCourse(prisma, c, ctx, url, slug));
+        seeded.push(await writeCourse(prisma, c, ctx, url, slug, c.title === SHOWCASE.courseTitle ? showPublishedAt : undefined));
       } catch (e) {
         await r2.removeUrl(url).catch(() => {});
         throw new Error(`Ghi khoá "${c.title}" (${slug}) lỗi: ${String(e)}`);
@@ -73,12 +84,24 @@ async function main() {
     log(`✓ ${seeded.length} khoá`);
 
     const published = seeded.filter((c) => c.status === 'published').map((c) => ({ ...c, publishedAt: c.publishedAt! }));
+    // Lượt quiz / bài nộp khớp tiến độ (luồng rng riêng); khoá trình diễn dùng tham số câu có lỗi cài sẵn.
+    const simRng = mulberry32(SEED + 1);
+    const show = published.find((c) => c.title === SHOWCASE.courseTitle)!;
     const plan = planActivity({
       users: [...users.values()].map((u) => ({ id: u.id, createdAt: u.createdAt, topicIds: u.topicIds })),
       courses: published, sharePct: Number(share.value), now,
-    }, rng);
+    }, rng, { rng: simRng, id: uuidv7, theta: thetaBank(simRng), params: new Map([[show.id, SHOWCASE.questions]]) });
     await writeActivity(prisma, plan);
-    log(`✓ ${plan.enrollments.length} ghi danh, ${plan.orders.length} đơn, ${plan.progress.length} item đã học, ${plan.reviews.length} đánh giá`);
+    log(`✓ ${plan.enrollments.length} ghi danh, ${plan.orders.length} đơn, ${plan.progress.length} item đã học, ${plan.reviews.length} đánh giá, ${plan.attempts.length} lượt quiz, ${plan.submissions.length} bài nộp`);
+
+    const showPlan = planShowcase(showRng, {
+      now,
+      course: { id: show.id, items: show.items, quiz: show.quiz!, exercise: show.exercise! },
+      learners: learners.map((l) => ({ ...l, userId: showUsers.get(l.user.email)!.id })),
+      params: SHOWCASE.questions, bugs: SHOWCASE.bugs, exerciseB: SHOWCASE.exerciseB, gainRating: SHOWCASE.gainRating, id: uuidv7,
+    });
+    await writeActivity(prisma, { ...showPlan, orders: [], orderItems: [], reviews: [] });
+    log(`✓ Khoá trình diễn: ${showPlan.enrollments.length} ghi danh, ${showPlan.attempts.length} lượt quiz, ${showPlan.submissions.length} bài nộp`);
 
     const skillQs = await prisma.skillQuestion.findMany({
       where: { archivedAt: null }, select: { id: true, topicId: true, rating: true, answerCount: true, correctCount: true },
@@ -87,13 +110,17 @@ async function main() {
     for (const q of skillQs) byTopic.set(q.topicId, [...(byTopic.get(q.topicId) ?? []), q]);
     const skillPlan = planSkillHistory({
       now,
-      learners: Object.entries(SKILL_ABILITIES).flatMap(([email, abilities]) =>
-        Object.entries(abilities).map(([slug, ability]) => ({ userId: users.get(email)!.id, topicId: topicIdBySlug.get(slug)!, ability })),
-      ),
+      learners: [
+        ...Object.entries(SKILL_ABILITIES).flatMap(([email, abilities]) =>
+          Object.entries(abilities).map(([slug, ability]) => ({ userId: users.get(email)!.id, topicId: topicIdBySlug.get(slug)!, ability })),
+        ),
+        // Khoá trình diễn: lịch đo trước / sau ghi danh → "Năng lực lớp" có số liệu thay đổi trong thời gian học.
+        ...showPlan.skill.map((s) => ({ userId: s.userId, topicId: topicIdBySlug.get('javascript')!, ability: s.schedule[0].ability, schedule: s.schedule })),
+      ],
       questions: byTopic,
     }, rng);
     await writeSkillHistory(prisma, skillPlan);
-    log(`✓ ${skillPlan.attempts.length} lượt đánh giá kỹ năng của ${Object.keys(SKILL_ABILITIES).length} học viên`);
+    log(`✓ ${skillPlan.attempts.length} lượt đánh giá kỹ năng (${Object.keys(SKILL_ABILITIES).length} học viên mẫu + ${showPlan.skill.length} học viên khoá trình diễn)`);
 
     await recomputeStats(prisma);
     const cov = await coverageReport(prisma);
@@ -112,6 +139,7 @@ async function main() {
     log(`Khoá theo trạng thái: ${JSON.stringify(byStatus)}`);
     log(`Mật khẩu chung: ${DEMO_PASSWORD}`);
     log(`Thử đăng nhập: lananh.nguyen@skillpath.test (frontend), thao.nguyen@skillpath.test (data), phuc.kieu@skillpath.test (QA)`);
+    log('Dashboard giảng viên: huy.do@skillpath.test → Phân tích, khoá "JavaScript nền tảng cho người mới"');
   } finally {
     await prisma.$disconnect();
   }

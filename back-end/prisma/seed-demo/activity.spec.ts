@@ -69,3 +69,35 @@ describe('progressPct', () => {
     expect(progressPct(0, 0)).toBe(0);
   });
 });
+
+describe('planActivity + mô phỏng lượt làm', () => {
+  const quiz = {
+    id: 'quiz', itemId: 'quiz-item', passScorePct: 70,
+    questions: [0, 1, 2].map((i) => ({ id: `q${i}`, type: 'single_choice' as const, points: 1, options: [{ id: `q${i}a`, isCorrect: true }, { id: `q${i}b`, isCorrect: false }] })),
+  };
+  const exercise = { id: 'ex', itemId: 'ex-item', language: 'javascript', starter: 'S', solution: 'X', tests: [0, 1].map((p) => ({ id: `t${p}`, position: p, points: 10 })) };
+  const withSim = [{ ...course('c9', 0, 't1'), items: [...items(3), { id: 'quiz-item', durationSec: 0 }, { id: 'ex-item', durationSec: 0 }], quiz, exercise }];
+  let n = 0;
+  const plan = planActivity({ users, courses: withSim, sharePct: 70, now }, mulberry32(5), { rng: mulberry32(6), id: () => `id${++n}`, theta: () => 0 });
+  const userOf = (enrollmentId: string) => plan.enrollments.find((e) => e.id === enrollmentId)!.userId;
+
+  it('quiz hoàn thành ⇔ có lượt đạt đúng lúc hoàn thành, các lượt trước đều trượt', () => {
+    const done = plan.progress.filter((p) => p.itemId === 'quiz-item');
+    expect(done.length).toBeGreaterThan(0);
+    for (const p of done) {
+      const mine = plan.attempts.filter((a) => a.userId === userOf(p.enrollmentId)).sort((a, b) => a.attemptNo - b.attemptNo);
+      expect(mine.at(-1)).toMatchObject({ passed: true, submittedAt: p.completedAt });
+      expect(mine.slice(0, -1).every((a) => !a.passed)).toBe(true);
+    }
+    const completed = new Set(done.map((p) => userOf(p.enrollmentId)));
+    expect(plan.attempts.every((a) => completed.has(a.userId))).toBe(true);
+  });
+  it('bài code hoàn thành ⇔ bài nộp cuối Accepted đúng lúc hoàn thành', () => {
+    for (const p of plan.progress.filter((x) => x.itemId === 'ex-item')) {
+      expect(plan.submissions.filter((s) => s.userId === userOf(p.enrollmentId)).at(-1)).toMatchObject({ status: 'accepted', submittedAt: p.completedAt });
+    }
+  });
+  it('không truyền sim thì không sinh lượt làm (giữ hành vi cũ)', () => {
+    expect(planActivity({ users, courses: withSim, sharePct: 70, now }, mulberry32(5))).toMatchObject({ attempts: [], submissions: [] });
+  });
+});

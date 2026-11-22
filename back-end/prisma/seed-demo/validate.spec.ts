@@ -1,4 +1,4 @@
-import { validateData, validateCoverage } from './validate.ts';
+import { validateData, validateCoverage, validateShowcase } from './validate.ts';
 import type { SeedCourse, SeedData, SeedUser } from './data/types.ts';
 import { SEED_DATA } from './data/index.ts';
 import { REVIEW_TEMPLATES, REPLY_TEMPLATES } from './data/reviews.ts';
@@ -60,6 +60,7 @@ const OCCUPATION_TOPICS = `langchain, retrieval-augmented-generation, large-lang
 describe('SEED_DATA thật', () => {
   it('có 67 topic nghề', () => expect(OCCUPATION_TOPICS).toHaveLength(67));
   it('hợp lệ', () => expect(validateData(SEED_DATA)).toEqual([]));
+  it('khoá trình diễn hợp lệ', () => expect(validateShowcase(SEED_DATA)).toEqual([]));
   it('phủ đủ topic nghề', () => expect(validateCoverage(SEED_DATA, OCCUPATION_TOPICS)).toEqual([]));
   it('đủ 49 khoá, 45 published, 14 khoá tiếng Anh', () => {
     expect(SEED_DATA.courses).toHaveLength(49);

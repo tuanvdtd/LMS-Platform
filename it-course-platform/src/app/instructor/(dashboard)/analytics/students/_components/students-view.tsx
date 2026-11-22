@@ -1,181 +1,224 @@
 'use client';
 
+import { AlertTriangle, BellRing, Check, Users } from 'lucide-react';
 import { useState } from 'react';
-import { Mail } from 'lucide-react';
-import { StatCard, Btn } from '@/components/shared/product-ui';
+import { ClientPagination } from '@/components/shared/client-pagination';
+import { StatCard } from '@/components/shared/product-ui';
+import { AnalyticsStudentsBody, AnalyticsStudentsSkeleton } from '@/components/skeletons/analytics-students-skeleton';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { fmtDate, fmtNum, fmtPct, lastActiveText, reasonText, RISK_META } from '@/lib/analytics';
+import { getStudents } from '@/lib/api/analytics';
+import { cn } from '@/lib/utils';
+import type { StudentFilter, StudentRow } from '@/types/analytics';
+import { AnalyticsEmpty } from '../../_components/analytics-shell';
+import { CourseScopedPage } from '../../_components/course-select';
+import { RiskBadge } from '../../_components/status-badge';
+import { useKeyed } from '../../_components/use-keyed';
+import { NudgeDialog } from './nudge-dialog';
+import { StudentSheet } from './student-sheet';
 
-const ALL_STUDENTS = [
-  { id: 's-1', name: 'Hoàng Văn Nam', progress: 12, score: 45, lastActive: '14 ngày trước', risk: 'high' },
-  { id: 's-2', name: 'Nguyễn Thị Mai', progress: 35, score: 52, lastActive: '8 ngày trước', risk: 'high' },
-  { id: 's-3', name: 'Phạm Quốc Hùng', progress: 58, score: 61, lastActive: '5 ngày trước', risk: 'medium' },
-  { id: 's-4', name: 'Lê Thu Hằng', progress: 22, score: 38, lastActive: '10 ngày trước', risk: 'high' },
-  { id: 's-5', name: 'Trần Đức Thắng', progress: 45, score: 67, lastActive: '6 ngày trước', risk: 'medium' },
-  { id: 's-6', name: 'Bùi Minh Châu', progress: 89, score: 88, lastActive: '1 ngày trước', risk: 'low' },
-  { id: 's-7', name: 'Đặng Thị Linh', progress: 76, score: 82, lastActive: '2 ngày trước', risk: 'low' },
-  { id: 's-8', name: 'Vũ Đình Toàn', progress: 94, score: 91, lastActive: 'Hôm nay', risk: 'low' },
-];
+const FILTERS: StudentFilter[] = ['all', 'high', 'watch', 'ok', 'new', 'done'];
+
+// key = "<courseId>|<mức>|<trang>": loader cấp module (ổn định) để useKeyed tải đúng trang / bộ lọc.
+function loadStudents(key: string) {
+  const [courseId, level, page] = key.split('|');
+  return getStudents(courseId, { level: level as StudentFilter, page: Number(page) });
+}
 
 export function StudentsView() {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
-  const [emailOpen, setEmailOpen] = useState(false);
+  return (
+    <CourseScopedPage
+      title="Học viên"
+      description="Ai đang tụt lại và vì sao. Mức nguy cơ dựa trên số ngày chưa vào học, tiến độ so với bạn cùng lứa ghi danh và điểm quiz lượt đầu."
+      skeleton={<AnalyticsStudentsSkeleton />}
+    >
+      {(course) => <Students key={course.id} courseId={course.id} />}
+    </CourseScopedPage>
+  );
+}
 
-  const filtered = ALL_STUDENTS.filter((s) => filter === 'all' || s.risk === filter);
+function Students({ courseId }: { courseId: string }) {
+  const [filter, setFilter] = useState<StudentFilter>('all');
+  const [page, setPage] = useState(1);
+  const { data, error, loading, reload } = useKeyed(`${courseId}|${filter}|${page}`, loadStudents, { keepPrevious: true });
+  // Giữ cả dòng (không chỉ id) để nhắc được học viên đã chọn ở các trang khác.
+  const [picked, setPicked] = useState<Map<string, StudentRow>>(() => new Map());
+  const [nudging, setNudging] = useState<StudentRow[] | null>(null);
+  const [viewing, setViewing] = useState<StudentRow | null>(null);
+  if (error) return <AnalyticsEmpty icon={AlertTriangle} title="Không tải được danh sách học viên">Tải lại trang để thử lại.</AnalyticsEmpty>;
+  if (!data) return <AnalyticsStudentsBody />;
 
-  function toggleSelect(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  const { summary, counts, students: rows, total, pageSize } = data;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const nudgeable = (s: StudentRow) => s.risk.level !== 'done';
+  const pageRows = rows.filter(nudgeable);
+  const allOnPage = pageRows.length > 0 && pageRows.every((s) => picked.has(s.userId));
+  const setMany = (list: StudentRow[], on: boolean) =>
+    setPicked((prev) => {
+      const next = new Map(prev);
+      for (const s of list) {
+        if (on) next.set(s.userId, s);
+        else next.delete(s.userId);
+      }
       return next;
     });
-  }
+  const from = total ? (data.page - 1) * pageSize + 1 : 0;
+  const to = Math.min(total, data.page * pageSize);
 
   return (
-    <div className="flex-1 p-6 overflow-y-auto space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-extrabold" style={{ color: 'var(--foreground)' }}>
-          Phân tích Học viên
-        </h1>
-        {selected.size > 0 && (
-          <Btn variant="primary" onClick={() => setEmailOpen(true)}>
-            <Mail size={14} /> Gửi email ({selected.size} học viên)
-          </Btn>
-        )}
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard label="Đã ghi danh" value={fmtNum(summary.enrolled)} />
+        <StatCard label="Hoạt động 7 ngày qua" value={fmtNum(summary.active7d)} />
+        <StatCard label="Đã hoàn thành" value={fmtNum(summary.completed)} />
+        <StatCard label="Nguy cơ cao" value={fmtNum(summary.high)} sub="Nên liên hệ sớm" />
+        <StatCard label="Cần theo dõi" value={fmtNum(summary.watch)} />
       </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Tổng học viên" value="284" change={12.5} />
-        <StatCard label="Hoạt động (30d)" value="198" change={5.3} />
-        <StatCard label="Nguy cơ bỏ học" value="5" sub="Cần chú ý" />
-        <StatCard label="Điểm TB toàn lớp" value="67.4%" change={2.1} />
+      <div className="flex flex-wrap items-center gap-2">
+        <ToggleGroup
+          variant="outline"
+          size="sm"
+          className="flex-wrap"
+          aria-label="Lọc theo mức nguy cơ"
+          value={[filter]}
+          onValueChange={(v) => {
+            const f = v[0] as StudentFilter | undefined;
+            if (!f) return;
+            setFilter(f);
+            setPage(1);
+          }}
+        >
+          {FILTERS.map((f) => (
+            <ToggleGroupItem key={f} value={f}>
+              {f === 'all' ? 'Tất cả' : RISK_META[f].label} ({counts[f]})
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <div className="ml-auto flex items-center gap-2">
+          {picked.size > 0 && (
+            <>
+              <span className="text-sm text-muted-foreground">Đã chọn {picked.size}</span>
+              <Button size="sm" variant="ghost" onClick={() => setPicked(new Map())}>
+                Bỏ chọn
+              </Button>
+            </>
+          )}
+          <Button size="sm" disabled={!picked.size} onClick={() => setNudging([...picked.values()])}>
+            <BellRing data-icon="inline-start" />
+            Nhắc học viên
+          </Button>
+        </div>
       </div>
-
-      {/* Filter tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {([['all', 'Tất cả'], ['high', 'Nguy cơ cao'], ['medium', 'Theo dõi'], ['low', 'Tốt']] as const).map(([val, label]) => (
-          <button
-            key={val}
-            onClick={() => setFilter(val)}
-            className="text-sm px-4 py-1.5 rounded-full border transition-colors"
-            style={{
-              background: filter === val ? 'var(--primary)' : 'var(--card)',
-              color: filter === val ? '#fff' : 'var(--foreground)',
-              borderColor: filter === val ? 'var(--primary)' : 'var(--border)',
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className="border rounded-2xl overflow-hidden" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b" style={{ background: 'var(--secondary)', borderColor: 'var(--border)' }}>
-              <th className="w-10 px-4 py-3">
-                <input
-                  type="checkbox"
-                  onChange={(e) => setSelected(e.target.checked ? new Set(filtered.map((s) => s.id)) : new Set())}
-                  checked={selected.size === filtered.length && filtered.length > 0}
-                />
-              </th>
-              {['Học viên', 'Tiến độ', 'Điểm TB', 'Hoạt động cuối', 'Rủi ro', ''].map((h) => (
-                <th key={h} className="text-left px-3 py-3 font-semibold" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {filtered.map((s) => (
-              <tr key={s.id} className="hover:bg-muted transition-colors">
-                <td className="px-4 py-3">
-                  <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleSelect(s.id)} />
-                </td>
-                <td className="px-3 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center font-bold text-xs shrink-0" style={{ color: 'var(--foreground)' }}>
-                      {s.name.split(' ').pop()?.charAt(0)}
-                    </div>
-                    <span className="font-medium" style={{ color: 'var(--foreground)' }}>{s.name}</span>
-                  </div>
-                </td>
-                <td className="px-3 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--secondary)' }}>
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${s.progress}%`, background: s.progress < 30 ? 'var(--skill-weak)' : s.progress < 70 ? 'var(--skill-mid)' : 'var(--skill-strong)' }}
+      {total === 0 ? (
+        <AnalyticsEmpty icon={Users} title="Không có học viên ở mức này" />
+      ) : (
+        <div className="flex flex-col gap-3">
+          <div className={cn('overflow-x-auto rounded-xl border bg-card transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox checked={allOnPage} onCheckedChange={(v) => setMany(pageRows, v === true)} aria-label="Chọn tất cả học viên ở trang này" />
+                  </TableHead>
+                  <TableHead>Học viên</TableHead>
+                  <TableHead className="min-w-36">Tiến độ</TableHead>
+                  <TableHead className="whitespace-nowrap">Hoạt động cuối</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">Quiz lượt đầu</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">Bài code</TableHead>
+                  <TableHead className="min-w-64">Mức nguy cơ</TableHead>
+                  <TableHead className="whitespace-nowrap">Nhắc gần nhất</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((s) => (
+                  <TableRow key={s.userId}>
+                    <TableCell>
+                      <Checkbox
+                        checked={picked.has(s.userId)}
+                        disabled={!nudgeable(s)}
+                        onCheckedChange={(v) => setMany([s], v === true)}
+                        aria-label={`Chọn ${s.name}`}
                       />
-                    </div>
-                    <span className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>{s.progress}%</span>
-                  </div>
-                </td>
-                <td className="px-3 py-3 font-mono font-bold" style={{ color: s.score < 50 ? 'var(--skill-weak)' : s.score < 70 ? 'var(--skill-mid)' : 'var(--skill-strong)' }}>
-                  {s.score}%
-                </td>
-                <td className="px-3 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{s.lastActive}</td>
-                <td className="px-3 py-3">
-                  <span
-                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={{
-                      background: s.risk === 'high' ? 'var(--danger-soft)' : s.risk === 'medium' ? 'var(--warning-soft)' : 'var(--success-soft)',
-                      color: s.risk === 'high' ? 'var(--danger)' : s.risk === 'medium' ? 'var(--warning)' : 'var(--success)',
-                    }}
-                  >
-                    {s.risk === 'high' ? 'Nguy cơ cao' : s.risk === 'medium' ? 'Theo dõi' : 'Tốt'}
-                  </span>
-                </td>
-                <td className="px-3 py-3">
-                  <Button
-                    variant="link"
-                    size="xs"
-                    onClick={() => { setSelected(new Set([s.id])); setEmailOpen(true); }}
-                    className="h-auto px-0 font-normal"
-                  >
-                    Nhắn tin
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Email dialog */}
-      {emailOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="rounded-2xl p-6 w-full max-w-lg space-y-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <h3 className="font-bold text-lg" style={{ color: 'var(--foreground)' }}>
-              Gửi email nhắc nhở ({selected.size} học viên)
-            </h3>
-            <div>
-              <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--muted-foreground)' }}>Mẫu email</label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                style={{ borderColor: 'var(--border)', background: 'var(--background)', color: 'var(--foreground)' }}
-              >
-                <option>Nhắc nhở học tập — thân thiện</option>
-                <option>Động viên — học viên tiến chậm</option>
-                <option>Cung cấp tài nguyên bổ sung</option>
-              </select>
-            </div>
-            <textarea
-              rows={6}
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-              style={{ borderColor: 'var(--border)', background: 'var(--background)', color: 'var(--foreground)' }}
-              defaultValue={`Xin chào [Tên học viên],\n\nMình nhận thấy bạn đã không vào học trong một thời gian. Đừng bỏ cuộc nhé! Khoá học vẫn đang chờ bạn.\n\nNếu có khó khăn gì, hãy để lại câu hỏi ở phần Q&A — mình luôn sẵn sàng hỗ trợ.\n\nChúc bạn học tập hiệu quả!`}
-            />
-            <div className="flex gap-2 justify-end">
-              <Btn variant="secondary" onClick={() => setEmailOpen(false)}>Huỷ</Btn>
-              <Btn variant="primary" onClick={() => setEmailOpen(false)}>
-                <Mail size={14} /> Gửi email
-              </Btn>
-            </div>
+                    </TableCell>
+                    <TableCell>
+                      <button type="button" onClick={() => setViewing(s)} className="text-left font-medium text-foreground hover:text-primary hover:underline">
+                        {s.name}
+                      </button>
+                      <p className="whitespace-nowrap text-xs text-muted-foreground">Ghi danh {fmtDate(s.enrolledAt)}</p>
+                    </TableCell>
+                    <TableCell>
+                      <span className="flex items-center gap-2">
+                        <Progress value={s.progressPct} className="flex-1" aria-label={`Tiến độ ${fmtPct(s.progressPct)}`} />
+                        <span className="w-12 text-right font-mono text-xs">{fmtPct(s.progressPct)}</span>
+                      </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm">{lastActiveText(s.lastActiveAt)}</TableCell>
+                    <TableCell className="text-right font-mono">{fmtPct(s.quiz.avgFirstPct)}</TableCell>
+                    <TableCell className="text-right font-mono">{s.code.total ? `${s.code.passed}/${s.code.total}` : '—'}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <RiskBadge level={s.risk.level} />
+                        {s.risk.reasons.length > 0 && (
+                          <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+                            {s.risk.reasons.map((r) => (
+                              <li key={r.code}>{reasonText(r)}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {s.lastNudge ? (
+                        <span className="flex flex-col gap-0.5">
+                          <span>{fmtDate(s.lastNudge.at)}</span>
+                          {s.lastNudge.returned ? (
+                            <span className="flex items-center gap-1 text-xs text-success">
+                              <Check className="size-3.5" aria-hidden />
+                              Đã quay lại học
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Chưa quay lại</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Hiển thị <span className="font-mono text-foreground">{from}–{to}</span> / {fmtNum(total)} học viên
+            </p>
+            {pageCount > 1 && <ClientPagination page={data.page} pageCount={pageCount} onPageChange={setPage} />}
           </div>
         </div>
       )}
+      <StudentSheet
+        courseId={courseId}
+        student={viewing}
+        onClose={() => setViewing(null)}
+        onNudge={(s) => {
+          setViewing(null);
+          setNudging([s]);
+        }}
+      />
+      <NudgeDialog
+        courseId={courseId}
+        students={nudging}
+        onClose={() => setNudging(null)}
+        onSent={() => {
+          setPicked(new Map());
+          reload();
+        }}
+      />
     </div>
   );
 }

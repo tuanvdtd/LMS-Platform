@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, BarChart2, BookMarked, BookOpen, ChevronDown, ChevronLeft, ChevronRight, DollarSign, FileCheck, FolderOpen, LayoutDashboard, MessageCircle, MessagesSquare, PenLine, ShieldCheck, User, Users } from 'lucide-react';
+import { Activity, BarChart2, BookMarked, BookOpen, ChevronDown, ChevronLeft, ChevronRight, DollarSign, FileCheck, FolderOpen, Gauge, LayoutDashboard, MessageCircle, MessagesSquare, PenLine, ShieldCheck, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const INSTRUCTOR_NAV = [
@@ -21,6 +21,7 @@ export const INSTRUCTOR_NAV = [
       { icon: DollarSign, label: 'Doanh thu', to: '/instructor/analytics/revenue' },
       { icon: Activity, label: 'Hành vi học', to: '/instructor/analytics/engagement' },
       { icon: FileCheck, label: 'Chất lượng bài kiểm', to: '/instructor/analytics/assessments' },
+      { icon: Gauge, label: 'Năng lực lớp', to: '/instructor/analytics/skills' },
       { icon: Users, label: 'Học viên', to: '/instructor/analytics/students' },
     ],
   },

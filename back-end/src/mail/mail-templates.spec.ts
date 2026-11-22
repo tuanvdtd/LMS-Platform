@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  courseNudgeMail,
   courseReviewedMail,
   instructorApplicationReviewedMail,
   resetPasswordMail,
@@ -42,5 +43,19 @@ describe('mail templates', () => {
     expect(
       instructorApplicationReviewedMail(FE, true, null).html,
     ).not.toContain('Nhận xét của người duyệt');
+  });
+
+  it('mail nhắc học: escape lời nhắn và tên, link về trang học của khoá', () => {
+    const { subject, html } = courseNudgeMail(FE, {
+      instructorName: 'Cô <b>Lan</b>',
+      courseTitle: 'JS & DOM',
+      courseSlug: 'js-dom',
+      kind: 'reminder',
+      message: 'Dòng 1 <i>\nDòng 2',
+    });
+    expect(subject).toBe('Khoá "JS & DOM" đang chờ bạn quay lại');
+    expect(html).toContain('Dòng 1 &lt;i&gt;<br>Dòng 2');
+    expect(html).toContain('Cô &lt;b&gt;Lan&lt;/b&gt;');
+    expect(html).toContain('href="https://fe.test/learn/js-dom"');
   });
 });

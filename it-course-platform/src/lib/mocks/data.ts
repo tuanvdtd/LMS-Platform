@@ -3,7 +3,6 @@ import type {
   Instructor,
   SkillTag,
   Student,
-  Quiz,
   RecommendedCourse,
 } from '@/types';
 
@@ -446,103 +445,6 @@ export const recommendations: RecommendedCourse[] = [
   },
 ];
 
-// ─── Quiz ─────────────────────────────────────────────────────────────────────
-export const demoQuiz: Quiz = {
-  id: 'q-2',
-  title: 'Kiểm tra React Hooks',
-  courseId: 'c-1',
-  timeLimit: 1800,
-  passingScore: 70,
-  maxAttempts: 3,
-  skills: [
-    { id: 'react-hooks', name: 'React Hooks', track: 'frontend' },
-    { id: 'react-basics', name: 'React Cơ bản', track: 'frontend' },
-  ],
-  questions: [
-    {
-      id: 'qq-1',
-      content: 'Hook nào được dùng để quản lý side effects trong React?',
-      type: 'single',
-      options: [
-        { id: 'a', text: 'useState', isCorrect: false },
-        { id: 'b', text: 'useEffect', isCorrect: true },
-        { id: 'c', text: 'useCallback', isCorrect: false },
-        { id: 'd', text: 'useRef', isCorrect: false },
-      ],
-      explanation: 'useEffect được dùng để thực hiện side effects như gọi API, subscribe events, hay thay đổi DOM.',
-      skills: [{ id: 'react-hooks', name: 'React Hooks', track: 'frontend' }],
-      difficultySet: 2,
-      difficultyActual: 0.78,
-      discriminationIndex: 0.42,
-    },
-    {
-      id: 'qq-2',
-      content:
-        'Đoạn code sau có vấn đề gì?\n```javascript\nconst [count, setCount] = useState(0);\nuseEffect(() => {\n  document.title = `Count: ${count}`;\n});\n```',
-      type: 'single',
-      options: [
-        { id: 'a', text: 'Không có dependency array → chạy sau mỗi render', isCorrect: true },
-        { id: 'b', text: 'useState không nhận giá trị ban đầu là số', isCorrect: false },
-        { id: 'c', text: 'Không thể dùng template literal trong useEffect', isCorrect: false },
-        { id: 'd', text: 'document.title không thể được thay đổi bằng JavaScript', isCorrect: false },
-      ],
-      explanation: 'Thiếu dependency array [] sẽ khiến useEffect chạy sau mỗi lần render, không chỉ khi count thay đổi.',
-      skills: [{ id: 'react-hooks', name: 'React Hooks', track: 'frontend' }],
-      difficultySet: 3,
-      difficultyActual: 0.52,
-      discriminationIndex: 0.61,
-    },
-    {
-      id: 'qq-3',
-      content: 'Khi nào nên dùng useCallback?',
-      type: 'multiple',
-      options: [
-        { id: 'a', text: 'Khi truyền callback function vào component con đã được React.memo', isCorrect: true },
-        { id: 'b', text: 'Cho mọi function trong component để tối ưu hiệu suất', isCorrect: false },
-        { id: 'c', text: 'Khi function được dùng làm dependency trong useEffect', isCorrect: true },
-        { id: 'd', text: 'Khi muốn cache giá trị tính toán phức tạp', isCorrect: false },
-      ],
-      explanation: 'useCallback memo hoá function reference, hữu ích khi truyền vào memoized children hoặc dùng làm dependency.',
-      skills: [{ id: 'react-hooks', name: 'React Hooks', track: 'frontend' }],
-      difficultySet: 4,
-      difficultyActual: 0.38,
-      discriminationIndex: 0.55,
-    },
-    {
-      id: 'qq-4',
-      content: 'Đâu là cách đúng để reset state về giá trị ban đầu khi prop thay đổi?',
-      type: 'single',
-      options: [
-        { id: 'a', text: 'Dùng useEffect với prop trong dependency', isCorrect: false },
-        { id: 'b', text: 'Truyền key prop để unmount/remount component', isCorrect: true },
-        { id: 'c', text: 'Gọi setState trong render function', isCorrect: false },
-        { id: 'd', text: 'Dùng useLayoutEffect', isCorrect: false },
-      ],
-      explanation: 'Thay đổi key prop buộc React unmount và remount component, tự động reset tất cả state về giá trị ban đầu.',
-      skills: [{ id: 'react-hooks', name: 'React Hooks', track: 'frontend' }],
-      difficultySet: 4,
-      difficultyActual: 0.41,
-      discriminationIndex: 0.58,
-    },
-    {
-      id: 'qq-5',
-      content: 'useRef khác useState ở điểm nào quan trọng nhất?',
-      type: 'single',
-      options: [
-        { id: 'a', text: 'useRef chỉ dùng để tham chiếu DOM elements', isCorrect: false },
-        { id: 'b', text: 'Thay đổi ref.current không trigger re-render', isCorrect: true },
-        { id: 'c', text: 'useRef không thể lưu trữ giá trị nguyên thủy', isCorrect: false },
-        { id: 'd', text: 'useRef reset giá trị sau mỗi render', isCorrect: false },
-      ],
-      explanation: 'ref.current là một mutable object, thay đổi nó không gây re-render — khác hoàn toàn setState.',
-      skills: [{ id: 'react-hooks', name: 'React Hooks', track: 'frontend' }],
-      difficultySet: 3,
-      difficultyActual: 0.61,
-      discriminationIndex: 0.48,
-    },
-  ],
-};
-
 // ─── Instructor Analytics Mock Data ──────────────────────────────────────────
 export const revenueData = Array.from({ length: 30 }, (_, i) => {
   const date = new Date(2025, 8, 1 + i);
@@ -589,14 +491,6 @@ export const atRiskStudents = [
   { id: 's-5', name: 'Trần Đức Thắng', progress: 45, lastActive: '6 ngày trước', risk: 'medium', avgScore: 67, courseId: 'c-2' },
 ];
 
-export const skillHeatmapData = [
-  { skill: 'React Hooks', quiz1: 35, quiz2: 42, quiz3: 38 },
-  { skill: 'useEffect', quiz1: 55, quiz2: 61, quiz3: 58 },
-  { skill: 'State Mgmt', quiz1: 40, quiz2: 35, quiz3: 45 },
-  { skill: 'Custom Hooks', quiz1: 28, quiz2: 32, quiz3: 30 },
-  { skill: 'Performance', quiz1: 45, quiz2: 50, quiz3: 48 },
-];
-
 // ─── Mock certificates ────────────────────────────────────────────────────────
 export const demoCertificates = [
   {
@@ -614,11 +508,6 @@ export const demoCertificates = [
 // ─── Data access functions ────────────────────────────────────────────────────
 export function getCourse(id: string): Course | undefined {
   return courses.find((c) => c.id === id || c.slug === id);
-}
-
-export function getQuiz(id: string): Quiz | undefined {
-  if (id === 'q-2') return demoQuiz;
-  return undefined;
 }
 
 export function searchCourses(query: string, track?: string): Course[] {
