@@ -294,3 +294,19 @@ export function instructorApplicationReviewedMail(
         cta: ['Sửa đơn và gửi lại', `${feUrl}/instructor/verification`],
       });
 }
+
+// Giảng viên nhắc học viên từ dashboard. Lời nhắn do giảng viên nhập → escape, giữ xuống dòng.
+export function courseNudgeMail(
+  feUrl: string,
+  a: { instructorName: string; courseTitle: string; courseSlug: string; kind: 'reminder' | 'encourage'; message: string },
+) {
+  const reminder = a.kind === 'reminder';
+  return render({
+    subject: reminder ? `Khoá "${a.courseTitle}" đang chờ bạn quay lại` : `Lời động viên từ giảng viên khoá "${a.courseTitle}"`,
+    preheader: `${a.instructorName} gửi bạn một lời nhắn về khoá học.`,
+    heading: reminder ? 'Giảng viên nhắc bạn quay lại học' : 'Giảng viên gửi bạn lời động viên',
+    body: `${escapeHtml(a.instructorName)} gửi bạn lời nhắn về khoá <b style="color:${C.ink}">${escapeHtml(a.courseTitle)}</b>:<br><br>${escapeHtml(a.message).replace(/\n/g, '<br>')}`,
+    cta: ['Tiếp tục học', `${feUrl}/learn/${encodeURIComponent(a.courseSlug)}`],
+    note: 'Bạn nhận email này vì đang học khoá này trên Aolumi.',
+  });
+}

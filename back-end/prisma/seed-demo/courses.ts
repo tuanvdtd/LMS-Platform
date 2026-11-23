@@ -2,6 +2,7 @@ import { v7 as uuidv7 } from 'uuid';
 import type { PrismaClient } from '@prisma/client';
 import { slugify } from '../../src/instructor-courses/slugify.ts';
 import type { CourseLevel, Lang, SeedCourse, SeedStatus } from './data/types.ts';
+import type { SimExercise, SimQuiz } from './assessment-sim.ts';
 import type { SeededUser } from './users.ts';
 import { DAY, HOUR, addMs, between, int, maxDate, slugSuffix, type Rng } from './rng.ts';
 
@@ -39,23 +40,34 @@ export type CourseCtx = {
 
 export type SeededCourse = {
   id: string; instructorId: string; status: SeedStatus; publishedAt: Date | null; priceAmount: number;
-  level: CourseLevel; language: Lang; label: string; lectureTitles: string[]; topicIds: string[];
+  level: CourseLevel; language: Lang; label: string; lectureTitles: string[]; topicIds: string[]; title: string;
   // Item published theo thứ tự chương trình: học viên đi qua đúng thứ tự này.
   items: { id: string; durationSec: number }[];
+  // Quiz / bài code đã xuất bản kèm id thật để seed mô phỏng lượt làm; khoá nháp chưa xuất bản chương cuối → null.
+  quiz: (SimQuiz & { itemId: string }) | null;
+  exercise: (SimExercise & { itemId: string }) | null;
 };
 
 export function courseSlug(rng: Rng, title: string) {
   return `${slugify(title)}-${slugSuffix(rng)}`;
 }
 
-export async function writeCourse(prisma: PrismaClient, c: SeedCourse, ctx: CourseCtx, thumbnailUrl: string, slug: string): Promise<SeededCourse> {
+export async function writeCourse(
+  prisma: PrismaClient, c: SeedCourse, ctx: CourseCtx, thumbnailUrl: string, slug: string, publishedAt?: Date,
+): Promise<SeededCourse> {
   const teacher = ctx.users.get(c.instructorEmail)!;
-  const d = planCourseDates(ctx.rng, ctx.now, teacher, c.status, c.priceAmount > 0);
+  const planned = planCourseDates(ctx.rng, ctx.now, teacher, c.status, c.priceAmount > 0);
+  // Khoá trình diễn cần mốc xuất bản cố định (học viên giả lập ghi danh rải từ đó); vẫn gọi planCourseDates để giữ chuỗi rng.
+  const d: CourseDates = publishedAt
+    ? { createdAt: addMs(publishedAt, -30 * DAY), submittedAt: addMs(publishedAt, -3 * DAY), reviewedAt: addMs(publishedAt, -HOUR), publishedAt }
+    : planned;
   const courseId = uuidv7();
   const topicIds = c.topics.map((t) => ctx.topicIdBySlug.get(t.slug)!);
   const lectureIds = c.sections.flatMap((s) => s.lectures.map(() => uuidv7()));
   const lastSection = c.sections.length - 1;
   const items: SeededCourse['items'] = [];
+  let quiz: SeededCourse['quiz'] = null;
+  let exercise: SeededCourse['exercise'] = null;
 
   await prisma.$transaction(async (tx) => {
     await tx.course.create({
@@ -92,12 +104,18 @@ export async function writeCourse(prisma: PrismaClient, c: SeedCourse, ctx: Cour
       await tx.curriculumItem.create({ data: { id: quizItemId, sectionId, courseId, type: 'quiz', title: c.quiz.title, position: pos++, isPublished, createdAt: d.createdAt } });
       const quizId = uuidv7();
       await tx.quiz.create({ data: { id: quizId, itemId: quizItemId, courseId, description: c.quiz.description, passScorePct: 70 } });
+      const questions: SimQuiz['questions'] = [];
       for (const [qi, q] of c.quiz.questions.entries()) {
         const questionId = uuidv7();
         await tx.question.create({ data: { id: questionId, quizId, position: qi, type: q.type, stem: q.stem, relatedItemId: lectureIds[q.relatedLecture] } });
-        await tx.questionOption.createMany({ data: q.options.map((o, oi) => ({ questionId, content: o.content, isCorrect: !!o.correct, explanation: o.explanation, position: oi })) });
+        const options = q.options.map((o, oi) => ({ id: uuidv7(), questionId, content: o.content, isCorrect: !!o.correct, explanation: o.explanation, position: oi }));
+        await tx.questionOption.createMany({ data: options });
+        questions.push({ id: questionId, type: q.type, points: 1, options: options.map((o) => ({ id: o.id, isCorrect: o.isCorrect })) });
       }
-      if (isPublished) items.push({ id: quizItemId, durationSec: 0 });
+      if (isPublished) {
+        items.push({ id: quizItemId, durationSec: 0 });
+        quiz = { id: quizId, itemId: quizItemId, passScorePct: 70, questions };
+      }
 
       const ex = c.exercise;
       if (ex) {
@@ -110,8 +128,15 @@ export async function writeCourse(prisma: PrismaClient, c: SeedCourse, ctx: Cour
           languages: ex.code.map((k) => k.language),
         } });
         await tx.exerciseStarterCode.createMany({ data: ex.code.map((k) => ({ exerciseId, language: k.language, code: k.starter, solutionCode: k.solution })) });
-        await tx.exerciseTestCase.createMany({ data: ex.tests.map((t, ti) => ({ exerciseId, position: ti, input: t.input, expectedOutput: t.expectedOutput, isPublic: t.isPublic, points: 10 })) });
-        if (isPublished) items.push({ id: exItemId, durationSec: 0 });
+        const tests = ex.tests.map((t, ti) => ({ id: uuidv7(), exerciseId, position: ti, input: t.input, expectedOutput: t.expectedOutput, isPublic: t.isPublic, points: 10 }));
+        await tx.exerciseTestCase.createMany({ data: tests });
+        if (isPublished) {
+          items.push({ id: exItemId, durationSec: 0 });
+          exercise = {
+            id: exerciseId, itemId: exItemId, language: ex.code[0].language, starter: ex.code[0].starter, solution: ex.code[0].solution,
+            tests: tests.map((t) => ({ id: t.id, position: t.position, points: t.points })),
+          };
+        }
       }
     }
 
@@ -127,6 +152,6 @@ export async function writeCourse(prisma: PrismaClient, c: SeedCourse, ctx: Cour
   return {
     id: courseId, instructorId: teacher.id, status: c.status, publishedAt: d.publishedAt, priceAmount: c.priceAmount,
     level: c.level, language: c.language, label: c.thumbnail.label,
-    lectureTitles: c.sections.flatMap((s) => s.lectures), topicIds, items,
+    lectureTitles: c.sections.flatMap((s) => s.lectures), topicIds, items, title: c.title, quiz, exercise,
   };
 }

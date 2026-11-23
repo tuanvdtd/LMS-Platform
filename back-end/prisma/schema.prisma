@@ -92,7 +92,8 @@ model User {
   quizAttempts          QuizAttempt[]
   submissions           Submission[]
   certificates          Certificate[]
-  riskScores            StatStudentRisk[]
+  nudgesSent            CourseNudge[]           @relation("nudgeInstructor")
+  nudgesReceived        CourseNudge[]           @relation("nudgeStudent")
   emailLogs             EmailLog[]
   assets                Asset[]
   skillAttempts         SkillAttempt[]
@@ -380,7 +381,7 @@ model Course {
   exercises     Exercise[]
   certificates  Certificate[]
   dailyStats    StatCourseDaily[]
-  riskScores    StatStudentRisk[]
+  nudges        CourseNudge[]
   coupons       Coupon[]
   announcements Announcement[]
   qaQuestions   CourseQuestion[]
@@ -865,7 +866,6 @@ model Question {
   relatedItem CurriculumItem?  @relation(fields: [relatedItemId], references: [id], onDelete: SetNull)
   options     QuestionOption[]
   answers     QuizAnswer[]
-  stats       StatQuestion?
 
   // Không cần @@index([quizId]): unique (quizId, position) ở sql/05 đã là index bắt đầu bằng quizId.
   @@index([relatedItemId])
@@ -977,7 +977,6 @@ model Exercise {
   starters    ExerciseStarterCode[]
   testCases   ExerciseTestCase[]
   submissions Submission[]
-  stats       StatExercise?
 
   @@index([courseId])
   @@index([relatedItemId])
@@ -1064,7 +1063,7 @@ model Notification {
   title     String
   body      String
   link      String?
-  // verdict: { submissionId, status, score, certificateSerial? }; qa_answer: { questionId, answerId }; course_review: { courseId, approvalId, approved }; instructor_application: { applicationId, approved }; post_comment: { postId, commentId, parentId }
+  // verdict: { submissionId, status, score, certificateSerial? }; qa_answer: { questionId, answerId }; course_review: { courseId, approvalId, approved }; instructor_application: { applicationId, approved }; post_comment: { postId, commentId, parentId }; course_nudge: { courseId, nudgeId }
   data      Json             @default("{}")
   readAt    DateTime?
   createdAt DateTime         @default(now())
@@ -1082,6 +1081,7 @@ enum NotificationType {
   course_review
   instructor_application
   post_comment
+  course_nudge
 }
 
 // ============================================================================
@@ -1215,9 +1215,9 @@ model Certificate {
 }
 
 // ============================================================================
-//  10. BẢNG TỔNG HỢP CHO DASHBOARD
-//  Worker Kafka ghi theo batch, cron hằng đêm tính lại chỉ số nặng.
-//  Không bảng nào lưu heartbeat thô — giới hạn 500MB của Supabase free.
+//  10. BỘ ĐẾM CHO DASHBOARD
+//  Chỉ giữ bộ đếm cho tín hiệu KHÔNG có dữ liệu gốc (lượt xem trang, giỏ, đoạn video — gói 2). Chỉ số còn lại
+//  (chất lượng câu hỏi, bài code, nguy cơ bỏ học, năng lực lớp) tính trực tiếp từ dữ liệu gốc ở src/analytics.
 // ============================================================================
 
 model StatCourseDaily {
@@ -1262,56 +1262,6 @@ model StatVideoBucket {
   @@map("stat_video_buckets")
 }
 
-// Câu hỏi thuộc đúng 1 quiz nên khoá chính là questionId.
-model StatQuestion {
-  questionId String @id @db.Uuid
-
-  attempts            Int      @default(0)
-  correctCount        Int      @default(0)
-  difficultyIndex     Decimal? @db.Decimal(4, 3) // p = tỉ lệ trả lời đúng
-  discriminationIndex Decimal? @db.Decimal(4, 3) // D = p(top 27%) − p(bottom 27%)
-  optionDistribution  Json     @default("{}") // { optionId: count } — đáp án nhiễu
-  computedAt          DateTime @default(now())
-
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@map("stat_questions")
-}
-
-model StatExercise {
-  exerciseId          String   @id @db.Uuid
-  submissionCount     Int      @default(0)
-  acceptedCount       Int      @default(0)
-  acceptanceRate      Decimal? @db.Decimal(4, 3)
-  avgAttemptsToAccept Decimal? @db.Decimal(6, 2)
-  statusDistribution  Json     @default("{}") // { wrong_answer: 42, time_limit_exceeded: 7 }
-  computedAt          DateTime @default(now())
-
-  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-
-  @@map("stat_exercises")
-}
-
-// Cron hằng đêm. notifiedAt để không spam email nhắc nhở.
-model StatStudentRisk {
-  userId   String @db.Uuid
-  courseId String @db.Uuid
-
-  riskScore             Decimal   @db.Decimal(4, 3)
-  daysInactive          Int       @default(0)
-  progressDeltaVsMedian Decimal?  @db.Decimal(6, 2)
-  avgQuizScore          Decimal?  @db.Decimal(5, 2)
-  computedAt            DateTime  @default(now())
-  notifiedAt            DateTime?
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@id([userId, courseId])
-  @@index([courseId, riskScore]) // danh sách học viên cần chú ý
-  @@map("stat_student_risk")
-}
-
 model EmailLog {
   id                String      @id @default(uuid(7)) @db.Uuid
   userId            String      @db.Uuid
@@ -1327,6 +1277,32 @@ model EmailLog {
 
   @@index([userId, createdAt])
   @@map("email_logs")
+}
+
+enum NudgeKind {
+  reminder
+  encourage
+}
+
+// Giảng viên nhắc học viên từ dashboard Học viên. Nguồn sự thật cho giới hạn 1 lần/7 ngày và cột "Nhắc gần nhất";
+// thông báo + email chỉ là kênh gửi (học viên xoá thông báo được).
+model CourseNudge {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  courseId     String    @db.Uuid
+  instructorId String    @db.Uuid
+  userId       String    @db.Uuid
+  kind         NudgeKind
+  message      String
+  createdAt    DateTime  @default(now())
+
+  course     Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  instructor User   @relation("nudgeInstructor", fields: [instructorId], references: [id], onDelete: Cascade)
+  user       User   @relation("nudgeStudent", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, userId, createdAt])
+  @@index([instructorId])
+  @@index([userId])
+  @@map("course_nudges")
 }
 
 // ============================================================================

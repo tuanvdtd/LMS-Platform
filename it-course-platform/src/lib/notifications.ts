@@ -12,6 +12,8 @@ export const NOTIF_META: Record<NotificationType, Meta> = {
   instructor_application: { label: 'Giảng viên cao cấp', audience: 'instructor' },
   // Người nhận có thể là học viên bất kỳ (tác giả bài, người được trả lời).
   post_comment: { label: 'Bình luận bài viết', audience: 'student' },
+  // Giảng viên nhắc học viên quay lại học (dashboard Học viên).
+  course_nudge: { label: 'Nhắc học', audience: 'student' },
 };
 
 // Chip trang Thông báo: học viên thường không bao giờ nhận loại của giảng viên → không hiện chip đó.

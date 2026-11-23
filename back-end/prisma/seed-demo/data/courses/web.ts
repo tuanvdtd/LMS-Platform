@@ -858,6 +858,17 @@ console.log(validateAll(input));
           ],
         },
         {
+          // Câu khởi động: gần như ai cũng đúng (dashboard gắn "Quá dễ").
+          type: 'single_choice',
+          stem: 'Câu lệnh nào in dòng chữ Xin chào ra console?',
+          relatedLecture: 0,
+          options: [
+            { content: 'console.log("Xin chào")', correct: true, explanation: 'console.log in giá trị ra console của trình duyệt, hoặc ra terminal khi chạy bằng Node.js.' },
+            { content: 'console.print("Xin chào")', explanation: 'Đối tượng console không có phương thức print.' },
+            { content: 'log.console("Xin chào")', explanation: 'Thứ tự bị đảo: đối tượng là console, phương thức là log.' },
+          ],
+        },
+        {
           type: 'single_choice',
           stem: 'Với const items = [1, 2]; câu lệnh items.push(3) cho kết quả gì?',
           relatedLecture: 1,
@@ -868,6 +879,18 @@ console.log(validateAll(input));
           ],
         },
         {
+          // LỖI CÀI SẴN cho demo dashboard: key đặt nhầm vào "null"; đáp án đúng thật là "object".
+          // Dashboard phải gắn "Cần sửa" (độ phân biệt âm). Sửa trong trình soạn quiz sẽ tạo phiên bản câu mới.
+          type: 'single_choice',
+          stem: 'Biểu thức typeof null trả về giá trị nào?',
+          relatedLecture: 1,
+          options: [
+            { content: '"object"', explanation: 'Đây là lỗi lịch sử của JavaScript được giữ lại để tương thích: typeof null trả về "object".' },
+            { content: '"null"', correct: true, explanation: 'null là một kiểu dữ liệu riêng nên typeof null trả về "null".' },
+            { content: '"undefined"', explanation: 'undefined là giá trị khác, dành cho biến chưa được gán.' },
+          ],
+        },
+        {
           type: 'single_choice',
           stem: 'Khi duyệt mảng ["a", "b"], vòng lặp for...of trả về gì ở mỗi lượt?',
           relatedLecture: 3,
@@ -875,6 +898,18 @@ console.log(validateAll(input));
             { content: 'Giá trị "a" rồi "b"', correct: true, explanation: 'for...of duyệt giá trị của đối tượng có thể lặp như mảng, chuỗi.' },
             { content: 'Chỉ số "0" rồi "1"', explanation: 'Đây là hành vi của for...in, vốn duyệt tên thuộc tính.' },
             { content: 'Cặp [chỉ số, giá trị]', explanation: 'Muốn có cặp này phải duyệt arr.entries().' },
+          ],
+        },
+        {
+          // LỖI CÀI SẴN cho demo dashboard: phương án cuối vô lý, gần như không ai chọn → "đáp án nhiễu không hoạt động".
+          type: 'single_choice',
+          stem: 'Cách khai báo nào tạo ra biến không thể gán lại giá trị?',
+          relatedLecture: 1,
+          options: [
+            { content: 'const total = 0', correct: true, explanation: 'const cấm gán lại biến sau khi khai báo.' },
+            { content: 'let total = 0', explanation: 'let cho phép gán lại giá trị.' },
+            { content: 'var total = 0', explanation: 'var cũng cho phép gán lại, và có phạm vi hàm thay vì phạm vi khối.' },
+            { content: 'print total = 0', explanation: 'JavaScript không có từ khoá print để khai báo biến, dòng này báo lỗi cú pháp.' },
           ],
         },
         {
@@ -889,6 +924,17 @@ console.log(validateAll(input));
           ],
         },
         {
+          // Hiểu lầm phổ biến (key đúng): nhiều người chọn "true" → dashboard gắn "đáp án nhiễu hút hơn đáp án đúng".
+          type: 'single_choice',
+          stem: 'Biểu thức 0.1 + 0.2 === 0.3 cho kết quả gì?',
+          relatedLecture: 2,
+          options: [
+            { content: 'true', explanation: 'Số thực dấu phẩy động không biểu diễn chính xác 0.1 và 0.2, tổng của chúng là 0.30000000000000004.' },
+            { content: 'false', correct: true, explanation: '0.1 + 0.2 cho 0.30000000000000004 nên so sánh === với 0.3 là false. Muốn so sánh số thực, xét trị tuyệt đối của hiệu nhỏ hơn Number.EPSILON.' },
+            { content: 'Báo lỗi vì không so sánh được số thực', explanation: 'So sánh số thực là hợp lệ, chỉ là kết quả không như trực giác.' },
+          ],
+        },
+        {
           type: 'single_choice',
           stem: 'Đoạn code console.log("A"); setTimeout(() => console.log("B"), 0); console.log("C"); in ra theo thứ tự nào?',
           relatedLecture: 7,
@@ -896,6 +942,17 @@ console.log(validateAll(input));
             { content: 'A, B, C', explanation: 'setTimeout dù 0ms vẫn đưa callback vào hàng đợi, chỉ chạy khi code đồng bộ đã xong.' },
             { content: 'A, C, B', correct: true, explanation: 'Code đồng bộ chạy hết trước, sau đó event loop mới lấy callback của setTimeout ra chạy.' },
             { content: 'B, A, C', explanation: 'Callback không bao giờ chạy trước code đồng bộ đứng trước nó.' },
+          ],
+        },
+        {
+          type: 'single_choice',
+          stem: 'Với const double = (x) => x * 2; biểu thức [1, 2, 3].map(double) trả về gì?',
+          relatedLecture: 4,
+          options: [
+            { content: '[2, 4, 6]', correct: true, explanation: 'map gọi double với từng phần tử và gom kết quả vào một mảng mới.' },
+            { content: '[1, 2, 3]', explanation: 'map không giữ nguyên phần tử mà dùng giá trị hàm trả về.' },
+            { content: '12', explanation: 'Cộng dồn thành một số là việc của reduce, không phải map.' },
+            { content: 'undefined', explanation: 'Đây là giá trị trả về của forEach; map luôn trả về một mảng.' },
           ],
         },
       ],

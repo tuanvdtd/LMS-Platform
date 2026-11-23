@@ -15,7 +15,7 @@ export type SkillPlan = {
 
 // Mô phỏng học viên làm bài qua đúng engine thật. Thuần (rng có seed, id sinh bằng rng) → test được, chạy lại ra y hệt.
 export function planSkillHistory(
-  input: { now: Date; learners: { userId: string; topicId: string; ability: number; attempts?: number }[]; questions: Map<string, Q[]> },
+  input: { now: Date; learners: { userId: string; topicId: string; ability: number; attempts?: number; schedule?: { at: Date; ability: number }[] }[]; questions: Map<string, Q[]> },
   rng: Rng,
 ): SkillPlan {
   const qs = new Map([...input.questions.values()].flat().map((q) => [q.id, { ...q }]));
@@ -27,11 +27,13 @@ export function planSkillHistory(
     let rating = START_RATING;
     let n = 0;
     // Không truyền attempts thì ngẫu nhiên 1–3 lượt (dữ liệu demo); phép đo gợi ý cần cố định số lượt.
-    const k = l.attempts ?? 1 + Math.floor(rng() * 3);
+    const k = l.schedule?.length ?? l.attempts ?? 1 + Math.floor(rng() * 3);
     let lastStartedAt = input.now;
     for (let i = 0; i < k; i++) {
       // Lượt i cách nhau ~3 ngày, lượt cuối cách hiện tại ≥ 2 ngày → không vướng thời gian chờ 24h.
-      const startedAt = new Date(input.now.getTime() - (k - i) * 3 * DAY + Math.floor(rng() * 12) * HOUR);
+      // Có schedule thì dùng đúng lịch + năng lực từng lượt (không tốn số ngẫu nhiên); không thì như cũ.
+      const startedAt = l.schedule ? l.schedule[i].at : new Date(input.now.getTime() - (k - i) * 3 * DAY + Math.floor(rng() * 12) * HOUR);
+      const ability = l.schedule ? l.schedule[i].ability : l.ability;
       const attemptId = id();
       const before = rating;
       let t = startedAt.getTime();
@@ -42,7 +44,7 @@ export function planSkillHistory(
         const q = qs.get(pick)!;
         used.add(pick);
         seen.set(pick, t);
-        const correct = rng() < expected(l.ability, q.rating);
+        const correct = rng() < expected(ability, q.rating);
         const r = rate(rating, q.rating, correct, n, q.answerCount);
         const servedAt = new Date(t);
         t += 20_000 + Math.floor(rng() * 60_000);

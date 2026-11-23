@@ -5,6 +5,7 @@ import type { Options } from 'amqplib';
 import { requireEnv } from '../env.js';
 import type { DeliverStatus, MailJob } from './mail-outcome.js';
 import {
+  courseNudgeMail,
   courseReviewedMail,
   instructorApplicationReviewedMail,
   resetPasswordMail,
@@ -52,6 +53,14 @@ export class MailService {
   // Kết quả duyệt đơn giảng viên cao cấp.
   sendInstructorApplicationReviewed(to: string, approved: boolean, reason: string | null) {
     return this.send(to, instructorApplicationReviewedMail(this.feUrl, approved, reason));
+  }
+
+  // Giảng viên nhắc học viên (dashboard Học viên).
+  sendCourseNudge(
+    to: string,
+    a: { instructorName: string; courseTitle: string; courseSlug: string; kind: 'reminder' | 'encourage'; message: string },
+  ) {
+    return this.send(to, courseNudgeMail(this.feUrl, a));
   }
 
   // Không bao giờ throw: auth gọi không await, lỗi lọt ra thành unhandled rejection làm sập Node.

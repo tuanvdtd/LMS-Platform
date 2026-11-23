@@ -1,6 +1,7 @@
 import { isPriceTier } from '../../src/revenue/price-guard.ts';
 import type { PrismaClient } from '@prisma/client';
 import type { SeedData } from './data/types.ts';
+import { SHOWCASE } from './data/analytics-demo.ts';
 import { SKILL_ABILITIES } from './data/skill-abilities.ts';
 import { SKILL_BANK_TOPICS } from '../skill-bank/types.ts';
 import { MIN_ACTIVE_QUESTIONS } from '../../src/skills/skill-elo.ts';
@@ -52,7 +53,8 @@ export function validateData({ users, courses }: SeedData): string[] {
     if (!inRange(lectureCount, 6, 10)) errors.push(`${id} cần 6–10 bài giảng (đang ${lectureCount})`);
     if (c.status === 'rejected' && !c.rejectReason) errors.push(`${id} khoá bị từ chối cần rejectReason`);
 
-    if (c.quiz.questions.length !== 5) errors.push(`${id} quiz cần đúng 5 câu`);
+    const quizSize = c.title === SHOWCASE.courseTitle ? SHOWCASE.questions.length : 5;
+    if (c.quiz.questions.length !== quizSize) errors.push(`${id} quiz cần đúng ${quizSize} câu`);
     c.quiz.questions.forEach((qq, i) => {
       const correct = qq.options.filter((o) => o.correct).length;
       if (!inRange(qq.options.length, 3, 5)) errors.push(`${id} câu ${i + 1} cần 3–5 đáp án`);
@@ -117,5 +119,17 @@ export async function validateDb(prisma: PrismaClient, data: SeedData): Promise<
 
   const occ = await prisma.occupationTopic.findMany({ select: { topic: { select: { slug: true } } } });
   errors.push(...validateCoverage(data, [...new Set(occ.map((o) => o.topic.slug))]));
+  return errors;
+}
+
+// Khoá trình diễn của dashboard phân tích: phải published, đủ số câu cấu hình, test cài sẵn là test ẩn.
+export function validateShowcase(data: SeedData): string[] {
+  const c = data.courses.find((x) => x.title === SHOWCASE.courseTitle);
+  if (!c) return [`Không có khoá trình diễn "${SHOWCASE.courseTitle}"`];
+  const errors: string[] = [];
+  if (c.status !== 'published') errors.push('Khoá trình diễn phải published');
+  if (c.quiz.questions.length !== SHOWCASE.questions.length) errors.push(`Khoá trình diễn cần ${SHOWCASE.questions.length} câu quiz`);
+  const t = c.exercise?.tests[SHOWCASE.hardestTestPosition];
+  if (!t || t.isPublic) errors.push('Khoá trình diễn: test cài sẵn phải là test ẩn');
   return errors;
 }

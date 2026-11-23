@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { closestCenter, DndContext, type DragEndEvent, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, horizontalListSortingStrategy, SortableContext, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
@@ -140,7 +141,11 @@ function Editor({
   const locked = course.status === 'in_review';
   const [quiz, setQuiz] = useState(initial);
   const [tab, setTab] = useState<Tab>('questions');
-  const [selected, setSelected] = useState<Selected>(() => firstOf(initial));
+  // Mở từ dashboard phân tích (?question=<id>) → chọn sẵn câu đó; id không còn thì về câu đầu như cũ.
+  const wanted = useSearchParams().get('question');
+  const [selected, setSelected] = useState<Selected>(() =>
+    wanted && initial.questions.some((q) => q.id === wanted) ? { kind: 'question', id: wanted } : firstOf(initial),
+  );
   const [pending, setPending] = useState<Selected | null>(null); // câu muốn chuyển tới, chờ xác nhận vì câu đang sửa chưa lưu
   const [switching, setSwitching] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
