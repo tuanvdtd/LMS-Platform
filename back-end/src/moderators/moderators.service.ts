@@ -8,6 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { AuditLogService } from '../admin/audit-log.service.js';
 import { AUTH, type Auth, authCall } from '../auth/auth.js';
 import { isGuid } from '../common/zod.pipe.js';
 import { requireEnv } from '../env.js';
@@ -57,6 +58,7 @@ export class ModeratorsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(AUTH) private readonly auth: Auth,
+    private readonly audit: AuditLogService,
   ) {}
 
   async list() {
@@ -145,19 +147,17 @@ export class ModeratorsService {
   }
 
   // banUser/unbanUser kiểm quyền bằng session của admin → bắt buộc headers. Ban tự xoá session DB + Redis.
-  async lock(id: string, headers: Headers) {
+  async lock(id: string, actorId: string, headers: Headers) {
     await this.find(id);
-    await authCall(() =>
-      this.auth.api.banUser({ body: { userId: id }, headers }),
-    );
+    await authCall(() => this.auth.api.banUser({ body: { userId: id }, headers }));
+    await this.audit.record({ actorId, action: 'user_lock', targetId: id, data: { reason: null, expiresAt: null } });
     return this.find(id);
   }
 
-  async unlock(id: string, headers: Headers) {
+  async unlock(id: string, actorId: string, headers: Headers) {
     await this.find(id);
-    await authCall(() =>
-      this.auth.api.unbanUser({ body: { userId: id }, headers }),
-    );
+    await authCall(() => this.auth.api.unbanUser({ body: { userId: id }, headers }));
+    await this.audit.record({ actorId, action: 'user_unlock', targetId: id });
     return this.find(id);
   }
 

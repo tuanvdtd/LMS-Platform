@@ -1,4 +1,5 @@
 import { api } from '@/lib/api/client';
+import type { AdminOverview, AdminUserDetail, AdminUserRow, LockDuration, OverviewRange, UsersFilter } from '@/types/admin';
 import type { AdminPayoutDetail, AdminPayoutRow, ClosePeriodResult, Paged, PayoutStatus } from '@/types/revenue';
 
 // API admin. Chỉ gọi từ client component.
@@ -44,3 +45,21 @@ export const unlockModerator = (id: string) => api.post<Moderator>(`/admin/moder
 
 export const resendModeratorInvite = (id: string) =>
   api.post(`/admin/moderators/${id}/resend-invite`).then(() => undefined);
+
+export const getOverview = (range: OverviewRange) =>
+  api.get<AdminOverview>('/admin/overview', { params: { range } }).then((r) => r.data);
+
+export const listUsers = (f: UsersFilter) =>
+  api
+    .get<Paged<AdminUserRow>>('/admin/users', { params: { q: f.q || undefined, role: f.role, status: f.status, page: f.page } })
+    .then((r) => r.data);
+
+export const getUser = (id: string) => api.get<AdminUserDetail>(`/admin/users/${id}`).then((r) => r.data);
+
+export const lockUser = (id: string, body: { reason: string; duration: LockDuration }) =>
+  api.post<AdminUserDetail>(`/admin/users/${id}/lock`, body).then((r) => r.data);
+
+export const unlockUser = (id: string) => api.post<AdminUserDetail>(`/admin/users/${id}/unlock`).then((r) => r.data);
+
+export const revokeUserSessions = (id: string) =>
+  api.post<AdminUserDetail>(`/admin/users/${id}/revoke-sessions`).then((r) => r.data);

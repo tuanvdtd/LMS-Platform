@@ -1,11 +1,14 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Put, Req } from '@nestjs/common';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { Request } from 'express';
-import { Roles } from '../auth/decorators.js';
+import type { AuthSession } from '../auth/auth.js';
+import { CurrentUser, Roles } from '../auth/decorators.js';
 import { ZodValidationPipe } from '../common/zod.pipe.js';
 import { createModeratorSchema, moderatorCategoriesSchema } from './moderators.schemas.js';
 import type { CreateModeratorInput, ModeratorCategoriesInput } from './moderators.schemas.js';
 import { ModeratorsService } from './moderators.service.js';
+
+type User = AuthSession['user'];
 
 @Roles('admin')
 @Controller('admin/moderators')
@@ -32,14 +35,14 @@ export class AdminModeratorsController {
 
   @Post(':id/lock')
   @HttpCode(200)
-  lock(@Req() req: Request, @Param('id') id: string) {
-    return this.moderators.lock(id, fromNodeHeaders(req.headers));
+  lock(@Req() req: Request, @CurrentUser() me: User, @Param('id') id: string) {
+    return this.moderators.lock(id, me.id, fromNodeHeaders(req.headers));
   }
 
   @Post(':id/unlock')
   @HttpCode(200)
-  unlock(@Req() req: Request, @Param('id') id: string) {
-    return this.moderators.unlock(id, fromNodeHeaders(req.headers));
+  unlock(@Req() req: Request, @CurrentUser() me: User, @Param('id') id: string) {
+    return this.moderators.unlock(id, me.id, fromNodeHeaders(req.headers));
   }
 
   @Post(':id/resend-invite')

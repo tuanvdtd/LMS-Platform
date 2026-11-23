@@ -69,7 +69,8 @@ const MODERATOR_PATHS = ['/admin/course-approvals', '/admin/skill-bank', '/admin
 // nên usePathname không cần Suspense; /admin điều hướng theo vai trò ở đây vì page không biết session.
 function RoleGate({ admin, children }: { admin: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
-  if (pathname === '/admin') redirect(admin ? '/admin/payouts' : '/admin/course-approvals');
+  // Admin vào /admin là trang Tổng quan; moderator không có trang này.
+  if (pathname === '/admin' && !admin) redirect('/admin/course-approvals');
   if (!admin && !MODERATOR_PATHS.some((p) => pathname.startsWith(p))) return <Forbidden />;
   return children;
 }

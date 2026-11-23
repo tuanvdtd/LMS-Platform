@@ -109,6 +109,7 @@ model User {
   postLikes             PostLike[]
   postComments          PostComment[]           @relation("postCommentAuthor")
   postCommentReplies    PostComment[]           @relation("postCommentReplyTo")
+  auditActions          AuditLog[]              @relation("auditActor")
 
   @@index([role])
   @@map("user")
@@ -1668,4 +1669,30 @@ enum CouponType {
 enum PayoutStatus {
   pending
   paid
+}
+
+// ============================================================================
+//  NHẬT KÝ THAO TÁC ADMIN
+// ============================================================================
+
+enum AuditAction {
+  user_lock
+  user_unlock
+  user_revoke_sessions
+}
+
+// targetId không FK: gói sau ghi cả thao tác lên khoá/bình luận..., tiền tố của action cho biết loại đối tượng.
+model AuditLog {
+  id        String      @id @default(uuid(7)) @db.Uuid
+  actorId   String?     @db.Uuid
+  action    AuditAction
+  targetId  String      @db.Uuid
+  data      Json        @default("{}") // user_lock: { reason, expiresAt }
+  createdAt DateTime    @default(now())
+
+  actor User? @relation("auditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([targetId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

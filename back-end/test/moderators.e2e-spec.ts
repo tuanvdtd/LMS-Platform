@@ -107,6 +107,8 @@ describe('Moderator & hàng đợi duyệt theo danh mục (e2e)', () => {
   // Dọn: courses (cascade approvals) → users (cascade moderator_categories).
   afterAll(async () => {
     if (teacher) await prisma?.course.deleteMany({ where: { instructorId: teacher.id } });
+    const made = await prisma?.user.findMany({ where: { email: { in: [...emails, modEmail] } }, select: { id: true } });
+    await prisma?.auditLog.deleteMany({ where: { targetId: { in: made?.map((u) => u.id) ?? [] } } }); // targetId không có FK
     await prisma?.user.deleteMany({ where: { email: { in: [...emails, modEmail] } } });
     await app?.close();
   }, 120_000);
