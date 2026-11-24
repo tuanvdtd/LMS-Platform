@@ -25,7 +25,7 @@ export default async function VerifyCertificatePage({ params }: PageProps<'/veri
 
   if (!cert) {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center">
+      <div className="mx-auto flex min-h-page max-w-md flex-col items-center justify-center px-4 py-16 text-center">
         <FileQuestion className="mx-auto mb-4 size-12 text-muted-foreground" aria-hidden />
         <h1 className="mb-2 text-xl font-extrabold text-foreground">Không tìm thấy chứng chỉ</h1>
         <p className="text-sm text-muted-foreground">

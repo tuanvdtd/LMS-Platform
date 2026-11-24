@@ -71,7 +71,7 @@
   --color-ink-title: var(--ink-title);
   --color-ink-builtin: var(--ink-builtin);
   --color-ink-success: var(--ink-success);
-  --color-illus-glow: var(--illus-glow);
+  --color-illus-stage: var(--illus-stage);
   /* Nền hover của mục bấm được trên bề mặt card (header khung học). Theme tối: secondary/muted trùng card nên cần tông riêng. */
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -161,8 +161,9 @@
   --ink-title: #d2a8ff;
   --ink-builtin: #79c0ff;
   --ink-success: #4ade80;
-  /* Ánh đèn bàn / trăng trong minh hoạ trang chủ khách */
-  --illus-glow: #fde68a;
+  /* Nền sân khấu của cảnh Rive trang chủ khách (public/rive/guest-home.riv), giống nhau ở 2 theme;
+     dùng làm nền chờ trong lúc file .riv tải để không chớp màu */
+  --illus-stage: #0f1d4f;
 
   /* Semantic colors */
   --skill-weak: #ef4444;
@@ -277,6 +278,12 @@
 .dark [data-cover='paper'] { --cover-bg: #1e293b; --cover-fg: #f1f5f9; --cover-soft: #cbd5e1; --cover-mark: #334155; }
 [data-cover] ::selection { background: var(--cover-fg); color: var(--cover-bg); }
 
+
+/* Trang trạng thái toàn trang (404, không tìm thấy, không có quyền): chiếm trọn màn dưới header sticky (h-16 + viền 1px)
+   để nội dung căn giữa và footer nằm dưới mép màn, không bị kéo lên giữa trang. */
+@utility min-h-page {
+  min-height: calc(100dvh - 4rem - 1px);
+}
 
 /* Thẻ bấm được (card khoá học, ô danh mục). Hover và focus bàn phím dùng cùng một phản hồi: nhấc 2px + bóng mềm.
    Viền giữ trung tính vì viền xanh là ngôn ngữ "đã chọn" (đáp án quiz, bộ lọc đang áp). */
@@ -542,14 +549,3 @@
 .post-editing pre { border-radius: var(--radius-lg); border: 1px solid var(--ink-border); background: var(--ink); color: var(--ink-foreground); }
 .post-editing .selectedCell { background: color-mix(in oklch, var(--primary) 12%, transparent); }
 .post-editing .tableWrapper { overflow-x: auto; }
-
-/* Minh hoạ trang chủ khách (guest-illustrations.tsx): vòng lặp nhỏ, chậm, chỉ trong SVG.
-   Giảm chuyển động thì đứng yên ở trạng thái đầy đủ. */
-@media (prefers-reduced-motion: no-preference) {
-  .gh-blink { animation: gh-blink 5s ease-in-out infinite; }
-  .gh-float { animation: gh-float 4s ease-in-out infinite; }
-  .gh-twinkle { animation: gh-twinkle 3.5s ease-in-out infinite; }
-}
-@keyframes gh-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
-@keyframes gh-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-@keyframes gh-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }

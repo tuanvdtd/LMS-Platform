@@ -133,6 +133,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.9.1
         version: 5.9.1(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.89.0(@types/react@19.3.0)(react@19.2.8))(zod@4.6.7)
+      '@rive-app/react-canvas-lite':
+        specifier: 4.41.0
+        version: 4.41.0(react@19.2.8)
       '@sentry/nextjs':
         specifier: ^11.0.0
         version: 11.0.0(next@16.4.6(@babel/core@7.29.7(supports-color@8.1.1))(@opentelemetry/api@1.9.1)(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
@@ -1290,6 +1293,14 @@ packages:
         optional: true
       react-redux:
         optional: true
+
+  '@rive-app/canvas-lite@2.54.0':
+    resolution: {integrity: sha512-gf7YouGkiwRdyW5Dm3VWk9B35KvTKxgiVF5EetzRyyMpsPamnFRmpbwKRBsXzNM6bHfmm6xFu3YW3u7Gw4Ocqw==}
+
+  '@rive-app/react-canvas-lite@4.41.0':
+    resolution: {integrity: sha512-v9cPsAV2Q2KhWYWg++opPg7wStYT/t+OhaVtxmnfFPBVfGlaGK/PpiAI/paH/v8lZUU+GNgmUTrwfg26ZwKSPA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0
 
   '@rollup/plugin-commonjs@28.0.1':
     resolution: {integrity: sha512-+tNWdlWKbpB3WgBN7ijjYkq9X5uhjmcvyjEght4NmH5fAU++zfQzAJ6wumLS+dNcvwEZhKx2Z+skY8m7v0wGSA==}
@@ -5770,6 +5781,13 @@ snapshots:
     optionalDependencies:
       react: 19.2.8
       react-redux: 9.3.0(@types/react@19.3.0)(react@19.2.8)(redux@5.0.1)
+
+  '@rive-app/canvas-lite@2.54.0': {}
+
+  '@rive-app/react-canvas-lite@4.41.0(react@19.2.8)':
+    dependencies:
+      '@rive-app/canvas-lite': 2.54.0
+      react: 19.2.8
 
   '@rollup/plugin-commonjs@28.0.1(rollup@4.63.5)':
     dependencies:

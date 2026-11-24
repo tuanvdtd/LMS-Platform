@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
 
 const nextConfig: NextConfig = {
+  // Dev: mở http://[::1]:3000 để xem giao diện khách (cookie phiên gắn theo host localhost, không lẫn).
+  allowedDevOrigins: ["[::1]"],
   // Không bật cacheComponents: nó kéo theo <Activity> giữ route cũ (state sót, video còn tiếng, PDF crash).
   // Cache dữ liệu bằng fetch next.revalidate — xem lib/api/catalog.ts.
   images: {

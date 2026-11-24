@@ -45,3 +45,6 @@ next-env.d.ts
 
 # pdfjs wasm (JBIG2/JPX) — sinh từ postinstall
 public/pdfjs/
+
+# rive wasm — sinh từ postinstall
+public/rive/rive.wasm
