@@ -114,6 +114,7 @@ model User {
   postComments          PostComment[]           @relation("postCommentAuthor")
   postCommentReplies    PostComment[]           @relation("postCommentReplyTo")
   auditActions          AuditLog[]              @relation("auditActor")
+  courseEvents          CourseEvent[]
 
   @@index([role])
   @@map("user")
@@ -372,8 +373,8 @@ model Course {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  instructor    User              @relation("courseInstructor", fields: [instructorId], references: [id])
-  category      Category?         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  instructor    User             @relation("courseInstructor", fields: [instructorId], references: [id])
+  category      Category?        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   sections      Section[]
   items         CurriculumItem[]
   approvals     CourseApproval[]
@@ -385,7 +386,7 @@ model Course {
   quizzes       Quiz[]
   exercises     Exercise[]
   certificates  Certificate[]
-  dailyStats    StatCourseDaily[]
+  events        CourseEvent[]
   nudges        CourseNudge[]
   coupons       Coupon[]
   announcements Announcement[]
@@ -436,20 +437,20 @@ model CurriculumItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  section          Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  course           Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  videoAsset       Asset?            @relation("ItemVideo", fields: [videoAssetId], references: [id], onDelete: Restrict)
-  documentAsset    Asset?            @relation("ItemDocument", fields: [documentAssetId], references: [id], onDelete: Restrict)
+  section          Section             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  course           Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  videoAsset       Asset?              @relation("ItemVideo", fields: [videoAssetId], references: [id], onDelete: Restrict)
+  documentAsset    Asset?              @relation("ItemDocument", fields: [documentAssetId], references: [id], onDelete: Restrict)
   resources        LectureResource[]
   progress         ItemProgress[]
-  buckets          StatVideoBucket[]
+  watchSegments    VideoWatchSegment[]
   notes            Note[]
   quiz             Quiz?
-  exercise         Exercise?         @relation("ExerciseItem")
+  exercise         Exercise?           @relation("ExerciseItem")
   relatedQuestions Question[]
-  relatedExercises Exercise[]        @relation("ExerciseRelatedLecture")
+  relatedExercises Exercise[]          @relation("ExerciseRelatedLecture")
   qaQuestions      CourseQuestion[]
-  lastItemOf       Enrollment[]      @relation("EnrollmentLastItem")
+  lastItemOf       Enrollment[]        @relation("EnrollmentLastItem")
 
   // Không cần @@index([sectionId]): unique (sectionId, position) ở sql/05 đã là index bắt đầu bằng sectionId.
   @@index([courseId])
@@ -536,13 +537,14 @@ model Enrollment {
   lastItemId     String?   @db.Uuid // bài mở gần nhất → "Tiếp tục học"
   createdAt      DateTime  @default(now())
 
-  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course   Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  order    Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  coupon   Coupon?         @relation(fields: [couponId], references: [id], onDelete: SetNull)
-  lastItem CurriculumItem? @relation("EnrollmentLastItem", fields: [lastItemId], references: [id], onDelete: SetNull)
-  progress ItemProgress[]
-  notes    Note[]
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  order         Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  coupon        Coupon?             @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  lastItem      CurriculumItem?     @relation("EnrollmentLastItem", fields: [lastItemId], references: [id], onDelete: SetNull)
+  progress      ItemProgress[]
+  watchSegments VideoWatchSegment[]
+  notes         Note[]
 
   @@unique([userId, courseId]) // idempotency cho Stripe webhook
   @@index([courseId])
@@ -1225,46 +1227,44 @@ model Certificate {
 //  (chất lượng câu hỏi, bài code, nguy cơ bỏ học, năng lực lớp) tính trực tiếp từ dữ liệu gốc ở src/analytics.
 // ============================================================================
 
-model StatCourseDaily {
-  courseId String   @db.Uuid
-  date     DateTime @db.Date
-
-  // phễu chuyển đổi
-  views            Int @default(0)
-  cartAdds         Int @default(0)
-  checkoutsStarted Int @default(0)
-  ordersPaid       Int @default(0)
-
-  // doanh thu
-  revenueAmount     Int @default(0)
-  platformFeeAmount Int @default(0)
-  refundAmount      Int @default(0)
-  refundCount       Int @default(0)
-
-  // hành vi học
-  newEnrollments Int @default(0)
-  activeLearners Int @default(0)
-  watchTimeSec   Int @default(0)
-
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@id([courseId, date])
-  @@index([date])
-  @@map("stat_course_daily")
+enum CourseEventKind {
+  page_view
+  cart_add
 }
 
-// Một bucket = 15s video. Gộp đường giữ chân, điểm rơi bỏ và điểm tua lại vào
-// một bảng — cùng khoá chính, cùng nguồn sự kiện.
-model StatVideoBucket {
-  itemId      String @db.Uuid
-  bucketIndex Int
-  viewers     Int    @default(0) // số người xem tới mốc này
-  rewatches   Int    @default(0) // số lượt tua lại đoạn này
+// Phễu chuyển đổi: lượt xem trang khoá + thêm giỏ. Bắt đầu thanh toán / ghi danh lấy từ orders, enrollments.
+model CourseEvent {
+  id        String          @id @db.Uuid // uuidv7 sinh ở app
+  courseId  String          @db.Uuid
+  kind      CourseEventKind
+  userId    String?         @db.Uuid
+  visitorId String?         @db.Uuid // mã khách ở trình duyệt (null với cart_add)
+  createdAt DateTime        @default(now())
 
-  item CurriculumItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@id([itemId, bucketIndex])
-  @@map("stat_video_buckets")
+  @@index([courseId, createdAt])
+  @@map("course_events")
+}
+
+// Đoạn video học viên đã xem (giây nội dung). Thứ tự thời gian = (createdAt, seq).
+model VideoWatchSegment {
+  id           String   @id @db.Uuid // uuidv7 sinh ở app
+  enrollmentId String   @db.Uuid
+  itemId       String   @db.Uuid
+  viewId       String   @db.Uuid // một lần mở trình phát
+  seq          Int      @db.SmallInt
+  startSec     Int
+  endSec       Int
+  createdAt    DateTime @default(now())
+
+  enrollment Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  item       CurriculumItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([enrollmentId, createdAt])
+  @@map("video_watch_segments")
 }
 
 model EmailLog {

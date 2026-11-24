@@ -6,6 +6,8 @@ import { masteryPct } from '../../src/skills/skill-elo.ts';
 import { SHOWCASE } from './data/analytics-demo.ts';
 import { SEED_DATA } from './data/index.ts';
 import { DAY, mulberry32 } from './rng.ts';
+import { computeRetention } from '../../src/analytics/video-retention.ts';
+import { planWatching } from './watching.ts';
 import { planShowcase, planShowcaseLearners } from './showcase.ts';
 import { planSkillHistory } from './skills.ts';
 
@@ -85,5 +87,48 @@ describe('khoá trình diễn: dashboard phát hiện đúng lỗi cài sẵn', 
     const gain = topicGain(plan.enrollments.map((e) => ({ userId: e.userId, enrolledAt: e.at })), points)!;
     expect(gain.pairs).toBeGreaterThanOrEqual(20);
     expect(gain.band).toBe('medium');
+  });
+});
+
+describe('khoá trình diễn: Hành vi học phát hiện mẫu cài sẵn', () => {
+  const watch = planWatching(mulberry32(20261102 + 3), {
+    now,
+    courses: [{ id: 'course', items }],
+    enrollments: plan.enrollments.map((e) => ({ id: e.id, courseId: 'course', at: e.at, completedAt: e.completedAt, lastAccessedAt: e.lastAccessedAt })),
+    progress: plan.progress,
+    planted: { courseId: 'course', ...SHOWCASE.video },
+    id,
+  });
+  const videos = items.filter((x) => x.durationSec > 0);
+  const ret = videos.map((v) =>
+    computeRetention(v.durationSec, watch.segments.filter((s) => s.itemId === v.id).map((s) => ({
+      learnerId: s.enrollmentId, viewId: s.viewId, s: s.startSec, e: s.endSec, at: s.createdAt.getTime(), seq: s.seq,
+    }))),
+  );
+
+  it('đủ người xem (≥ 20) ở hai bài cài sẵn', () => {
+    expect(ret[SHOWCASE.video.rewatch.videoIndex].n).toBeGreaterThanOrEqual(20);
+    expect(ret[SHOWCASE.video.drop.videoIndex].n).toBeGreaterThanOrEqual(20);
+  });
+  it('đỉnh tua lại đúng đoạn cài sẵn (lệch ≤ 1 ô)', () => {
+    const r = ret[SHOWCASE.video.rewatch.videoIndex];
+    const D = videos[SHOWCASE.video.rewatch.videoIndex].durationSec;
+    expect(r.peaks.length).toBeGreaterThanOrEqual(1);
+    const hit = r.peaks.find((p) => p.fromSec <= D * SHOWCASE.video.rewatch.from + r.bucketSec && p.toSec >= D * SHOWCASE.video.rewatch.to - r.bucketSec);
+    expect(hit).toBeDefined();
+  });
+  it('điểm rời bỏ đúng mốc cài sẵn', () => {
+    const r = ret[SHOWCASE.video.drop.videoIndex];
+    const at = videos[SHOWCASE.video.drop.videoIndex].durationSec * SHOWCASE.video.drop.at;
+    expect(r.drop).not.toBeNull();
+    expect(r.drop!.fromSec).toBeLessThanOrEqual(at + SHOWCASE.video.drop.jitterSec);
+    expect(r.drop!.toSec).toBeGreaterThanOrEqual(at - SHOWCASE.video.drop.jitterSec);
+  });
+  it('các bài video khác không có đỉnh / điểm rời bỏ', () => {
+    ret.forEach((r, i) => {
+      if (i === SHOWCASE.video.rewatch.videoIndex || i === SHOWCASE.video.drop.videoIndex) return;
+      expect(r.peaks, `video ${i}`).toEqual([]);
+      expect(r.drop, `video ${i}`).toBeNull();
+    });
   });
 });

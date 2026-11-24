@@ -18,7 +18,7 @@ export const INSTRUCTOR_NAV = [
     label: 'Phân tích',
     to: '/instructor/analytics',
     children: [
-      { icon: DollarSign, label: 'Doanh thu', to: '/instructor/analytics/revenue' },
+      { icon: DollarSign, label: 'Doanh thu & bán hàng', to: '/instructor/analytics/revenue' },
       { icon: Activity, label: 'Hành vi học', to: '/instructor/analytics/engagement' },
       { icon: FileCheck, label: 'Chất lượng bài kiểm', to: '/instructor/analytics/assessments' },
       { icon: Gauge, label: 'Năng lực lớp', to: '/instructor/analytics/skills' },

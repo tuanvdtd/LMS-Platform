@@ -42,6 +42,7 @@ export function CourseScopedPage({
   const select = (id: string) => {
     const next = new URLSearchParams(params);
     next.set('course', id);
+    next.delete('page');
     router.replace(`${pathname}?${next}`, { scroll: false });
   };
   const items = Object.fromEntries(courses.map((c) => [c.id, c.title]));

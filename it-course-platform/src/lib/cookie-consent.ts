@@ -1,5 +1,7 @@
 // Lựa chọn cookie của người dùng. File thuần (không import alias) → test bằng node:test.
 // Lưu ở localStorage chứ không phải cookie: back-end không cần biết, và trang tĩnh khỏi phải đọc cookie.
+import { VISITOR_KEY } from './visitor-id.ts';
+
 export type Consent = 'accepted' | 'rejected';
 
 export const CONSENT_KEY = 'sp-cookie-consent';
@@ -21,6 +23,7 @@ export function getConsent(): Consent | null {
 export function setConsent(value: Consent) {
   try {
     localStorage.setItem(CONSENT_KEY, value);
+    if (value === 'rejected') localStorage.removeItem(VISITOR_KEY); // từ chối → xoá mã khách đã lưu ngay
   } catch { /* storage bị chặn: lựa chọn chỉ có hiệu lực tới khi tải lại trang */ }
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }

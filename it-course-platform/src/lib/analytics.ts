@@ -1,4 +1,5 @@
-import type { FlagCode, GainBand, ItemStatus, NudgeKind, RiskLevel, RiskReason, SkipReason, Verdict } from '@/types/analytics';
+import type { FlagCode, FunnelStepKey, GainBand, ItemStatus, NudgeKind, RiskLevel, RiskReason, SkipReason, Verdict } from '@/types/analytics';
+import { formatDuration } from '../types/curriculum.ts';
 
 // Nhãn + định dạng cho dashboard phân tích. Thuần (chỉ import type) để chạy node --test.
 // Mỗi trạng thái có tông (variant của Badge) + chữ, không truyền tin chỉ bằng màu.
@@ -102,4 +103,28 @@ export const SKIP_REASON: Record<SkipReason, string> = {
   not_enrolled: 'không còn trong khoá',
   completed: 'đã hoàn thành khoá',
   recent: 'đã được nhắc trong 7 ngày qua',
+};
+
+// --- Gói 2 ---
+export const fmtShare = (x: number | null) => fmtPct(x === null ? null : Math.round(x * 1000) / 10);
+export const deltaPct = (cur: number, prev: number) => (prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : undefined);
+export const fmtClock = (sec: number) => formatDuration(Math.round(sec));
+export const dayLabel = (key: string) => `${key.slice(8, 10)}/${key.slice(5, 7)}`;
+export const weekLabel = dayLabel;
+export const monthLabel = (key: string) => `T${Number(key.slice(5, 7))}/${key.slice(2, 4)}`;
+const pctInt = (x: number) => `${Math.round(x * 100)}%`;
+export function peakText(p: { fromSec: number; toSec: number; rewatch: number; people: number; multiple: number | null }) {
+  const base = `Đoạn ${fmtClock(p.fromSec)}–${fmtClock(p.toSec)}: ${pctInt(p.rewatch)} người xem (${p.people} người) tua lại`;
+  return p.multiple ? `${base}, gấp ${fmtNum(Math.round(p.multiple * 10) / 10)} lần mức thường của bài.` : `${base}.`;
+}
+export const dropText = (d: { fromSec: number; toSec: number; lost: number }) =>
+  `Từ ${fmtClock(d.fromSec)} đến ${fmtClock(d.toSec)}, ${pctInt(d.lost)} người xem dừng xem.`;
+export const PEAK_ADVICE = 'Đoạn này có thể khó hiểu: cân nhắc giải thích chậm hơn, thêm ví dụ hoặc tách thành bài riêng.';
+export const LONG_VIDEO_ADVICE = 'Video dài hơn 12 phút và dưới một nửa người xem xem hết: cân nhắc tách thành các video ngắn hơn.';
+// Khoá free: bước `enroll` là bước 2 → FE dùng lời khuyên của `cart` khi weakest.key === 'enroll' && isFree.
+export const FUNNEL_STEP_META: Record<FunnelStepKey, { label: string; advice: string }> = {
+  view: { label: 'Xem trang khoá', advice: '' },
+  cart: { label: 'Thêm giỏ / Mua ngay', advice: 'Ít người thêm giỏ sau khi xem: xem lại tiêu đề, video giới thiệu, mô tả và mục tiêu khoá.' },
+  checkout: { label: 'Bắt đầu thanh toán', advice: 'Nhiều người để khoá trong giỏ mà không thanh toán: cân nhắc giá hoặc tạo mã giảm giá.' },
+  enroll: { label: 'Ghi danh', advice: 'Nhiều người bỏ ngang ở cổng thanh toán (phiên Stripe hết hạn sau 30 phút): nhắc học viên hoàn tất trong phiên.' },
 };

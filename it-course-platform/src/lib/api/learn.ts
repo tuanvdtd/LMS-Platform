@@ -12,8 +12,9 @@ export const setLastItem = (slug: string, itemId: string) =>
 
 export const getLecture = (slug: string, itemId: string) => data<Lecture>(api.get(`${base(slug)}/lectures/${itemId}`));
 
-export const sendProgress = (slug: string, itemId: string, positionSec: number) =>
-  api.post(`${base(slug)}/lectures/${itemId}/progress`, { positionSec }).then(() => undefined);
+export type ProgressBody = { positionSec: number; viewId?: string; segments?: { s: number; e: number }[] };
+export const sendProgress = (slug: string, itemId: string, body: ProgressBody) =>
+  api.post(`${base(slug)}/lectures/${itemId}/progress`, body).then(() => undefined);
 
 export const completeLecture = (slug: string, itemId: string) =>
   data<ProgressResult>(api.post(`${base(slug)}/lectures/${itemId}/complete`));

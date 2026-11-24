@@ -20,7 +20,7 @@ export async function writeUsers(
     // Người dạy tham gia sớm hơn để có thời gian xây khoá trước khi xuất bản.
     // Học viên giả lập của khoá trình diễn có sẵn ngày tham gia (trước ngày ghi danh đã lên kế hoạch).
     const createdAt = u.createdAt ?? new Date(ctx.now.getTime() - int(ctx.rng, teaches ? 300 : 20, teaches ? 365 : 330) * DAY);
-    const verifiedAt = u.profile ? new Date(createdAt.getTime() + int(ctx.rng, 5, 30) * DAY) : null;
+    const verifiedAt = u.profile ? new Date(createdAt.getTime() + (u.profile.verifiedAfterDays ?? int(ctx.rng, 5, 30)) * DAY) : null;
     return { u, id: uuidv7(), createdAt, verifiedAt };
   });
   await prisma.$transaction(async (tx) => {

@@ -1,5 +1,6 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { v7 as uuidv7 } from 'uuid';
 import { isGuid } from '../common/zod.pipe.js';
 import { loadBuyable, loadCartCourses } from '../checkout/buyable.js';
 import { priceLines, summarize } from '../checkout/pricing.js';
@@ -8,6 +9,7 @@ import { PrismaService } from '../infra/prisma.service.js';
 
 @Injectable()
 export class CartService {
+  private readonly logger = new Logger(CartService.name);
   constructor(private readonly prisma: PrismaService) {}
 
   async get(userId: string, couponCode?: string) {
@@ -39,6 +41,10 @@ export class CartService {
     }
     try {
       await this.prisma.cartItem.create({ data: { userId, courseId } });
+      // Phễu chuyển đổi: ghi không chờ để nút "Thêm vào giỏ" không chậm thêm một vòng DB.
+      void this.prisma.courseEvent
+        .create({ data: { id: uuidv7(), courseId, kind: 'cart_add', userId } })
+        .catch((e: unknown) => this.logger.warn(`Không ghi được cart_add: ${String(e)}`));
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         throw new ConflictException({ statusCode: 409, code: 'ALREADY_IN_CART', message: 'Khoá đã có trong giỏ' });

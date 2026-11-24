@@ -16,6 +16,10 @@ import { v7 as uuidv7 } from 'uuid';
 import { thetaBank } from './assessment-sim.ts';
 import { SHOWCASE } from './data/analytics-demo.ts';
 import { planShowcase, planShowcaseLearners } from './showcase.ts';
+import { planShowcaseOrders } from './orders.ts';
+import { planWatching, writeWatching } from './watching.ts';
+import { planFunnelEvents, writeFunnelEvents } from './funnel-events.ts';
+import { planShowcaseExtras, writeShowcaseQuestions } from './demo-extras.ts';
 
 const { PrismaClient } = prismaPkg;
 const SEED = 20261102;
@@ -87,12 +91,19 @@ async function main() {
     // Lượt quiz / bài nộp khớp tiến độ (luồng rng riêng); khoá trình diễn dùng tham số câu có lỗi cài sẵn.
     const simRng = mulberry32(SEED + 1);
     const show = published.find((c) => c.title === SHOWCASE.courseTitle)!;
+    // planActivity phải thấy khoá trình diễn là free (giá thật làm nó gọi rng thêm → xáo luồng rng chính); đơn của học viên thường
+    // vào khoá trình diễn sinh sau bằng planShowcaseOrders (không gọi rng).
+    const sharePct = Number(share.value);
     const plan = planActivity({
       users: [...users.values()].map((u) => ({ id: u.id, createdAt: u.createdAt, topicIds: u.topicIds })),
-      courses: published, sharePct: Number(share.value), now,
+      courses: published.map((c) => (c.id === show.id ? { ...c, priceAmount: 0 } : c)), sharePct, now,
     }, rng, { rng: simRng, id: uuidv7, theta: thetaBank(simRng), params: new Map([[show.id, SHOWCASE.questions]]) });
-    await writeActivity(prisma, plan);
-    log(`✓ ${plan.enrollments.length} ghi danh, ${plan.orders.length} đơn, ${plan.progress.length} item đã học, ${plan.reviews.length} đánh giá, ${plan.attempts.length} lượt quiz, ${plan.submissions.length} bài nộp`);
+    const mainShow = planShowcaseOrders(plan.enrollments.filter((e) => e.courseId === show.id), {
+      courseId: show.id, instructorId: show.instructorId, priceAmount: show.priceAmount, sharePct, id: uuidv7,
+    });
+    for (const e of plan.enrollments) if (e.courseId === show.id) e.orderId = mainShow.orderIdByUser.get(e.userId)!;
+    await writeActivity(prisma, { ...plan, orders: [...plan.orders, ...mainShow.orders], orderItems: [...plan.orderItems, ...mainShow.orderItems] });
+    log(`✓ ${plan.enrollments.length} ghi danh, ${plan.orders.length + mainShow.orders.length} đơn (${mainShow.orders.length} ở khoá trình diễn), ${plan.progress.length} item đã học, ${plan.reviews.length} đánh giá, ${plan.attempts.length} lượt quiz, ${plan.submissions.length} bài nộp`);
 
     const showPlan = planShowcase(showRng, {
       now,
@@ -100,8 +111,44 @@ async function main() {
       learners: learners.map((l) => ({ ...l, userId: showUsers.get(l.user.email)!.id })),
       params: SHOWCASE.questions, bugs: SHOWCASE.bugs, exerciseB: SHOWCASE.exerciseB, gainRating: SHOWCASE.gainRating, id: uuidv7,
     });
-    await writeActivity(prisma, { ...showPlan, orders: [], orderItems: [], reviews: [] });
-    log(`✓ Khoá trình diễn: ${showPlan.enrollments.length} ghi danh, ${showPlan.attempts.length} lượt quiz, ${showPlan.submissions.length} bài nộp`);
+    // Khoá trình diễn có phí (huy.do đã xác minh): mỗi ghi danh một đơn paid đúng lúc ghi danh — không gọi rng.
+    const showOrders = planShowcaseOrders(showPlan.enrollments, {
+      courseId: show.id, instructorId: show.instructorId, priceAmount: show.priceAmount, sharePct, id: uuidv7,
+    });
+    for (const e of showPlan.enrollments) e.orderId = showOrders.orderIdByUser.get(e.userId) ?? null;
+    const extras = planShowcaseExtras(mulberry32(SEED + 5), {
+      now, courseId: show.id, label: show.label, lectureTitles: show.lectureTitles,
+      lectureIds: show.items.filter((x) => x.durationSec > 0).map((x) => x.id),
+      enrollments: showPlan.enrollments, id: uuidv7,
+    });
+    await writeActivity(prisma, { ...showPlan, orders: showOrders.orders, orderItems: showOrders.orderItems, reviews: extras.reviews });
+    await writeShowcaseQuestions(prisma, extras.questions);
+    log(`✓ Khoá trình diễn: ${showPlan.enrollments.length} ghi danh (${showOrders.orders.length} đơn), ${showPlan.attempts.length} lượt quiz, ${showPlan.submissions.length} bài nộp, ${extras.reviews.length} đánh giá, ${extras.questions.length} câu hỏi`);
+
+    // Đoạn video đã xem + bài đang dở (mọi ghi danh seed; khoá trình diễn có mẫu cài sẵn).
+    const watch = planWatching(mulberry32(SEED + 3), {
+      now,
+      courses: published.map((c) => ({ id: c.id, items: c.items })),
+      enrollments: [...plan.enrollments, ...showPlan.enrollments].map((e) => ({
+        id: e.id, courseId: e.courseId, at: e.at, completedAt: e.completedAt, lastAccessedAt: e.lastAccessedAt,
+      })),
+      progress: [...plan.progress, ...showPlan.progress],
+      planted: { courseId: show.id, ...SHOWCASE.video },
+      id: uuidv7,
+    });
+    await writeWatching(prisma, watch);
+    log(`✓ ${watch.segments.length} đoạn video, ${watch.open.length} bài đang xem dở`);
+
+    // Sự kiện phễu + đơn failed (bỏ ngang ở Stripe).
+    const funnelPlan = planFunnelEvents(mulberry32(SEED + 4), {
+      now,
+      courses: published.map((c) => ({ id: c.id, instructorId: c.instructorId, priceAmount: c.priceAmount, publishedAt: c.publishedAt })),
+      enrollments: [...plan.enrollments, ...showPlan.enrollments].map((e) => ({ userId: e.userId, courseId: e.courseId, at: e.at })),
+      userIds: [...users.values(), ...showUsers.values()].map((u) => u.id),
+      sharePct, id: uuidv7,
+    });
+    await writeFunnelEvents(prisma, funnelPlan);
+    log(`✓ ${funnelPlan.events.length} sự kiện phễu, ${funnelPlan.failed.length} đơn bỏ ngang`);
 
     const skillQs = await prisma.skillQuestion.findMany({
       where: { archivedAt: null }, select: { id: true, topicId: true, rating: true, answerCount: true, correctCount: true },

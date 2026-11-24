@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertTriangle, BellRing, Check, Users } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { ClientPagination } from '@/components/shared/client-pagination';
 import { StatCard } from '@/components/shared/product-ui';
@@ -43,8 +44,20 @@ export function StudentsView() {
 }
 
 function Students({ courseId }: { courseId: string }) {
-  const [filter, setFilter] = useState<StudentFilter>('all');
-  const [page, setPage] = useState(1);
+  const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  // Mức lọc nằm trên URL (?level=) để link từ tổng quan mở đúng bộ lọc.
+  const initial = params.get('level');
+  const filter: StudentFilter = FILTERS.includes(initial as StudentFilter) ? (initial as StudentFilter) : 'all';
+  // Trang cũng nằm trên URL (?page=): đổi bộ lọc xoá ?page nên luôn về trang 1, Back/Forward khôi phục đúng cặp (bộ lọc, trang).
+  const page = Math.max(1, Math.floor(Number(params.get('page'))) || 1);
+  const setPage = (p: number) => {
+    const next = new URLSearchParams(params);
+    if (p > 1) next.set('page', String(p));
+    else next.delete('page');
+    router.replace(`${pathname}?${next}`, { scroll: false });
+  };
   const { data, error, loading, reload } = useKeyed(`${courseId}|${filter}|${page}`, loadStudents, { keepPrevious: true });
   // Giữ cả dòng (không chỉ id) để nhắc được học viên đã chọn ở các trang khác.
   const [picked, setPicked] = useState<Map<string, StudentRow>>(() => new Map());
@@ -79,6 +92,9 @@ function Students({ courseId }: { courseId: string }) {
         <StatCard label="Nguy cơ cao" value={fmtNum(summary.high)} sub="Nên liên hệ sớm" />
         <StatCard label="Cần theo dõi" value={fmtNum(summary.watch)} />
       </div>
+      <p className="-mt-3 text-xs text-muted-foreground">
+        Hoạt động = xem video, mở / hoàn thành bài, làm quiz hoặc nộp bài code. Khác cột &quot;Hoạt động cuối&quot; (theo lần mở khoá gần nhất).
+      </p>
       <div className="flex flex-wrap items-center gap-2">
         <ToggleGroup
           variant="outline"
@@ -89,8 +105,10 @@ function Students({ courseId }: { courseId: string }) {
           onValueChange={(v) => {
             const f = v[0] as StudentFilter | undefined;
             if (!f) return;
-            setFilter(f);
-            setPage(1);
+            const next = new URLSearchParams(params);
+            next.set('level', f);
+            next.delete('page');
+            router.replace(`${pathname}?${next}`, { scroll: false });
           }}
         >
           {FILTERS.map((f) => (

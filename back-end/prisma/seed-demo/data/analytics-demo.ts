@@ -14,6 +14,9 @@ export const SHOWCASE: {
   bugs: SimBug[];
   hardestTestPosition: number;
   personaMix: readonly (readonly [Persona, number])[];
+  // Mẫu cài sẵn cho "Hành vi học" (video thứ videoIndex theo thứ tự curriculum, chỉ tính bài video):
+  // rewatch: ~35% người xem tua lại đoạn [from, to] thời lượng; drop: ~20% người xem dừng quanh mốc `at` (±jitterSec) rồi tick hoàn thành.
+  video: { rewatch: { videoIndex: number; from: number; to: number; share: number }; drop: { videoIndex: number; at: number; share: number; jitterSec: number } };
 } = {
   courseTitle: 'JavaScript nền tảng cho người mới',
   learners: 120,
@@ -45,4 +48,5 @@ export const SHOWCASE: {
   ],
   hardestTestPosition: 2,
   personaMix: [['finisher', 25], ['steady', 25], ['stuck', 12], ['stalled', 20], ['ghost', 8], ['new', 10]],
+  video: { rewatch: { videoIndex: 1, from: 0.45, to: 0.55, share: 0.35 }, drop: { videoIndex: 2, at: 0.6, share: 0.2, jitterSec: 10 } },
 };

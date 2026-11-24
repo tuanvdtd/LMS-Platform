@@ -795,7 +795,7 @@ console.log(validateAll(input));
     topics: [{ slug: 'javascript', primary: true }, { slug: 'web-development' }],
     language: 'vi',
     level: 'beginner',
-    priceAmount: 0,
+    priceAmount: 299_000,
     status: 'published',
     title: 'JavaScript nền tảng cho người mới',
     subtitle: 'Nắm chắc biến, hàm, mảng, object và bất đồng bộ để tự viết chương trình JavaScript đầu tiên',

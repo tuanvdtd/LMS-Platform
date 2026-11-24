@@ -64,7 +64,7 @@ export function planShowcase(
   },
 ) {
   const enrollments: {
-    id: string; userId: string; courseId: string; at: Date; orderId: null; progressPct: number;
+    id: string; userId: string; courseId: string; at: Date; orderId: string | null; progressPct: number;
     completedAt: Date | null; lastItemId: string | null; lastAccessedAt: Date | null;
   }[] = [];
   const progress: { enrollmentId: string; itemId: string; durationSec: number; completedAt: Date }[] = [];

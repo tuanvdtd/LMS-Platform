@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { v7 as uuidv7 } from 'uuid';
 import { bucketOf, videoUrl } from '../assets/assets.service.js';
 import { isGuid } from '../common/zod.pipe.js';
 import { completeItem, uncompleteItem } from '../curriculum/progress.js';
@@ -8,6 +9,7 @@ import { PrismaService } from '../infra/prisma.service.js';
 import { RedisService, rateLimit } from '../infra/redis.js';
 import { StorageService } from '../infra/storage.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
+import { clampSegments } from './clamp-segments.js';
 import { ownerEnrollment } from './enrollment.js';
 import type { ProgressInput } from './learn.schemas.js';
 
@@ -217,15 +219,27 @@ export class LearnService {
     return { item, enrollment };
   }
 
-  // Vị trí xem dở của video. 1 câu upsert: 2 request đầu song song không đụng unique như upsert của Prisma.
-  async progress(slug: string, userId: string, itemId: string, { positionSec }: ProgressInput) {
+  // Vị trí xem dở + đoạn đã xem: một câu SQL (CTE) → không thêm vòng gọi DB. Không kiểm chủ khoá (lọc lúc đọc).
+  async progress(slug: string, userId: string, itemId: string, { positionSec, viewId, segments }: ProgressInput) {
     if (!(await rateLimit(this.redis, `rl:learn-progress:${userId}`, 30, 60))) throw tooManyRequests();
     const { item, enrollment } = await this.loadLecture(slug, userId, itemId);
     if (item.lectureKind !== 'video') throw notTracked();
     const pos = item.durationSec > 0 ? Math.min(positionSec, item.durationSec) : positionSec;
-    await this.prisma.$executeRaw`INSERT INTO item_progress ("enrollmentId", "itemId", "lastPositionSec")
-      VALUES (${enrollment.id}::uuid, ${itemId}::uuid, ${pos})
-      ON CONFLICT ("enrollmentId", "itemId") DO UPDATE SET "lastPositionSec" = EXCLUDED."lastPositionSec"`;
+    const segs = viewId && segments ? clampSegments(segments, item.durationSec) : [];
+    if (!segs.length) {
+      await this.prisma.$executeRaw`INSERT INTO item_progress ("enrollmentId", "itemId", "lastPositionSec")
+        VALUES (${enrollment.id}::uuid, ${itemId}::uuid, ${pos})
+        ON CONFLICT ("enrollmentId", "itemId") DO UPDATE SET "lastPositionSec" = EXCLUDED."lastPositionSec"`;
+      return;
+    }
+    const ids = segs.map(() => uuidv7());
+    await this.prisma.$executeRaw`WITH p AS (
+        INSERT INTO item_progress ("enrollmentId", "itemId", "lastPositionSec")
+        VALUES (${enrollment.id}::uuid, ${itemId}::uuid, ${pos})
+        ON CONFLICT ("enrollmentId", "itemId") DO UPDATE SET "lastPositionSec" = EXCLUDED."lastPositionSec")
+      INSERT INTO video_watch_segments (id, "enrollmentId", "itemId", "viewId", seq, "startSec", "endSec")
+      SELECT x.id, ${enrollment.id}::uuid, ${itemId}::uuid, ${viewId}::uuid, (x.ord - 1)::smallint, x.s, x.e
+      FROM unnest(${ids}::uuid[], ${segs.map((g) => g.s)}::int[], ${segs.map((g) => g.e)}::int[]) WITH ORDINALITY AS x(id, s, e, ord)`;
   }
 
   // Tick tay hoặc video phát tới cuối. completeItem giữ mốc hoàn thành đầu tiên → gọi lại vẫn 200.

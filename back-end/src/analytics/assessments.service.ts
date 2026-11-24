@@ -56,7 +56,7 @@ export class AssessmentsAnalyticsService {
         },
       }),
     ]);
-    const [attempts, submissions] = await Promise.all([this.attempts(quizzes.map((q) => q.id)), this.submissions({ exercise: { courseId } })]);
+    const [attempts, submissions] = await Promise.all([this.attempts(quizzes.map((q) => q.id), instructorId), this.submissions({ exercise: { courseId }, userId: { not: instructorId } })]);
     return {
       minSample: ITEM_MIN_N,
       quizzes: quizzes.sort(byCurriculum).map((q) => {
@@ -100,7 +100,7 @@ export class AssessmentsAnalyticsService {
         })
       : null;
     if (!quiz) throw quizNotFound();
-    const list = (await this.attempts([quiz.id])).get(quiz.id) ?? [];
+    const list = (await this.attempts([quiz.id], instructorId)).get(quiz.id) ?? [];
     const s = summarizeAttempts(list);
     const stats = analyzeItems(quiz.questions, firstAttempts(list).map((a) => a.answers));
     return {
@@ -158,7 +158,7 @@ export class AssessmentsAnalyticsService {
         })
       : null;
     if (!ex) throw exerciseNotFound();
-    const s = exerciseStats(ex.testCases, (await this.submissions({ exerciseId: ex.id })).get(ex.id) ?? []);
+    const s = exerciseStats(ex.testCases, (await this.submissions({ exerciseId: ex.id, userId: { not: instructorId } })).get(ex.id) ?? []);
     return {
       exercise: { id: ex.id, itemId: ex.itemId, courseId: ex.courseId, title: ex.item.title, difficulty: ex.difficulty },
       summary: {
@@ -175,9 +175,9 @@ export class AssessmentsAnalyticsService {
   }
 
   // Mọi lượt ĐÃ NỘP kèm đáp án, gom theo quiz (đáp án chỉ dùng cho lượt đầu; lớp vài trăm người tải hết vẫn nhẹ).
-  private async attempts(quizIds: string[]): Promise<Map<string, Attempt[]>> {
+  private async attempts(quizIds: string[], instructorId: string): Promise<Map<string, Attempt[]>> {
     const rows = await this.prisma.quizAttempt.findMany({
-      where: { quizId: { in: quizIds }, status: 'submitted' },
+      where: { quizId: { in: quizIds }, status: 'submitted', userId: { not: instructorId } },
       select: {
         quizId: true,
         userId: true,
