@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  accountLockedMail,
   courseNudgeMail,
   courseReviewedMail,
   instructorApplicationReviewedMail,
@@ -57,5 +58,13 @@ describe('mail templates', () => {
     expect(html).toContain('Dòng 1 &lt;i&gt;<br>Dòng 2');
     expect(html).toContain('Cô &lt;b&gt;Lan&lt;/b&gt;');
     expect(html).toContain('href="https://fe.test/learn/js-dom"');
+  });
+
+  it('thư khoá tài khoản: escape lý do, nêu hạn theo giờ VN, khoá vĩnh viễn ghi rõ', () => {
+    const { subject, html } = accountLockedMail(FE, '<b>spam</b>', new Date('2026-11-30T03:00:00Z'));
+    expect(subject).toBe('Tài khoản Aolumi của bạn đã bị khoá');
+    expect(html).toContain('&lt;b&gt;spam&lt;/b&gt;');
+    expect(html).toContain('10:00 ngày 30/11/2026');
+    expect(accountLockedMail(FE, 'x', null).html).toContain('vĩnh viễn');
   });
 });

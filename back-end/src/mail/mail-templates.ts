@@ -310,3 +310,24 @@ export function courseNudgeMail(
     note: 'Bạn nhận email này vì đang học khoá này trên Aolumi.',
   });
 }
+
+const vnDateTime = (d: Date) => {
+  const v = new Date(d.getTime() + 7 * 3_600_000);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(v.getUTCHours())}:${p(v.getUTCMinutes())} ngày ${p(v.getUTCDate())}/${p(v.getUTCMonth() + 1)}/${v.getUTCFullYear()}`;
+};
+
+// Admin khoá tài khoản. Lý do do admin nhập → render() tự escape qua trường reason.
+export function accountLockedMail(feUrl: string, reason: string, until: Date | null) {
+  const when = until ? `đến ${vnDateTime(until)}` : 'vĩnh viễn';
+  return render({
+    subject: 'Tài khoản Aolumi của bạn đã bị khoá',
+    preheader: `Tài khoản bị khoá ${when}. Xem lý do bên trong.`,
+    status: ['danger', 'Đã khoá'],
+    heading: 'Tài khoản của bạn đã bị khoá',
+    body: `Quản trị viên đã khoá tài khoản của bạn ${when}. Trong thời gian này bạn không đăng nhập được, mọi phiên đang mở đã bị đăng xuất. Lý do:`,
+    reason,
+    cta: ['Xem điều khoản sử dụng', `${feUrl}/terms`],
+    note: 'Nếu bạn cho rằng đây là nhầm lẫn, hãy liên hệ đội ngũ hỗ trợ của Aolumi.',
+  });
+}

@@ -5,6 +5,7 @@ import type { Options } from 'amqplib';
 import { requireEnv } from '../env.js';
 import type { DeliverStatus, MailJob } from './mail-outcome.js';
 import {
+  accountLockedMail,
   courseNudgeMail,
   courseReviewedMail,
   instructorApplicationReviewedMail,
@@ -53,6 +54,11 @@ export class MailService {
   // Kết quả duyệt đơn giảng viên cao cấp.
   sendInstructorApplicationReviewed(to: string, approved: boolean, reason: string | null) {
     return this.send(to, instructorApplicationReviewedMail(this.feUrl, approved, reason));
+  }
+
+  // Admin khoá tài khoản (trang Người dùng).
+  sendAccountLocked(to: string, reason: string, until: Date | null) {
+    return this.send(to, accountLockedMail(this.feUrl, reason, until));
   }
 
   // Giảng viên nhắc học viên (dashboard Học viên).

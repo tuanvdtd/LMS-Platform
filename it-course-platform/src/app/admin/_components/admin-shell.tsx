@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BadgeCheck, ChevronDown, ClipboardCheck, House, Library, LockKeyhole, LogOut, Menu, PenLine, Settings, ShieldUser, Wallet, X, type LucideIcon } from 'lucide-react';
+import { BadgeCheck, ChevronDown, ClipboardCheck, House, LayoutDashboard, Library, LockKeyhole, LogOut, Menu, PenLine, Settings, ShieldUser, Users, Wallet, X, type LucideIcon } from 'lucide-react';
 import { SignOutDialog } from '@/components/layout/sign-out-dialog';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,10 +23,11 @@ import { listApplications } from '@/lib/api/instructor-application';
 import { cn } from '@/lib/utils';
 
 type CountKey = 'courses' | 'applications';
-type NavLink = { href: string; label: string; icon: LucideIcon; adminOnly?: true; count?: CountKey };
+type NavLink = { href: string; label: string; icon: LucideIcon; adminOnly?: true; count?: CountKey; exact?: true };
 
 // adminOnly: moderator không thấy (layout cũng trả 403 nếu mở thẳng URL).
 const GROUPS: { label: string; links: NavLink[] }[] = [
+  { label: '', links: [{ href: '/admin', label: 'Tổng quan', icon: LayoutDashboard, adminOnly: true, exact: true }] },
   {
     label: 'Hàng đợi duyệt',
     links: [
@@ -38,6 +39,7 @@ const GROUPS: { label: string; links: NavLink[] }[] = [
   {
     label: 'Vận hành',
     links: [
+      { href: '/admin/users', label: 'Người dùng', icon: Users, adminOnly: true },
       { href: '/admin/skill-bank', label: 'Ngân hàng kỹ năng', icon: Library },
       { href: '/admin/payouts', label: 'Thanh toán giảng viên', icon: Wallet, adminOnly: true },
       { href: '/admin/moderators', label: 'Moderator', icon: ShieldUser, adminOnly: true },
@@ -80,10 +82,10 @@ function NavList({ admin, counts, onNavigate }: { admin: boolean; counts: Partia
         const links = g.links.filter((l) => admin || !l.adminOnly);
         if (links.length === 0) return null;
         return (
-          <div key={g.label} className="flex flex-col gap-0.5">
-            <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">{g.label}</p>
+          <div key={g.label || 'root'} className="flex flex-col gap-0.5">
+            {g.label && <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">{g.label}</p>}
             {links.map((l) => {
-              const active = pathname.startsWith(l.href);
+              const active = l.exact ? pathname === l.href : pathname.startsWith(l.href);
               const n = l.count ? counts[l.count] : undefined;
               return (
                 <Link

@@ -16,7 +16,7 @@ const PAGE_SIZE = 20;
 const CLOSE_TX = { ...TX_OPTIONS, timeout: 30_000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable };
 
 // Item tính vào doanh thu giảng viên. Đợt hoàn tiền: đổi status thành { in: ['paid', 'partially_refunded'] }.
-const earnedItems = (extra: Prisma.OrderItemWhereInput = {}): Prisma.OrderItemWhereInput => ({
+export const earnedItems = (extra: Prisma.OrderItemWhereInput = {}): Prisma.OrderItemWhereInput => ({
   refundedAt: null,
   order: { status: 'paid' },
   ...extra,
