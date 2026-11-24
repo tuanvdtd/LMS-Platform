@@ -1,5 +1,6 @@
 import { ArrowUpRight, BadgeCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MessageButton } from '@/components/messages/message-button';
 import { buttonVariants } from '@/components/ui/button';
 import type { PostCard } from '@/types/post';
 import type { PublicProfile } from '@/types/profile';
@@ -66,6 +67,9 @@ export function ProfileView({ p, posts }: { p: PublicProfile; posts: PostCard[] 
               {p.verified && <BadgeCheck className="size-6 shrink-0 text-success" aria-hidden />}
             </h1>
             {p.headline && <p className="mt-1 text-base text-muted-foreground">{p.headline}</p>}
+          </div>
+          <div className="empty:hidden md:pb-1">
+            <MessageButton userId={p.id} />
           </div>
           {links.length > 0 && (
             <ul className="flex flex-wrap gap-2 md:pb-1">

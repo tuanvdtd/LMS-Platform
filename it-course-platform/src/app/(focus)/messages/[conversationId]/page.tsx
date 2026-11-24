@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import MessagesView from '../_components/messages-view';
+import { Thread } from '@/components/messages/thread';
 
 export const metadata: Metadata = { title: 'Tin nhắn | Aolumi' };
 
 export default async function ConversationPage({ params }: PageProps<'/messages/[conversationId]'>) {
   const { conversationId } = await params;
-  return <MessagesView conversationId={conversationId} />;
+  return <Thread conversationId={conversationId} basePath="/messages" />;
 }

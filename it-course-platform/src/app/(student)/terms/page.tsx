@@ -164,6 +164,7 @@ const SECTIONS: LegalSection[] = [
         <li>Truy cập trái phép tài khoản, dữ liệu của người khác; dò quét, khai thác lỗ hổng hoặc gây quá tải hệ thống.</li>
         <li>Phát tán mã độc, thư rác, quảng cáo không được phép hoặc lôi kéo học viên giao dịch ngoài nền tảng để né phí.</li>
         <li>Gian lận thanh toán, lạm dụng mã giảm giá hoặc chính sách hoàn tiền.</li>
+        <li>Dùng tin nhắn để đổi quyền lợi lấy đánh giá, hoặc gửi tin quảng cáo hàng loạt.</li>
         <li>Dùng nội dung trên Aolumi để huấn luyện mô hình máy học hoặc xây dựng sản phẩm cạnh tranh khi chưa được đồng ý bằng văn bản.</li>
       </ul>
     ),

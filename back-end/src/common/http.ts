@@ -7,6 +7,9 @@ export const tooManyRequests = () =>
 // 409 có mã riêng để giao diện chọn câu báo.
 export const conflict = (code: string, message: string) => new HttpException({ statusCode: 409, code, message }, 409);
 
+// 403 có mã riêng để giao diện chọn câu báo.
+export const forbidden = (code: string, message: string) => new HttpException({ statusCode: 403, code, message }, 403);
+
 // Production chạy sau Cloudflare Tunnel: req.ip là địa chỉ của tunnel, mọi người dùng sẽ chung một ô giới hạn.
 // Cloudflare ghi IP thật của người gọi vào header này; môi trường dev không có header thì dùng req.ip.
 export function clientIp(req: Request): string {

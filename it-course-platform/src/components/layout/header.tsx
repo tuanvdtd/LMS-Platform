@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { CircleUser, LogOut, MessageCircle, Moon, PenLine, Search, ShieldCheck, ShoppingCart, Sun, User, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
-import { cn } from '@/lib/utils';
 import { authClient } from '@/lib/auth-client';
 import { useCanWritePosts } from '@/lib/use-can-write-posts';
 import { isInstructor, isStaff, teachHref } from '@/lib/instructor-role';
@@ -23,6 +22,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCartStore } from '@/lib/cart-store';
+import { useMessageStore } from '@/lib/message-store';
+import { badgeText } from '@/lib/messages';
 import { accountLinks } from '@/components/layout/account-links';
 import { CourseSearch } from '@/components/layout/course-search';
 import { ExploreMenu } from '@/components/layout/explore-menu';
@@ -44,6 +45,8 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
   // Giảng viên thật và admin viết blog được (BE quyết định); moderator thì không.
   const canWritePosts = useCanWritePosts(userId);
 
+  const msgUnread = useMessageStore((s) => s.unreadCount);
+  const msgBadge = badgeText(msgUnread);
   const cartCount = useCartStore((s) => s.cart?.items.length ?? 0);
 
   // Badge giỏ: chỉ tải khi có session (khách không gọi → không dính interceptor 401). Đăng xuất/đổi tài khoản → xoá giỏ cũ.
@@ -131,10 +134,16 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
 
           {user && (
             <>
-              <Link href="/messages" className={cn(iconLink, 'hidden lg:flex')} aria-label="Tin nhắn">
-                <MessageCircle size={18} className="text-foreground" />
-                <span className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-card" />
-              </Link>
+              {!staff && (
+                <Link href="/messages" className={iconLink} aria-label={msgUnread > 0 ? `Tin nhắn, ${msgUnread} cuộc chưa đọc` : 'Tin nhắn'}>
+                  <MessageCircle size={18} className="text-foreground" />
+                  {msgBadge && (
+                    <span aria-hidden className="absolute top-0.5 right-0.5 flex min-w-4 items-center justify-center rounded-full bg-brand-accent px-1 text-[10px] leading-4 font-bold text-white ring-2 ring-card">
+                      {msgBadge}
+                    </span>
+                  )}
+                </Link>
+              )}
               <NotificationPanel isInstructor={isInstructor(user)} />
             </>
           )}

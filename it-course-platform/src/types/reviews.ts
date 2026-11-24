@@ -6,7 +6,7 @@ export interface CourseReview {
   rating: number;
   comment: string | null;
   createdAt: string;
-  author: { name: string; image: string | null };
+  author: { id: string; name: string; image: string | null };
 }
 
 export interface CourseReviewPage {

@@ -1,3 +1,4 @@
+import { MessagesModule } from './messages/messages.module.js';
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
@@ -40,7 +41,7 @@ const isProd = optionalEnv('SENTRY_ENVIRONMENT') === 'production';
 
 @Module({
   // SentryModule đứng đầu theo docs.
-  imports: [SentryModule.forRoot(), InfraModule, RabbitModule, AuthModule, CategoriesModule, TopicsModule, InstructorCoursesModule, AssetsModule, CurriculumModule, PreferencesModule, RevenueModule, InstructorApplicationsModule, QuizModule, ExerciseModule, LearnModule, QaModule, CourseApprovalsModule, ModeratorsModule, CatalogModule, CouponsModule, CartModule, CheckoutModule, RecommendationsModule, NotificationsModule, SkillsModule, CertificatesModule, ProfilesModule, ReviewsModule, PostsModule, AnalyticsModule, AdminModule],
+  imports: [SentryModule.forRoot(), InfraModule, RabbitModule, AuthModule, CategoriesModule, TopicsModule, InstructorCoursesModule, AssetsModule, CurriculumModule, PreferencesModule, RevenueModule, InstructorApplicationsModule, QuizModule, ExerciseModule, LearnModule, QaModule, CourseApprovalsModule, ModeratorsModule, CatalogModule, CouponsModule, CartModule, CheckoutModule, RecommendationsModule, NotificationsModule, SkillsModule, CertificatesModule, ProfilesModule, ReviewsModule, PostsModule, AnalyticsModule, AdminModule, MessagesModule],
   controllers: [AppController, ...(isProd ? [] : [DebugController])],
   // Chỉ gửi lỗi không phải HttpException; response giữ như BaseExceptionFilter.
   providers: [AppService, { provide: APP_FILTER, useClass: SentryGlobalFilter }],

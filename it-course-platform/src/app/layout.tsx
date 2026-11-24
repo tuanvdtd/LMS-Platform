@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { SentryUser } from "@/components/sentry-user";
 import { NotificationSocket } from "@/components/layout/notification-socket";
+import { MessagesSocket } from "@/components/layout/messages-socket";
 import { Toaster } from "@/components/ui/sonner";
 import { CookieConsent } from "@/components/cookie-consent";
 
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full bg-background text-foreground">
         <SentryUser />
         <NotificationSocket />
+        <MessagesSocket />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
           <CookieConsent />

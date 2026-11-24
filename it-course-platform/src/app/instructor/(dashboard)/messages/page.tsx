@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import MessagesView from '@/app/instructor/(dashboard)/messages/_components/messages-view';
+import { MessagesEmpty } from '@/components/messages/messages-empty';
 
 export const metadata: Metadata = { title: 'Tin nhắn | Aolumi' };
 
 export default function InstructorMessagesPage() {
-  return <MessagesView />;
+  return <MessagesEmpty />;
 }

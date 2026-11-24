@@ -87,6 +87,7 @@ export type RiskReason =
 export type NudgeKind = 'reminder' | 'encourage';
 export type StudentRow = {
   userId: string;
+  canMessage: boolean;
   name: string;
   image: string | null;
   enrolledAt: string;

@@ -178,6 +178,7 @@ describe('Dashboard phân tích giảng viên (e2e)', () => {
     const body = (await call('get', `${A}/courses/${courseId}/students`, alice.cookie).expect(200)).body;
     expect(body.summary).toMatchObject({ enrolled: 3, completed: 1, high: 1, watch: 1 });
     expect(body.students[0]).toMatchObject({ userId: s3.id, risk: { level: 'high', inactiveDays: 40 } });
+    expect(typeof body.students[0].canMessage).toBe('boolean');
     expect(body.students.find((s: { userId: string }) => s.userId === s1.id)).toMatchObject({
       quiz: { attempted: 1, avgFirstPct: 100 }, code: { passed: 1, total: 1 }, risk: { level: 'done' },
     });

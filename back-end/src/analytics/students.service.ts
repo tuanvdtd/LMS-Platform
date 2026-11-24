@@ -173,6 +173,7 @@ export class StudentsAnalyticsService {
           completedAt: true,
           lastItem: { select: { id: true, title: true } },
           user: { select: { name: true, image: true } },
+          orderId: true,
         },
       }),
       // Lượt nộp sớm nhất của mỗi (học viên, quiz).
@@ -214,6 +215,7 @@ export class StudentsAnalyticsService {
           userId: e.userId,
           name: e.user.name,
           image: e.user.image,
+          canMessage: e.orderId !== null,
           enrolledAt: e.createdAt,
           progressPct: Number(e.progressPct),
           lastActiveAt: e.lastAccessedAt,
