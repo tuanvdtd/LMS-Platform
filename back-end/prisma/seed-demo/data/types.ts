@@ -12,6 +12,8 @@ export type SeedProfile = {
   website: string;
   socials: { github?: string; linkedin?: string };
   bank: { bin: string; accountNo: string; accountName: string };
+  // Ngày xác minh cố định sau ngày tham gia (không gọi rng); bỏ trống thì users.ts bốc ngẫu nhiên 5–30 ngày.
+  verifiedAfterDays?: number;
 };
 
 export type SeedUser = {

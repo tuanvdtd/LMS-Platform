@@ -10,8 +10,10 @@ import { NotificationsGateway } from '../notifications/notifications.gateway.js'
 import { AnalyticsCoursesService, studentNotFound } from './analytics-courses.service.js';
 import { STUDENT_PAGE_SIZE, type NudgeInput, type StudentsQuery } from './analytics.schemas.js';
 import { VERDICTS } from './exercise-stats.js';
+import { activeCounts } from './activity.js';
 import { groupBy } from './helpers.js';
 import { assessRisk } from './risk.js';
+import { vnWindow } from './vn-time.js';
 
 export const NUDGE_COOLDOWN_DAYS = 7;
 const DAY = 86_400_000;
@@ -44,7 +46,7 @@ export class StudentsAnalyticsService {
 
   async list(courseId: string, instructorId: string, { level, page }: StudentsQuery) {
     const course = await this.courses.owned(courseId, instructorId);
-    const { summary, students } = await this.rows(course.id);
+    const { summary, students } = await this.rows(course.id, instructorId);
     const counts = { all: students.length, high: 0, watch: 0, ok: 0, new: 0, done: 0 };
     for (const s of students) counts[s.risk.level]++;
     const filtered = level === 'all' ? students : students.filter((s) => s.risk.level === level);
@@ -63,7 +65,7 @@ export class StudentsAnalyticsService {
   async detail(courseId: string, userId: string, instructorId: string) {
     const course = await this.courses.owned(courseId, instructorId);
     // Mức nguy cơ phụ thuộc bạn cùng lứa → tính trên cả lớp rồi lấy đúng người.
-    const student = isGuid(userId) ? (await this.rows(course.id)).students.find((s) => s.userId === userId) : undefined;
+    const student = isGuid(userId) ? (await this.rows(course.id, instructorId)).students.find((s) => s.userId === userId) : undefined;
     if (!student) throw studentNotFound();
     const [enrollment, attempts, submissions, nudges] = await Promise.all([
       this.prisma.enrollment.findUniqueOrThrow({
@@ -160,12 +162,23 @@ export class StudentsAnalyticsService {
     return { sent: sent.map((s) => s.userId), skipped };
   }
 
-  private async rows(courseId: string) {
+  // list / detail / nudge đã có instructorId (khoá đã qua owned()) → không thêm truy vấn tuần tự.
+  private async rows(courseId: string, instructorId: string) {
+    return (await this.rowsMany([{ id: courseId, instructorId }])).get(courseId) ?? { summary: { enrolled: 0, active7d: 0, completed: 0, high: 0, watch: 0 }, students: [] };
+  }
+
+  // Dữ liệu nguy cơ cho nhiều khoá (Tổng quan gọi một lần); chủ khoá không tính là học viên.
+  async rowsMany(courses: { id: string; instructorId: string }[]) {
+    const result = new Map<string, Awaited<ReturnType<StudentsAnalyticsService['rowsOne']>>>();
+    if (!courses.length) return result;
     const now = new Date();
-    const [enrollments, quizRows, passedRows, exercisesTotal, nudgeRows] = await Promise.all([
+    const ids = courses.map((c) => c.id);
+    const owner = new Map(courses.map((c) => [c.id, c.instructorId]));
+    const [allEnrollments, quizRows, passedRows, exerciseCounts, nudgeRows, active] = await Promise.all([
       this.prisma.enrollment.findMany({
-        where: { courseId },
+        where: { courseId: { in: ids } },
         select: {
+          courseId: true,
           userId: true,
           createdAt: true,
           progressPct: true,
@@ -177,22 +190,56 @@ export class StudentsAnalyticsService {
         },
       }),
       // Lượt nộp sớm nhất của mỗi (học viên, quiz).
-      this.prisma.$queryRaw<{ userId: string; scorePct: number; passScorePct: number }[]>`
-        SELECT DISTINCT ON (a."userId", a."quizId") a."userId", a."scorePct"::float8 AS "scorePct", a."passScorePct"
+      this.prisma.$queryRaw<{ courseId: string; userId: string; scorePct: number; passScorePct: number }[]>`
+        SELECT DISTINCT ON (a."userId", a."quizId") q."courseId", a."userId", a."scorePct"::float8 AS "scorePct", a."passScorePct"
         FROM quiz_attempts a JOIN quizzes q ON q.id = a."quizId"
-        WHERE q."courseId" = ${courseId}::uuid AND a.status = 'submitted'
+        WHERE q."courseId" = ANY(${ids}::uuid[]) AND a.status = 'submitted'
         ORDER BY a."userId", a."quizId", a."attemptNo"`,
-      this.prisma.$queryRaw<{ userId: string; passed: number }[]>`
-        SELECT s."userId", COUNT(DISTINCT s."exerciseId")::int AS passed
+      this.prisma.$queryRaw<{ courseId: string; userId: string; passed: number }[]>`
+        SELECT e."courseId", s."userId", COUNT(DISTINCT s."exerciseId")::int AS passed
         FROM submissions s JOIN exercises e ON e.id = s."exerciseId"
-        WHERE e."courseId" = ${courseId}::uuid AND s.status = 'accepted'
-        GROUP BY s."userId"`,
-      this.prisma.exercise.count({ where: { courseId, item: { isPublished: true } } }),
-      this.prisma.$queryRaw<{ userId: string; kind: 'reminder' | 'encourage'; createdAt: Date }[]>`
-        SELECT DISTINCT ON ("userId") "userId", kind::text AS kind, "createdAt"
-        FROM course_nudges WHERE "courseId" = ${courseId}::uuid
-        ORDER BY "userId", "createdAt" DESC`,
+        WHERE e."courseId" = ANY(${ids}::uuid[]) AND s.status = 'accepted'
+        GROUP BY e."courseId", s."userId"`,
+      this.prisma.exercise.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, item: { isPublished: true } }, _count: { _all: true } }),
+      this.prisma.$queryRaw<{ courseId: string; userId: string; kind: 'reminder' | 'encourage'; createdAt: Date }[]>`
+        SELECT DISTINCT ON ("courseId", "userId") "courseId", "userId", kind::text AS kind, "createdAt"
+        FROM course_nudges WHERE "courseId" = ANY(${ids}::uuid[])
+        ORDER BY "courseId", "userId", "createdAt" DESC`,
+      activeCounts(this.prisma, ids, vnWindow(7, now)),
     ]);
+    const enrollmentsBy = groupBy(allEnrollments, (e) => e.courseId);
+    const quizzesBy = groupBy(quizRows, (q) => q.courseId);
+    const passedBy = groupBy(passedRows, (p) => p.courseId);
+    const nudgesBy = groupBy(nudgeRows, (n) => n.courseId);
+    const exercises = new Map(exerciseCounts.map((c) => [c.courseId, c._count._all]));
+    for (const id of ids) {
+      const enrollments = (enrollmentsBy.get(id) ?? []).filter((e) => e.userId !== owner.get(id));
+      result.set(
+        id,
+        this.rowsOne(now, enrollments, quizzesBy.get(id) ?? [], passedBy.get(id) ?? [], exercises.get(id) ?? 0, nudgesBy.get(id) ?? [], active.byCourse.get(id)?.cur ?? 0),
+      );
+    }
+    return result;
+  }
+
+  private rowsOne(
+    now: Date,
+    enrollments: {
+      userId: string;
+      createdAt: Date;
+      progressPct: unknown;
+      lastAccessedAt: Date | null;
+      completedAt: Date | null;
+      lastItem: { id: string; title: string } | null;
+      user: { name: string; image: string | null };
+      orderId: string | null;
+    }[],
+    quizRows: { userId: string; scorePct: number; passScorePct: number }[],
+    passedRows: { userId: string; passed: number }[],
+    exercisesTotal: number,
+    nudgeRows: { userId: string; kind: 'reminder' | 'encourage'; createdAt: Date }[],
+    active7d: number,
+  ) {
     const quizzes = groupBy(quizRows, (q) => q.userId);
     const passed = new Map(passedRows.map((p) => [p.userId, p.passed]));
     const nudges = new Map(nudgeRows.map((n) => [n.userId, n]));
@@ -242,7 +289,7 @@ export class StudentsAnalyticsService {
     return {
       summary: {
         enrolled: students.length,
-        active7d: enrollments.filter((e) => e.lastAccessedAt && now.getTime() - e.lastAccessedAt.getTime() < 7 * DAY).length,
+        active7d,
         completed: count('done'),
         high: count('high'),
         watch: count('watch'),

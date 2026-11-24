@@ -17,6 +17,7 @@ const STORAGE = [
   { name: 'Bản nháp bài làm', group: 'Thiết yếu', purpose: 'Giữ đáp án trắc nghiệm đang làm dở, mã bạn đang viết và cách bạn sắp xếp trang học.', ttl: 'Đến khi nộp bài hoặc xoá dữ liệu trình duyệt' },
   { name: 'Cookie của Stripe', group: 'Thiết yếu', purpose: 'Chống gian lận trên trang thanh toán của Stripe. Chỉ xuất hiện khi bạn thanh toán.', ttl: 'Theo chính sách của Stripe' },
   { name: 'Chẩn đoán lỗi (Sentry)', group: 'Cần đồng ý', purpose: 'Ghi nhận lỗi, tốc độ tải trang và bản ghi thao tác quanh thời điểm xảy ra lỗi.', ttl: 'Trong phiên duyệt web' },
+  { name: 'Mã khách ẩn danh', group: 'Cần đồng ý', purpose: 'Nhận ra cùng một trình duyệt khi bạn quay lại trang khoá học, để giảng viên đếm đúng số người xem. Không chứa tên hay email.', ttl: 'Đến khi bạn xoá dữ liệu trình duyệt' },
 ];
 
 const SECTIONS: LegalSection[] = [
@@ -51,6 +52,7 @@ const SECTIONS: LegalSection[] = [
         <p><strong>Dữ liệu phát sinh khi bạn sử dụng</strong></p>
         <ul>
           <li>Học tập: khoá đã ghi danh, tiến độ từng bài, vị trí đang xem trong video, điểm số, kết quả đánh giá kỹ năng, chứng chỉ.</li>
+          <li>Hành vi xem: các đoạn video bạn đã xem (để giảng viên biết đoạn nào khó hiểu), lượt xem trang khoá học và lượt thêm khoá vào giỏ.</li>
           <li>Giao dịch: đơn hàng, số tiền, mã giảm giá đã dùng, trạng thái thanh toán và hoàn tiền.</li>
           <li>Phiên đăng nhập: địa chỉ IP, loại trình duyệt và thiết bị, thời điểm đăng nhập. Bạn xem và thu hồi được từng phiên trong Cài đặt.</li>
           <li>Email hệ thống đã gửi cho bạn (loại email, thời điểm, trạng thái gửi).</li>
@@ -131,7 +133,7 @@ const SECTIONS: LegalSection[] = [
         </p>
         <ul>
           <li><strong>Thiết yếu:</strong> cần để đăng nhập, thanh toán và học. Nhóm này luôn bật vì thiếu chúng trang không hoạt động đúng.</li>
-          <li><strong>Cần đồng ý:</strong> công cụ chẩn đoán lỗi. Nhóm này chỉ chạy sau khi bạn bấm “Đồng ý tất cả”.</li>
+          <li><strong>Cần đồng ý:</strong> công cụ chẩn đoán lỗi và mã khách ẩn danh lưu trên trình duyệt. Nhóm này chỉ chạy sau khi bạn bấm “Đồng ý tất cả”. Khi bạn chưa đồng ý, lượt xem trang khoá học vẫn được đếm nhưng không lưu gì trên trình duyệt của bạn.</li>
         </ul>
         <Table>
           <TableHeader>
@@ -156,7 +158,7 @@ const SECTIONS: LegalSection[] = [
         <p>Aolumi không dùng cookie quảng cáo và không có công cụ theo dõi của mạng xã hội.</p>
         <LegalNote title="Thay đổi lựa chọn của bạn:">
           bạn đổi ý hoặc rút lại sự đồng ý được bất cứ lúc nào. Khi bạn chọn “Từ chối”, công cụ chẩn đoán lỗi dừng ngay trên
-          trình duyệt của bạn.{' '}
+          trình duyệt của bạn. Khi bạn bấm Từ chối, mã khách đã lưu (nếu có) bị xoá ngay.{' '}
           <CookieSettingsButton className="font-semibold text-primary underline underline-offset-4" />
         </LegalNote>
       </>

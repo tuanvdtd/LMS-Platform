@@ -75,12 +75,16 @@ export function VideoPlayer({
         onLoadedMetadata={(e) => {
           if (resumeAt.current > 0) e.currentTarget.currentTime = resumeAt.current;
         }}
-        onPlaying={() => { retried.current = false; }} // phát được → lần hết hạn sau vẫn tự hồi phục
+        onPlaying={(e) => { retried.current = false; tracking.onPlaying(e); }} // phát được → lần hết hạn sau vẫn tự hồi phục
         onPlay={() => onEndedChange(false)}
+        onTimeUpdate={tracking.onTimeUpdate}
+        onSeeking={tracking.onSeeking}
+        onSeeked={tracking.onSeeked}
+        onPause={tracking.onPause}
         onError={() => void recover()}
-        {...tracking}
         // pause luôn chạy trước ended → vị trí cuối đã được gửi.
         onEnded={() => {
+          tracking.onEnded();
           onEndedChange(true);
           onFinished();
         }}

@@ -141,8 +141,16 @@ export const USERS: SeedUser[] = [
     },
   },
 
-  // Giảng viên chưa xác minh
-  { name: 'Đỗ Gia Huy', email: 'huy.do@skillpath.test', occupation: 'frontend_developer', level: 'intermediate', targetTopics: ['javascript', 'react', 'css', 'nodejs'] },
+  // Giảng viên chưa xác minh (huy.do đã xác minh sẵn: dạy khoá trình diễn có phí)
+  { name: 'Đỗ Gia Huy', email: 'huy.do@skillpath.test', occupation: 'frontend_developer', level: 'intermediate', targetTopics: ['javascript', 'react', 'css', 'nodejs'],
+    profile: {
+      headline: 'Frontend Developer · JavaScript, React và CSS',
+      bio: 'Mình làm frontend hơn sáu năm, từ những trang landing đơn giản cho đến ứng dụng bán hàng có hàng nghìn người dùng mỗi ngày tại TP.HCM. Phần lớn thời gian mình dành để giúp đồng đội mới vào nghề hiểu JavaScript đủ chắc, vì mình thấy nhiều bạn dùng framework rất nhanh nhưng vẫn lúng túng với biến, hàm và bất đồng bộ. Khi dạy, mình đi từng khái niệm nhỏ, kèm ví dụ chạy được ngay và một bài tập để bạn tự gõ lại. Mình thích giải thích lý do một đoạn code chạy ra kết quả như vậy hơn là bắt học thuộc cú pháp. Nếu bạn đang bắt đầu và muốn có nền tảng vững trước khi học React, các khoá của mình được viết cho bạn.',
+      ...links('huy.do'),
+      bank: { bin: '970422', accountNo: '0961234578', accountName: 'DO GIA HUY' },
+      verifiedAfterDays: 10,
+    },
+  },
   { name: 'Ngô Ngọc Trâm', email: 'tram.ngo@skillpath.test', occupation: 'other', level: 'intermediate', targetTopics: ['user-interface', 'css', 'blender'] },
   { name: 'Hồ Minh Trí', email: 'tri.ho@skillpath.test', occupation: 'devops_engineer', level: 'intermediate', targetTopics: ['docker', 'linux', 'github', 'python'] },
   { name: 'Phan Thanh Sơn', email: 'son.phan@skillpath.test', occupation: 'mobile_developer', level: 'intermediate', targetTopics: ['swift', 'swiftui', 'ios-development'] },

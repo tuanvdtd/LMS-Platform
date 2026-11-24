@@ -19,3 +19,7 @@ export async function searchCourses(q: string, signal: AbortSignal) {
   const { data } = await api.get<CourseList>('/courses', { params: { q, limit: 6, page: 1 }, signal });
   return data;
 }
+
+// Lượt xem trang khoá cho phễu chuyển đổi của giảng viên (public; gửi kèm cookie phiên nếu có).
+export const trackCourseView = (courseId: string, visitorId: string) =>
+  api.post(`/courses/${courseId}/view`, { visitorId }).then(() => undefined);

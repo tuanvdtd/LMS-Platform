@@ -18,7 +18,7 @@ export class AnalyticsCoursesService {
   async list(instructorId: string) {
     const rows = await this.prisma.course.findMany({
       where: { instructorId },
-      select: { id: true, title: true, status: true, _count: { select: { enrollments: true } } },
+      select: { id: true, title: true, status: true, _count: { select: { enrollments: { where: { userId: { not: instructorId } } } } } },
     });
     return rows
       .map((c) => ({ id: c.id, title: c.title, status: c.status, enrolled: c._count.enrollments }))

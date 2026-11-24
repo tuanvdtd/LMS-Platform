@@ -236,4 +236,24 @@ describe('Dashboard phân tích giảng viên (e2e)', () => {
     for (const p of paths) await call('get', `${A}/${p}`, bob.cookie).expect(404);
     await call('post', `${A}/courses/${courseId}/nudges`, bob.cookie, { userIds: [s2.id], kind: 'reminder', message: 'x' }).expect(404);
   }, SLOW);
+
+  it('[owner-excluded] ghi danh của chính chủ khoá không tính vào học viên / kỹ năng / danh sách khoá', async () => {
+    const enrolledOf = async () => ((await call('get', `${A}/courses`, alice.cookie).expect(200)).body as { id: string; enrolled: number }[]).find((c) => c.id === courseId)!.enrolled;
+    const studentsOf = async () => (await call('get', `${A}/courses/${courseId}/students?level=all&page=1`, alice.cookie).expect(200)).body;
+    const [enrolled0, students0, skills0] = await Promise.all([
+      enrolledOf(),
+      studentsOf(),
+      call('get', `${A}/courses/${courseId}/skills`, alice.cookie).expect(200).then((r) => r.body),
+    ]);
+    const own = await prisma.enrollment.create({ data: { userId: alice.id, courseId } });
+    try {
+      expect(await enrolledOf()).toBe(enrolled0);
+      const students1 = await studentsOf();
+      expect(students1.students.some((x: { userId: string }) => x.userId === alice.id)).toBe(false);
+      expect(students1.counts.all).toBe(students0.counts.all);
+      expect((await call('get', `${A}/courses/${courseId}/skills`, alice.cookie).expect(200)).body.enrolled).toBe(skills0.enrolled);
+    } finally {
+      await prisma.enrollment.delete({ where: { id: own.id } });
+    }
+  }, SLOW);
 });

@@ -22,3 +22,11 @@ export const studentsQuery = z
   })
   .strict();
 export type StudentsQuery = z.output<typeof studentsQuery>;
+
+export const courseViewSchema = z.object({ visitorId: z.guid('Mã khách không hợp lệ') }).strict();
+export type CourseViewInput = z.output<typeof courseViewSchema>;
+
+export const revenueQuery = z.object({ range: z.enum(['30d', '12m']).default('12m') });
+export type RevenueQuery = z.output<typeof revenueQuery>;
+export const funnelQuery = z.object({ days: z.coerce.number().pipe(z.union([z.literal(7), z.literal(30), z.literal(90)])).default(30) });
+export type FunnelQuery = z.output<typeof funnelQuery>;

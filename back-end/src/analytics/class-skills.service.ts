@@ -23,7 +23,7 @@ export class ClassSkillsService {
           topic: { select: { id: true, name: true, _count: { select: { skillQuestions: { where: { archivedAt: null } } } } } },
         },
       }),
-      this.prisma.enrollment.findMany({ where: { courseId }, select: { userId: true, createdAt: true } }),
+      this.prisma.enrollment.findMany({ where: { courseId, userId: { not: instructorId } }, select: { userId: true, createdAt: true } }),
     ]);
     const userIds = enrollments.map((e) => e.userId);
     const topicIds = topics.map((t) => t.topic.id);

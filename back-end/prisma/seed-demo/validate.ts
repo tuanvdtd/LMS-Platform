@@ -128,6 +128,8 @@ export function validateShowcase(data: SeedData): string[] {
   if (!c) return [`Không có khoá trình diễn "${SHOWCASE.courseTitle}"`];
   const errors: string[] = [];
   if (c.status !== 'published') errors.push('Khoá trình diễn phải published');
+  if (c.priceAmount <= 0) errors.push('Khoá trình diễn phải có giá (dashboard doanh thu / phễu)');
+  if (!data.users.find((u) => u.email === c.instructorEmail)?.profile) errors.push('Giảng viên khoá trình diễn phải có profile (đã xác minh)');
   if (c.quiz.questions.length !== SHOWCASE.questions.length) errors.push(`Khoá trình diễn cần ${SHOWCASE.questions.length} câu quiz`);
   const t = c.exercise?.tests[SHOWCASE.hardestTestPosition];
   if (!t || t.isPublic) errors.push('Khoá trình diễn: test cài sẵn phải là test ẩn');

@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 
 export function AnalyticsHeader({ title, description, children }: { title: string; description: string; children?: ReactNode }) {
   return (
@@ -14,7 +14,7 @@ export function AnalyticsHeader({ title, description, children }: { title: strin
   );
 }
 
-export function AnalyticsEmpty({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children?: ReactNode }) {
+export function AnalyticsEmpty({ icon: Icon, title, children, action }: { icon: LucideIcon; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <Empty className="border bg-card py-12">
       <EmptyHeader>
@@ -24,6 +24,7 @@ export function AnalyticsEmpty({ icon: Icon, title, children }: { icon: LucideIc
         <EmptyTitle>{title}</EmptyTitle>
         {children && <EmptyDescription>{children}</EmptyDescription>}
       </EmptyHeader>
+      {action && <EmptyContent>{action}</EmptyContent>}
     </Empty>
   );
 }

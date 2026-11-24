@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { RatingStars } from '@/components/shared/product-ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CourseViewTracker } from './course-view-tracker';
 import { categoryHref, topicHref } from '@/lib/category-links';
 import { cn } from '@/lib/utils';
 import { countItems, formatHoursMinutes, type CourseDetail, type CurriculumSection } from '@/types/catalog';
@@ -59,6 +60,7 @@ export default function CourseDetailView({ course, sections }: { course: CourseD
 
   return (
     <div className="relative min-h-screen bg-background">
+      <CourseViewTracker courseId={course.id} />
       {/* Hero: nền tối cố định (không theo token để dark mode vẫn tối) */}
       <div className="bg-ink text-white">
         <div className="mx-auto flex max-w-screen-xl flex-col gap-3 px-4 py-10 lg:pr-[388px]">

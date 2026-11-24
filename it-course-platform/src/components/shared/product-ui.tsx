@@ -227,7 +227,7 @@ export function StatCard({
             style={{ color: pos ? 'var(--skill-strong)' : 'var(--skill-weak)' }}
           >
             {pos ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-            {Math.abs(change)}% so với kỳ trước
+            {Math.abs(change).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}% so với kỳ trước
           </span>
         )}
         {sub && (

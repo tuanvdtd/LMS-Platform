@@ -119,3 +119,82 @@ export type TimelineEvent =
 export type StudentDetail = { student: StudentRow; timeline: TimelineEvent[] };
 export type SkipReason = 'not_enrolled' | 'completed' | 'recent';
 export type NudgeResult = { sent: string[]; skipped: { userId: string; reason: SkipReason }[] };
+
+// --- Gói 2: hợp đồng API (tỉ lệ là phân số 0..1) ---
+// GET /instructor/analytics/lectures/:itemId/retention  (và Engagement.defaultLecture)
+export type Retention = {
+  itemId: string; title: string; label: string; // label "2.4" = phần.bài theo curriculum
+  durationSec: number; bucketSec: number; n: number; enrolled: number; minViewers: number;
+  points: { t: number; retention: number; stay: number; rewatch: number }[]; // t = giây đầu ô
+  peaks: { fromSec: number; toSec: number; rewatch: number; people: number; multiple: number | null }[];
+  drop: { fromSec: number; toSec: number; lost: number } | null;
+  finished: number | null; avgWatched: number | null;
+};
+export type LectureEngagement = {
+  itemId: string; title: string; label: string; durationSec: number;
+  viewers: number; started: number | null; // viewers / enrolled
+  finished: number | null; avgWatched: number | null; peaks: number;
+  drop: { fromSec: number; toSec: number; lost: number } | null;
+};
+export type ProgressItemType = 'lecture' | 'quiz' | 'practice_test' | 'coding_exercise';
+// GET /instructor/analytics/courses/:courseId/engagement
+export type Engagement = {
+  enrolled: number;
+  kpis: { active7d: number; active7dPrev: number; watchMin30d: number; watchMin30dPrev: number; completed: number };
+  weekly: { weekStart: string; active: number; newEnrollments: number; current: boolean }[]; // 12 tuần, cũ → mới
+  progress: {
+    n: number; minLearners: number; minAgeDays: number;
+    items: { itemId: string; type: ProgressItemType; title: string; label: string; completed: number | null }[];
+    bottleneck: { itemId: string; completed: number; drop: number } | null;
+  };
+  lectures: LectureEngagement[];
+  defaultLecture: Retention | null;
+};
+export type FunnelStepKey = 'view' | 'cart' | 'checkout' | 'enroll';
+// GET /instructor/analytics/courses/:courseId/funnel?days=7|30|90
+export type Funnel = {
+  courseId: string; isFree: boolean; days: number; minVisitors: number;
+  steps: { key: FunnelStepKey; people: number }[];
+  weakest: { key: FunnelStepKey; rate: number } | null; // bước có tỉ lệ giữ lại (so với bước trước) thấp nhất
+  trackedSince: string | null; // ISO, lượt ghi sớm nhất của khoá
+};
+export type RevenueRange = '30d' | '12m';
+export type RevenuePoint = { key: string; earned: number; gross: number; sales: number };
+// GET /instructor/analytics/revenue?range=30d|12m
+export type Sales = {
+  verified: boolean; canSell: boolean; range: RevenueRange; // verified = có hồ sơ + ngân hàng; canSell = verified + có khoá giá > 0
+  series: RevenuePoint[];
+  totals: { earned: number; gross: number; sales: number };
+  courses: {
+    courseId: string; title: string; priceAmount: number;
+    earned: number; sales: number; newEnrollments: number; visitors: number; conversion: number | null;
+  }[];
+};
+// GET /instructor/analytics/overview
+export type InstructorOverview = {
+  name: string; verified: boolean; canSell: boolean;
+  kpis: {
+    earnedMonth: number; earnedPrevMonth: number;
+    enrollments30d: number; enrollmentsPrev30d: number;
+    active7d: number; active7dPrev: number;
+    rating: number | null; reviewCount: number;
+  };
+  todo: {
+    rejectedCourses: { count: number; firstTitle: string | null };
+    unansweredQuestions: { count: number; oldestDays: number | null };
+    highRisk: { count: number; topCourseId: string | null };
+    lowReviews: number; unreadMessages: number;
+  };
+  revenue12m: RevenuePoint[];
+  atRisk: {
+    userId: string; name: string; image: string | null; courseId: string; courseTitle: string; canMessage: boolean;
+    inactiveDays: number; progressPct: number; reasons: RiskReason[]; // RiskReason của gói 1
+  }[];
+  reviews: {
+    distribution: { stars: 1 | 2 | 3 | 4 | 5; count: number }[]; // 5 → 1
+    low: {
+      courseId: string; courseTitle: string; userId: string; userName: string; userImage: string | null;
+      rating: number; comment: string | null; createdAt: string; canMessage: boolean;
+    }[];
+  };
+};
