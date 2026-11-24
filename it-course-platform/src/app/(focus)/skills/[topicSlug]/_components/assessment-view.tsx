@@ -157,7 +157,7 @@ export function AssessmentView({ topicSlug }: { topicSlug: string }) {
 
 function StateMessage({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: React.ReactNode }) {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-4 py-20 text-center">
+    <main className="mx-auto flex min-h-page w-full max-w-md flex-col items-center justify-center gap-4 px-4 py-16 text-center">
       <div className="flex size-14 items-center justify-center rounded-full bg-muted">
         <Icon className="size-7 text-muted-foreground" aria-hidden />
       </div>

@@ -279,6 +279,12 @@
 [data-cover] ::selection { background: var(--cover-fg); color: var(--cover-bg); }
 
 
+/* Trang trạng thái toàn trang (404, không tìm thấy, không có quyền): chiếm trọn màn dưới header sticky (h-16 + viền 1px)
+   để nội dung căn giữa và footer nằm dưới mép màn, không bị kéo lên giữa trang. */
+@utility min-h-page {
+  min-height: calc(100dvh - 4rem - 1px);
+}
+
 /* Thẻ bấm được (card khoá học, ô danh mục). Hover và focus bàn phím dùng cùng một phản hồi: nhấc 2px + bóng mềm.
    Viền giữ trung tính vì viền xanh là ngôn ngữ "đã chọn" (đáp án quiz, bộ lọc đang áp). */
 @utility card-interactive {

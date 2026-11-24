@@ -323,7 +323,7 @@ export function EditPost({ id }: { id: string }) {
 
   if (error) {
     return (
-      <main className="mx-auto max-w-xl px-4 py-16">
+      <main className="mx-auto flex min-h-page max-w-xl flex-col justify-center px-4 py-16">
         <EmptyState
           icon={PenLine}
           title={error === 'notFound' ? 'Không tìm thấy bài viết' : 'Không tải được bài viết'}
