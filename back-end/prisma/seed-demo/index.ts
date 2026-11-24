@@ -10,7 +10,8 @@ import { planSkillHistory, writeSkillHistory } from './skills.ts';
 import { planActivity, writeActivity } from './activity.ts';
 import { renderThumbnail, r2 as makeR2, type R2 } from './thumbnails.ts';
 import { coverageReport, recomputeStats } from './stats.ts';
-import { cleanSeed } from './clean.ts';
+import { cleanSeed, seedCoursesSql, showcaseOwnerId, SHOWCASE_TEACHER } from './clean.ts';
+import { ensureOwnerProfile } from './owner.ts';
 import { DEMO_PASSWORD } from './users.ts';
 import { v7 as uuidv7 } from 'uuid';
 import { thetaBank } from './assessment-sim.ts';
@@ -68,15 +69,18 @@ async function main() {
     const showUsers = await writeUsers(prisma, learners.map((l) => l.user), { rng: showRng, now, instructorEmails, topicIdBySlug, occupationTopicIds });
     log(`✓ ${showUsers.size} học viên giả lập cho khoá trình diễn`);
 
+    const ownerId = await showcaseOwnerId(prisma);
+    if (ownerId) await ensureOwnerProfile(prisma, ownerId, now);
+    const ownerIdOf = new Map(ownerId ? [[SHOWCASE_TEACHER, ownerId]] : []);
     const ctx = {
-      rng, now, adminId: admin.id, users, categoryBySlug, topicIdBySlug,
+      rng, now, adminId: admin.id, users, ownerIdOf, categoryBySlug, topicIdBySlug,
       videos: videos.map((v) => ({ id: v.id, durationSec: v.durationSec! })), videoCursor: { i: 0 },
     };
     const seeded: SeededCourse[] = [];
     for (const c of SEED_DATA.courses) {
-      const teacher = users.get(c.instructorEmail)!;
+      const teacherId = ownerIdOf.get(c.instructorEmail) ?? users.get(c.instructorEmail)!.id;
       const slug = courseSlug(rng, c.title);
-      const key = `thumbnails/${teacher.id}/${crypto.randomUUID()}.png`;
+      const key = `thumbnails/${teacherId}/${crypto.randomUUID()}.png`;
       const url = await r2.upload(key, renderThumbnail({ ...c.thumbnail, rootSlug: categoryBySlug.get(c.categorySlug)!.rootSlug, seed: slug }));
       try {
         seeded.push(await writeCourse(prisma, c, ctx, url, slug, c.title === SHOWCASE.courseTitle ? showPublishedAt : undefined));
@@ -169,14 +173,14 @@ async function main() {
     await writeSkillHistory(prisma, skillPlan);
     log(`✓ ${skillPlan.attempts.length} lượt đánh giá kỹ năng (${Object.keys(SKILL_ABILITIES).length} học viên mẫu + ${showPlan.skill.length} học viên khoá trình diễn)`);
 
-    await recomputeStats(prisma);
+    await recomputeStats(prisma, ownerId);
     const cov = await coverageReport(prisma);
     console.table(cov.rows);
     if (!cov.ok) throw new Error('Còn topic nghề chưa có khoá published (xem cột missing)');
 
     const [check] = await prisma.$queryRawUnsafe<{ empty: number; badSplit: number }[]>(`
-      SELECT (SELECT COUNT(*) FROM courses c JOIN "user" u ON u.id = c."instructorId"
-                WHERE u.email LIKE '%@skillpath.test' AND c.status = 'published' AND c."enrollmentCount" = 0)::int AS "empty",
+      SELECT (SELECT COUNT(*) FROM courses c
+                WHERE c.id IN (${seedCoursesSql(ownerId)}) AND c.status = 'published' AND c."enrollmentCount" = 0)::int AS "empty",
              (SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i."orderId"
                 WHERE o."providerSessionId" LIKE 'cs_seed_%' AND i."platformFeeAmount" + i."instructorEarnAmount" <> i."unitPriceAmount")::int AS "badSplit"`);
     if (check.empty || check.badSplit) throw new Error(`Kiểm tra sau seed lỗi: ${check.empty} khoá published không có học viên, ${check.badSplit} dòng đơn chia tiền sai`);
@@ -186,7 +190,7 @@ async function main() {
     log(`Khoá theo trạng thái: ${JSON.stringify(byStatus)}`);
     log(`Mật khẩu chung: ${DEMO_PASSWORD}`);
     log(`Thử đăng nhập: lananh.nguyen@skillpath.test (frontend), thao.nguyen@skillpath.test (data), phuc.kieu@skillpath.test (QA)`);
-    log('Dashboard giảng viên: huy.do@skillpath.test → Phân tích, khoá "JavaScript nền tảng cho người mới"');
+    log(`Dashboard giảng viên: ${process.env.SEED_SHOWCASE_OWNER ?? SHOWCASE_TEACHER} → Phân tích, khoá "${SHOWCASE.courseTitle}"`);
   } finally {
     await prisma.$disconnect();
   }

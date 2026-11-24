@@ -1,9 +1,8 @@
 import type { PrismaClient } from '@prisma/client';
-
-const SEED_USERS = `SELECT id FROM "user" WHERE email LIKE '%@skillpath.test'`;
+import { seedCoursesSql } from './clean.ts';
 
 // Các cột này denormalized nhưng app chưa có chỗ nào ghi: tính lại từ dữ liệu thật của khoá seed.
-export async function recomputeStats(prisma: PrismaClient) {
+export async function recomputeStats(prisma: PrismaClient, ownerId: string | null) {
   await prisma.$executeRawUnsafe(`
     UPDATE courses c SET
       "ratingAvg"        = COALESCE((SELECT ROUND(AVG(rating)::numeric, 2) FROM course_reviews r WHERE r."courseId" = c.id), 0),
@@ -11,7 +10,7 @@ export async function recomputeStats(prisma: PrismaClient) {
       "enrollmentCount"  = (SELECT COUNT(*) FROM enrollments e WHERE e."courseId" = c.id),
       "lectureCount"     = (SELECT COUNT(*) FROM curriculum_items i WHERE i."courseId" = c.id AND i.type = 'lecture' AND i."isPublished"),
       "totalDurationSec" = (SELECT COALESCE(SUM("durationSec"), 0) FROM curriculum_items i WHERE i."courseId" = c.id AND i.type = 'lecture' AND i."isPublished")
-    WHERE c."instructorId" IN (${SEED_USERS})`);
+    WHERE c.id IN (${seedCoursesSql(ownerId)})`);
 }
 
 export async function coverageReport(prisma: PrismaClient) {

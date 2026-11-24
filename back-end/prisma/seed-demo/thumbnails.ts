@@ -5,7 +5,7 @@ import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client
 
 const { Resvg } = resvgPkg;
 const FONT_DIR = fileURLToPath(new URL('./fonts/', import.meta.url));
-const FONT_FILES = ['BeVietnamPro-Bold.ttf', 'BeVietnamPro-Medium.ttf'].map((f) => FONT_DIR + f);
+export const FONT_FILES = ['BeVietnamPro-Bold.ttf', 'BeVietnamPro-Medium.ttf'].map((f) => FONT_DIR + f);
 
 // Màu nền theo danh mục gốc, bám bảng màu DESIGN.md.
 const PALETTE: Record<string, [string, string]> = {
@@ -72,3 +72,33 @@ export function r2() {
   };
 }
 export type R2 = ReturnType<typeof r2>;
+
+// Ảnh bìa bài blog mẫu (seed:blog).
+export type PostCover = { kicker: string; headline: string; sub: string; bg: string; accent: string };
+
+// 16:9. Chữ và khung code nằm trong vùng an toàn x 200–1420, y 220–700: ảnh 21:9 ở trang đọc và 3:2 ở dòng bài (cắt 125px mỗi bên) vẫn đủ chữ. Nền phẳng, không gradient.
+export function renderPostCover(c: PostCover): Buffer {
+  const h = createHash('sha1').update(c.headline).digest();
+  const size = c.headline.length > 12 ? 80 : 104;
+  const bars = Array.from({ length: 7 }, (_, i) => {
+    const w = 110 + ((h[i] * 7) % 220);
+    const indent = [0, 0, 36, 36, 72, 36, 0][i];
+    const color = i % 3 === 1 ? c.accent : '#ffffff';
+    const opacity = i % 3 === 1 ? 0.9 : 0.28;
+    return `<rect x="${990 + indent}" y="${330 + i * 48}" width="${w}" height="18" rx="9" fill="${color}" fill-opacity="${opacity}"/>`;
+  }).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="${c.bg}"/>
+  <circle cx="${120 + (h[8] % 80)}" cy="${860 + (h[9] % 40)}" r="220" fill="${c.accent}" fill-opacity=".10"/>
+  <rect x="940" y="220" width="480" height="470" rx="28" fill="#ffffff" fill-opacity=".05" stroke="#ffffff" stroke-opacity=".14" stroke-width="2"/>
+  <circle cx="980" cy="262" r="9" fill="#ffffff" fill-opacity=".30"/>
+  <circle cx="1010" cy="262" r="9" fill="#ffffff" fill-opacity=".30"/>
+  <circle cx="1040" cy="262" r="9" fill="${c.accent}"/>
+  ${bars}
+  <rect x="200" y="300" width="56" height="8" rx="4" fill="${c.accent}"/>
+  <text x="200" y="372" font-family="Be Vietnam Pro" font-weight="700" font-size="34" letter-spacing="6" fill="${c.accent}">${esc(c.kicker)}</text>
+  <text x="194" y="${372 + size + 24}" font-family="Be Vietnam Pro" font-weight="700" font-size="${size}" fill="#ffffff">${esc(c.headline)}</text>
+  <text x="200" y="${372 + size + 104}" font-family="Be Vietnam Pro" font-weight="500" font-size="40" fill="#ffffff" fill-opacity=".72">${esc(c.sub)}</text>
+</svg>`;
+  return Buffer.from(new Resvg(svg, { font: { fontFiles: FONT_FILES, loadSystemFonts: false, defaultFontFamily: 'Be Vietnam Pro' } }).render().asPng());
+}
