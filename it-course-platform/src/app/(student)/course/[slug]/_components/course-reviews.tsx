@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MessageSquare, Star } from 'lucide-react';
 import { RatingStars } from '@/components/shared/product-ui';
+import { MessageButton } from '@/components/messages/message-button';
 import { ReviewDialog } from '@/components/shared/review-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -17,9 +18,10 @@ import type { CourseReview, CourseReviewPage, MyReview, Stars } from '@/types/re
 const focusRing = 'outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
 
 // Mục "Đánh giá của học viên": tự lấy số liệu từ API (không qua cache của trang) nên đổi ngay sau khi viết.
-export function CourseReviews({ slug }: { slug: string }) {
+export function CourseReviews({ slug, instructorId }: { slug: string; instructorId?: string }) {
   const { data: session } = authClient.useSession();
   const signedIn = Boolean(session?.user);
+  const isInstructor = Boolean(instructorId) && session?.user.id === instructorId;
   const [page, setPage] = useState<CourseReviewPage | null>(null);
   const [filter, setFilter] = useState<Stars | null>(null);
   const [failed, setFailed] = useState(false);
@@ -157,7 +159,7 @@ export function CourseReviews({ slug }: { slug: string }) {
             <p className="mt-6 text-sm text-muted-foreground">Chưa có đánh giá {filter} sao.</p>
           ) : (
             <ul className="mt-2 divide-y">
-              {page.items.map((r) => <ReviewRow key={r.id} review={r} />)}
+              {page.items.map((r) => <ReviewRow key={r.id} review={r} canMessage={isInstructor} />)}
             </ul>
           )}
 
@@ -183,7 +185,7 @@ export function CourseReviews({ slug }: { slug: string }) {
   );
 }
 
-function ReviewRow({ review }: { review: CourseReview }) {
+function ReviewRow({ review, canMessage }: { review: CourseReview; canMessage: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const [clamped, setClamped] = useState(false);
   const ref = useRef<HTMLParagraphElement>(null);
@@ -225,6 +227,7 @@ function ReviewRow({ review }: { review: CourseReview }) {
             )}
           </>
         )}
+        {canMessage && <MessageButton userId={review.author.id} basePath="/instructor/messages" className="mt-1 self-start" />}
       </div>
     </li>
   );

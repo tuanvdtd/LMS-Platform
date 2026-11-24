@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { fmtDate, fmtNum, fmtPct, lastActiveText, reasonText, RISK_META } from '@/lib/analytics';
 import { getStudents } from '@/lib/api/analytics';
+import { MessageButton } from '@/components/messages/message-button';
 import { cn } from '@/lib/utils';
 import type { StudentFilter, StudentRow } from '@/types/analytics';
 import { AnalyticsEmpty } from '../../_components/analytics-shell';
@@ -149,6 +150,7 @@ function Students({ courseId }: { courseId: string }) {
                         {s.name}
                       </button>
                       <p className="whitespace-nowrap text-xs text-muted-foreground">Ghi danh {fmtDate(s.enrolledAt)}</p>
+                      <MessageButton userId={s.userId} canMessage={s.canMessage} basePath="/instructor/messages" className="mt-1.5" />
                     </TableCell>
                     <TableCell>
                       <span className="flex items-center gap-2">

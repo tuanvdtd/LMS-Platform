@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useNotificationStore } from '@/lib/notification-store';
 import { accountLinks } from '@/components/layout/account-links';
+import { useMessageStore } from '@/lib/message-store';
+import { badgeText } from '@/lib/messages';
 import { isStaff, teachHref } from '@/lib/instructor-role';
 import type { CategoryNode } from '@/types';
 
@@ -32,6 +34,8 @@ export function MobileNav({
   onSignOut: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const msgUnread = useMessageStore((s) => s.unreadCount);
+  const msgBadge = badgeText(msgUnread);
   const unread = useNotificationStore((s) => s.unreadCount);
   const [stack, setStack] = useState<string[]>([]);
   const { resolvedTheme, setTheme } = useTheme();
@@ -100,10 +104,18 @@ export function MobileNav({
             {user && (
               <div className="mt-2 border-t py-2">
                 {/* Header mobile ẩn 💬 🔔 → đưa vào drawer */}
-                <Link href="/messages" onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
-                  <MessageCircle size={15} className="text-muted-foreground" />
-                  Tin nhắn
-                </Link>
+                {!staff && (
+                  <Link href="/messages" onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
+                    <MessageCircle size={15} className="text-muted-foreground" />
+                    Tin nhắn
+                    {msgBadge && (
+                      <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-xs leading-none font-semibold text-primary-foreground">
+                        <span aria-hidden>{msgBadge}</span>
+                        <span className="sr-only">{msgUnread} chưa đọc</span>
+                      </span>
+                    )}
+                  </Link>
+                )}
                 <Link href="/notifications" onClick={close} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">
                   <Bell size={15} className="text-muted-foreground" />
                   Thông báo

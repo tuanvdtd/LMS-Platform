@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { countItems, formatHoursMinutes, type CourseDetail, type CurriculumSection } from '@/types/catalog';
 import { formatPrice, LANGUAGE_LABEL, SKILL_LEVEL_LABEL } from '@/types/instructor-course';
 import { BuyBox } from './buy-box';
+import { MessageButton } from '@/components/messages/message-button';
 import { CourseReviews } from './course-reviews';
 import { CurriculumAccordion } from './curriculum-accordion';
 import { PausingVideo } from '@/components/shared/pausing-video';
@@ -251,11 +252,12 @@ export default function CourseDetailView({ course, sections }: { course: CourseD
               >
                 Xem hồ sơ <ChevronRight className="size-3.5" aria-hidden />
               </Link>
+              <MessageButton userId={course.instructor.id} label="Nhắn giảng viên" className="mt-2" />
             </div>
           </div>
         </section>
 
-        <CourseReviews slug={course.slug} />
+        <CourseReviews slug={course.slug} instructorId={course.instructor.id} />
       </div>
     </div>
   );

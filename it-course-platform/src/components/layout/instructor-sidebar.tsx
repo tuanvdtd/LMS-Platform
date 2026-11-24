@@ -30,9 +30,11 @@ export const INSTRUCTOR_NAV = [
 ];
 
 export default function InstructorSidebar() {
-  const [collapsed, setCollapsed] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(true);
   const pathname = usePathname();
+  // Mặc định thu gọn ở trang tin nhắn (nhường chỗ cho 3 cột); bấm nút thì theo lựa chọn của người dùng.
+  const [pref, setPref] = useState<boolean | null>(null);
+  const collapsed = pref ?? pathname.startsWith('/instructor/messages');
 
   return (
     <aside
@@ -41,7 +43,7 @@ export default function InstructorSidebar() {
         width: collapsed ? 56 : 220,
         background: 'var(--card)',
         borderColor: 'var(--border)',
-        minHeight: 'calc(100vh - 56px)',
+        minHeight: 'calc(100vh - 57px)',
       }}
     >
       <div className="flex-1 py-3 overflow-y-auto">
@@ -131,7 +133,7 @@ export default function InstructorSidebar() {
       {/* Collapse toggle */}
       <Button
         variant="ghost"
-        onClick={() => setCollapsed((c) => !c)}
+        onClick={() => setPref(!collapsed)}
         className="h-10 rounded-none border-t"
         style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
         aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}

@@ -45,7 +45,7 @@ export class ReviewsService {
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: PAGE + 1, // lấy dư 1 dòng để biết còn trang sau
         ...(q.cursor && { cursor: { id: q.cursor }, skip: 1 }),
-        select: { id: true, rating: true, comment: true, createdAt: true, user: { select: { name: true, image: true } } },
+        select: { id: true, rating: true, comment: true, createdAt: true, user: { select: { id: true, name: true, image: true } } },
       }),
       // Phân bố luôn tính trên toàn bộ đánh giá của khoá, không theo bộ lọc sao.
       this.prisma.courseReview.groupBy({ by: ['rating'], where: { courseId: course.id }, _count: { _all: true } }),

@@ -7,7 +7,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <>
       <InstructorHeader />
-      <div className="flex min-h-[calc(100vh-3.5rem)]">
+      <div className="flex min-h-[calc(100vh-3.5rem-1px)]">
         {/* usePathname() cần Suspense khi route có [id] được prerender tĩnh; fallback giữ đúng bề rộng sidebar */}
         <Suspense fallback={<aside className="hidden w-[220px] shrink-0 border-r bg-card lg:block" />}>
           <InstructorSidebar />

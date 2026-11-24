@@ -94,6 +94,10 @@ model User {
   certificates          Certificate[]
   nudgesSent            CourseNudge[]           @relation("nudgeInstructor")
   nudgesReceived        CourseNudge[]           @relation("nudgeStudent")
+  conversationsA        Conversation[]          @relation("conversationA")
+  conversationsB        Conversation[]          @relation("conversationB")
+  conversationsBlocked  Conversation[]          @relation("conversationBlocker")
+  messagesSent          Message[]
   emailLogs             EmailLog[]
   assets                Asset[]
   skillAttempts         SkillAttempt[]
@@ -1508,6 +1512,45 @@ model PostImageUse {
   @@id([postId, key])
   @@index([key])
   @@map("post_image_uses")
+}
+
+// Tin nhắn 1-1. Mỗi cặp người đúng 1 cuộc: userAId < userBId (CHECK trong migration) để unique không phụ thuộc ai mở trước.
+model Conversation {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  userAId       String    @db.Uuid
+  userBId       String    @db.Uuid
+  aLastReadAt   DateTime? // mốc đã đọc của A → "Đã xem" + số chưa đọc
+  bLastReadAt   DateTime?
+  blockedById   String?   @db.Uuid // null = không chặn; chỉ người chặn bỏ chặn được
+  blockedAt     DateTime?
+  lastMessageAt DateTime? // null = chưa có tin → không hiện trong danh sách
+  createdAt     DateTime  @default(now())
+
+  userA     User      @relation("conversationA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB     User      @relation("conversationB", fields: [userBId], references: [id], onDelete: Cascade)
+  blockedBy User?     @relation("conversationBlocker", fields: [blockedById], references: [id], onDelete: SetNull)
+  messages  Message[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId, lastMessageAt])
+  @@index([userBId, lastMessageAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  conversationId String   @db.Uuid
+  senderId       String   @db.Uuid
+  body           String   @default("") // ≤ 4000 ký tự; rỗng chỉ khi có ảnh
+  imageKeys      String[] @default([]) // key bucket private messages/{conversationId}/..., ≤ 4
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("messages")
 }
 
 // ============================================================================

@@ -154,6 +154,7 @@ describe('Đánh giá khoá học (e2e)', () => {
       const { body } = await list().expect(200);
       expect(body.items).toHaveLength(1);
       expect(body.items[0]).toMatchObject({ rating: 4, comment: 'Dễ hiểu', author: { name: 'Minh Anh' } });
+      expect(body.items[0].author.id).toEqual(expect.any(String));
       expect(body.items[0]).not.toHaveProperty('instructorReply');
       expect(body.items[0]).not.toHaveProperty('userId');
       expect(body.distribution).toEqual({ 1: 0, 2: 0, 3: 0, 4: 1, 5: 0 });

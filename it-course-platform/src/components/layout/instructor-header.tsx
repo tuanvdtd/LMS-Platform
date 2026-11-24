@@ -7,6 +7,8 @@ import { useTheme } from 'next-themes';
 import { BookMarked, LogOut, Menu, MessagesSquare, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
 import { LogoMark } from '@/components/shared/logo-mark';
 import { authClient } from '@/lib/auth-client';
+import { useMessageStore } from '@/lib/message-store';
+import { badgeText } from '@/lib/messages';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -31,6 +33,8 @@ export default function InstructorHeader() {
   const { resolvedTheme, setTheme } = useTheme();
   const { data: session } = authClient.useSession();
   const user = session?.user;
+  const msgUnread = useMessageStore((s) => s.unreadCount);
+  const msgBadge = badgeText(msgUnread);
 
   const [signOutOpen, setSignOutOpen] = useState(false);
 
@@ -65,8 +69,13 @@ export default function InstructorHeader() {
             <Sun className="hidden dark:block" />
             <Moon className="dark:hidden" />
           </Button>
-          <Link href="/instructor/messages" className={buttonVariants({ variant: 'ghost', size: 'icon' })} aria-label="Tin nhắn học viên">
+          <Link href="/instructor/messages" className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'relative')} aria-label={msgUnread > 0 ? `Tin nhắn học viên, ${msgUnread} cuộc chưa đọc` : 'Tin nhắn học viên'}>
             <MessagesSquare />
+            {msgBadge && (
+              <span aria-hidden className="absolute top-0.5 right-0.5 flex min-w-4 items-center justify-center rounded-full bg-brand-accent px-1 text-[10px] leading-4 font-bold text-white ring-2 ring-card">
+                {msgBadge}
+              </span>
+            )}
           </Link>
           <NotificationPanel isInstructor sideOffset={16} triggerClassName="inline-flex" />
 
