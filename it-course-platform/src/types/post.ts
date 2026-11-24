@@ -41,6 +41,14 @@ export interface PostList {
   topic: { slug: string; name: string } | null;
 }
 
+export type PostSort = 'latest' | 'popular';
+
+export interface PostHighlights {
+  days: number;
+  popular: { slug: string; title: string; likeCount: number; commentCount: number }[];
+  authors: { id: string; name: string; image: string | null; headline: string | null; postCount: number; likeCount: number }[];
+}
+
 export interface PostTopicCount {
   slug: string;
   name: string;

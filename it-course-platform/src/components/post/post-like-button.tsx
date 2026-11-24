@@ -15,7 +15,20 @@ import type { LikeState } from '@/types/post';
 // Đổi trạng thái ngay, gửi ở nền. Bấm liên tục: chỉ gửi trạng thái cuối cùng, không gửi chồng.
 // Khách bấm → đăng nhập → quay lại với ?action=like → tự thả tim một lần.
 // preview: bản xem trước của tác giả / trang xem thử giao diện, không gọi API.
-export function PostLikeButton({ slug, initialCount, preview = false }: { slug: string; initialCount: number; preview?: boolean }) {
+// inFeed: nút ở luồng /blog (nhiều nút một trang). Khách bấm → đăng nhập rồi về trang bài đó tự tim,
+// không tự tim tại luồng (?action=like ở /blog sẽ làm mọi nút cùng tim).
+// ponytail: mỗi nút ở luồng tự GET trạng thái tim (≤ 12 request/trang); đông người thì gộp thành một API theo danh sách slug.
+export function PostLikeButton({
+  slug,
+  initialCount,
+  preview = false,
+  inFeed = false,
+}: {
+  slug: string;
+  initialCount: number;
+  preview?: boolean;
+  inFeed?: boolean;
+}) {
   const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,24 +86,24 @@ export function PostLikeButton({ slug, initialCount, preview = false }: { slug: 
 
   function toggle() {
     if (!preview && !session) {
-      router.push(loginUrlFor(window.location.pathname, window.location.search, 'like'));
+      router.push(inFeed ? loginUrlFor(`/blog/${slug}`, '', 'like') : loginUrlFor(window.location.pathname, window.location.search, 'like'));
       return;
     }
     apply(!state.liked);
   }
 
   useEffect(() => {
-    if (preview || resumed.current || isPending || !session || parseAction(searchParams.get('action')) !== 'like') return;
+    if (inFeed || preview || resumed.current || isPending || !session || parseAction(searchParams.get('action')) !== 'like') return;
     resumed.current = true;
     router.replace(withoutAction(window.location.pathname, window.location.search), { scroll: false });
     apply(true);
     // apply đọc state qua setState(fn) và ref nên không cần trong deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preview, isPending, session, searchParams, router]);
+  }, [inFeed, preview, isPending, session, searchParams, router]);
 
   return (
     <Button
-      variant="outline"
+      variant={inFeed ? 'ghost' : 'outline'}
       aria-pressed={state.liked}
       aria-label={state.liked ? `Bỏ thích bài viết (${state.likeCount} lượt thích)` : `Thích bài viết (${state.likeCount} lượt thích)`}
       onClick={toggle}

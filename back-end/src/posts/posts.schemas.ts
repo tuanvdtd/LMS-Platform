@@ -11,6 +11,8 @@ const BAD_CHAR = 'Nội dung chứa ký tự không hợp lệ';
 export const listPostsQuery = z.object({
   q: z.string().trim().max(100).optional(),
   topic: z.string().max(100).optional(),
+  // Tab "Mới nhất" / "Nổi bật" ở /blog. Giá trị lạ → mặc định, không báo lỗi (link cũ vẫn mở được).
+  sort: z.enum(['latest', 'popular']).catch('latest'),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(30).default(12),
 });
