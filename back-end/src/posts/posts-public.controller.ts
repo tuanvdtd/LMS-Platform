@@ -23,6 +23,12 @@ export class PostsPublicController {
     return this.posts.topics();
   }
 
+  @Get('post-highlights')
+  @Header('Cache-Control', 'public, max-age=60')
+  highlights() {
+    return this.posts.highlights();
+  }
+
   @Get('posts/:slug')
   @Header('Cache-Control', 'public, max-age=60')
   detail(@Param('slug') slug: string) {

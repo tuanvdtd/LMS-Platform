@@ -101,6 +101,9 @@ export function MobileNav({
                 </Link>
               ),
             )}
+            <div className="mt-2 border-t py-2">
+              <Link href="/blog" onClick={close} className="block px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">Blog</Link>
+            </div>
             {user && (
               <div className="mt-2 border-t py-2">
                 {/* Header mobile ẩn 💬 🔔 → đưa vào drawer */}
@@ -169,7 +172,6 @@ export function MobileNav({
               </div>
             )}
             <div className="mt-2 border-t py-2">
-              <Link href="/blog" onClick={close} className="block px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">Blog</Link>
               {!staff && (
                 <Link href={teachHref(user)} onClick={close} className="block px-4 py-2 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring outline-none">Dạy học</Link>
               )}

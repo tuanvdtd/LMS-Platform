@@ -25,6 +25,8 @@ const CARD = {
 type CardRow = Prisma.PostGetPayload<{ select: typeof CARD }>;
 
 const ORDER: Prisma.PostOrderByWithRelationInput[] = [{ publishedAt: 'desc' }, { id: 'desc' }];
+const POPULAR: Prisma.PostOrderByWithRelationInput[] = [{ likeCount: 'desc' }, { commentCount: 'desc' }, ...ORDER];
+const HIGHLIGHT_DAYS = 30;
 const BRAND = { id: null, name: 'Aolumi', image: null } as const;
 
 // Tài khoản nghiệp vụ không có trang cá nhân → bài của admin đứng tên nền tảng, không lộ tài khoản.
@@ -64,9 +66,46 @@ export class PostsPublicService {
     if (q.q) where.id = { in: await this.searchIds(q.q) };
     const [total, rows] = await Promise.all([
       this.prisma.post.count({ where }),
-      this.prisma.post.findMany({ where, select: CARD, orderBy: ORDER, skip: (q.page - 1) * q.limit, take: q.limit }),
+      this.prisma.post.findMany({
+        where, select: CARD, orderBy: q.sort === 'popular' ? POPULAR : ORDER, skip: (q.page - 1) * q.limit, take: q.limit,
+      }),
     ]);
     return { items: rows.map(toCard), total, page: q.page, limit: q.limit, topic };
+  }
+
+  // Cột phải /blog: bài được thích nhiều trong 30 ngày + tác giả có tổng lượt thích cao nhất.
+  // Tài khoản nghiệp vụ không có trang cá nhân → không vào bảng tác giả.
+  async highlights() {
+    const since = new Date(Date.now() - HIGHLIGHT_DAYS * 86_400_000);
+    const [popular, groups] = await Promise.all([
+      this.prisma.post.findMany({
+        where: { status: 'published', publishedAt: { gte: since } },
+        select: { slug: true, title: true, likeCount: true, commentCount: true },
+        orderBy: POPULAR,
+        take: 5,
+      }),
+      this.prisma.post.groupBy({
+        by: ['authorId'],
+        where: { status: 'published' },
+        _count: { _all: true },
+        _sum: { likeCount: true },
+        orderBy: { _sum: { likeCount: 'desc' } },
+        take: 10,
+      }),
+    ]);
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: groups.map((g) => g.authorId) } },
+      select: { id: true, name: true, image: true, role: true, profile: { select: { headline: true } } },
+    });
+    const byId = new Map(users.map((u) => [u.id, u]));
+    const authors = groups
+      .flatMap((g) => {
+        const u = byId.get(g.authorId);
+        if (!u || isStaff(u.role)) return [];
+        return [{ id: u.id, name: u.name, image: u.image, headline: u.profile?.headline ?? null, postCount: g._count._all, likeCount: g._sum.likeCount ?? 0 }];
+      })
+      .slice(0, 5);
+    return { days: HIGHLIGHT_DAYS, popular, authors };
   }
 
   // Tìm không dấu trên tiêu đề, như catalog (unaccent đã bật ở migration catalog_unaccent).

@@ -171,7 +171,7 @@ export function PostArticle({ post, actions, preview = false }: { post: PostDeta
   return (
     <article className="mx-auto max-w-5xl px-4 pb-24">
       <header className="flex flex-col gap-5 border-b pt-10 pb-8 md:pt-14">
-        <h1 className="max-w-3xl text-3xl leading-tight font-extrabold tracking-tight text-balance [overflow-wrap:anywhere] text-foreground md:text-4xl">
+        <h1 className="max-w-3xl text-3xl leading-tight font-extrabold tracking-tight text-pretty [overflow-wrap:anywhere] text-foreground md:text-4xl">
           {post.title}
         </h1>
         <p className="max-w-[68ch] text-base leading-relaxed [overflow-wrap:anywhere] text-muted-foreground md:text-lg">{post.excerpt}</p>

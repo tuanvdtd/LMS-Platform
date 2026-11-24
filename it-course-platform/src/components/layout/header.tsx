@@ -76,19 +76,17 @@ export default function Header({ categories }: { categories: CategoryNode[] }) {
           </span>
         </Link>
 
-        <div className="hidden lg:block">
+        {/* Nhóm xem nội dung (Khám phá, Blog) bên trái; bên phải chỉ còn việc của riêng mình. */}
+        <div className="hidden items-center gap-1 lg:flex">
           <ExploreMenu categories={categories} />
+          <Link href="/blog" className={buttonVariants({ variant: 'ghost', className: 'px-3 font-semibold' })}>
+            Blog
+          </Link>
         </div>
 
         <CourseSearch className="mx-2 hidden max-w-2xl flex-1 lg:flex" />
 
         <div className="ml-auto flex items-center gap-1">
-          <Link
-            href="/blog"
-            className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted hover:text-primary lg:block"
-          >
-            Blog
-          </Link>
           <Link
             href={staff ? '/admin' : teachHref(user)}
             className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted hover:text-primary lg:block"

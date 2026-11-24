@@ -1,10 +1,32 @@
 import type { PrismaClient } from '@prisma/client';
 import type { R2 } from './thumbnails.ts';
+import { SEED_DATA } from './data/index.ts';
+import { SHOWCASE } from './data/analytics-demo.ts';
 
 const U = `SELECT id FROM "user" WHERE email LIKE '%@skillpath.test'`;
-const C = `SELECT id FROM courses WHERE "instructorId" IN (${U})`;
+
+// Khoá của giảng viên trình diễn có thể đứng tên một tài khoản thật (SEED_SHOWCASE_OWNER=<email> trong .env) để demo bằng
+// tài khoản đó. Tài khoản thật không bị xoá; clean nhận ra khoá seed của nó qua tiêu đề.
+export const SHOWCASE_TEACHER = SEED_DATA.courses.find((c) => c.title === SHOWCASE.courseTitle)!.instructorEmail;
+const SHOWCASE_TITLES = SEED_DATA.courses.filter((c) => c.instructorEmail === SHOWCASE_TEACHER).map((c) => c.title);
+
+export async function showcaseOwnerId(prisma: PrismaClient): Promise<string | null> {
+  const email = process.env.SEED_SHOWCASE_OWNER;
+  if (!email) return null;
+  const u = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (!u) throw new Error(`SEED_SHOWCASE_OWNER=${email} không có trong DB`);
+  return u.id;
+}
+
+// Mọi khoá do seed tạo, kể cả khoá đứng tên tài khoản thật.
+export function seedCoursesSql(ownerId: string | null) {
+  const titles = SHOWCASE_TITLES.map((t) => `'${t.replace(/'/g, "''")}'`).join(', ');
+  return `SELECT id FROM courses WHERE "instructorId" IN (${U})${
+    ownerId ? ` OR ("instructorId" = '${ownerId}'::uuid AND title IN (${titles}))` : ''}`;
+}
 
 export async function cleanSeed(prisma: PrismaClient, r2: R2 | null, log: (s: string) => void) {
+  const C = seedCoursesSql(await showcaseOwnerId(prisma));
   const [{ n }] = await prisma.$queryRawUnsafe<{ n: number }[]>(`SELECT COUNT(*)::int AS n FROM (${U}) s`);
   if (!n) return log('Không có dữ liệu seed để xoá.');
 

@@ -33,6 +33,7 @@
     "certs:backfill": "node --env-file-if-exists=.env --experimental-strip-types prisma/backfill-certificates.ts",
     "seed:demo:clean": "node --env-file-if-exists=.env --experimental-strip-types prisma/seed-demo/index.ts clean",
     "seed:messages": "node --env-file-if-exists=.env --experimental-strip-types prisma/seed-demo/messages.ts",
+    "seed:blog": "node --env-file-if-exists=.env --experimental-strip-types prisma/seed-demo/blog.ts",
     "seed:skills": "node --env-file-if-exists=.env --experimental-strip-types prisma/skill-bank/index.ts",
     "eval:recs": "node --env-file-if-exists=.env --experimental-strip-types prisma/rec-eval/index.ts",
     "hls:backfill": "nest build && node dist/hls/backfill.js"

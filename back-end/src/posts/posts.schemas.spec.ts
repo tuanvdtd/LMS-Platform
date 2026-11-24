@@ -28,7 +28,11 @@ describe('savePostSchema', () => {
 
 describe('listPostsQuery', () => {
   it('mặc định trang 1, 12 bài', () => {
-    expect(listPostsQuery.parse({})).toEqual({ page: 1, limit: 12 });
+    expect(listPostsQuery.parse({})).toEqual({ sort: 'latest', page: 1, limit: 12 });
+  });
+  it('sort lạ → latest, không báo lỗi', () => {
+    expect(listPostsQuery.parse({ sort: 'x' }).sort).toBe('latest');
+    expect(listPostsQuery.parse({ sort: 'popular' }).sort).toBe('popular');
   });
   it('bỏ qua tham số lạ (utm_*)', () => {
     expect(listPostsQuery.parse({ utm_source: 'x', page: '2' }).page).toBe(2);

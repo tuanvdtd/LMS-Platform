@@ -32,6 +32,8 @@ export function planCourseDates(
 export type CourseCtx = {
   rng: Rng; now: Date; adminId: string;
   users: Map<string, SeededUser>;
+  // Email giảng viên seed → id tài khoản thật đứng tên khoá thay (SEED_SHOWCASE_OWNER). Mốc ngày vẫn tính theo giảng viên seed.
+  ownerIdOf: Map<string, string>;
   categoryBySlug: Map<string, { id: string; rootSlug: string }>;
   topicIdBySlug: Map<string, string>;
   videos: { id: string; durationSec: number }[];
@@ -56,6 +58,7 @@ export async function writeCourse(
   prisma: PrismaClient, c: SeedCourse, ctx: CourseCtx, thumbnailUrl: string, slug: string, publishedAt?: Date,
 ): Promise<SeededCourse> {
   const teacher = ctx.users.get(c.instructorEmail)!;
+  const instructorId = ctx.ownerIdOf.get(c.instructorEmail) ?? teacher.id;
   const planned = planCourseDates(ctx.rng, ctx.now, teacher, c.status, c.priceAmount > 0);
   // Khoá trình diễn cần mốc xuất bản cố định (học viên giả lập ghi danh rải từ đó); vẫn gọi planCourseDates để giữ chuỗi rng.
   const d: CourseDates = publishedAt
@@ -72,7 +75,7 @@ export async function writeCourse(
   await prisma.$transaction(async (tx) => {
     await tx.course.create({
       data: {
-        id: courseId, instructorId: teacher.id, slug, title: c.title, subtitle: c.subtitle, description: c.description, thumbnailUrl,
+        id: courseId, instructorId, slug, title: c.title, subtitle: c.subtitle, description: c.description, thumbnailUrl,
         categoryId: ctx.categoryBySlug.get(c.categorySlug)!.id, level: c.level, language: c.language, priceAmount: c.priceAmount,
         status: c.status === 'rejected' ? 'draft' : c.status, publishedAt: d.publishedAt, copyrightConfirmedAt: d.submittedAt,
         learningObjectives: c.learningObjectives, requirements: c.requirements, targetAudience: c.targetAudience,
@@ -142,7 +145,7 @@ export async function writeCourse(
 
     if (d.submittedAt) {
       await tx.courseApproval.create({ data: {
-        courseId, submittedById: teacher.id, createdAt: d.submittedAt,
+        courseId, submittedById: instructorId, createdAt: d.submittedAt,
         status: c.status === 'published' ? 'approved' : c.status === 'rejected' ? 'rejected' : 'pending',
         reviewedById: d.reviewedAt ? ctx.adminId : null, reviewedAt: d.reviewedAt, reason: c.status === 'rejected' ? c.rejectReason : null,
       } });
@@ -150,7 +153,7 @@ export async function writeCourse(
   }, { timeout: 30_000 });
 
   return {
-    id: courseId, instructorId: teacher.id, status: c.status, publishedAt: d.publishedAt, priceAmount: c.priceAmount,
+    id: courseId, instructorId, status: c.status, publishedAt: d.publishedAt, priceAmount: c.priceAmount,
     level: c.level, language: c.language, label: c.thumbnail.label,
     lectureTitles: c.sections.flatMap((s) => s.lectures), topicIds, items, title: c.title, quiz, exercise,
   };
