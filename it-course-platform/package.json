@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "node -e \"require('fs').cpSync('node_modules/pdfjs-dist/wasm', 'public/pdfjs/wasm', { recursive: true })\""
+    "postinstall": "node -e \"const fs=require('fs'),path=require('path');fs.cpSync('node_modules/pdfjs-dist/wasm','public/pdfjs/wasm',{recursive:true});const rive=path.dirname(require.resolve('@rive-app/canvas-lite/package.json',{paths:[require.resolve('@rive-app/react-canvas-lite')]}));fs.cpSync(path.join(rive,'rive.wasm'),'public/rive/rive.wasm')\""
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -18,6 +18,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.9.1",
+    "@rive-app/react-canvas-lite": "4.41.0",
     "@sentry/nextjs": "^11.0.0",
     "@tiptap/core": "^3.34.0",
     "@tiptap/extension-code-block-lowlight": "^3.34.0",

@@ -64,19 +64,6 @@ export function GrowBar({ pct, delay, className }: { pct: number; delay: number;
   );
 }
 
-// Nhún nhẹ lên xuống, dùng cho mascot. Giảm chuyển động thì đứng yên.
-export function Bob({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <motion.div
-      className={className}
-      animate={{ y: [0, -6, 0] }}
-      transition={{ duration: 3.2, ease: 'easeInOut', repeat: Infinity }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 const TESTS = [3, 2, 4, 3, 5, 9, 6, 10]; // ms mỗi test, cộng lại ra thời gian chạy hiển thị
 const TOTAL_MS = TESTS.reduce((a, b) => a + b, 0);
 

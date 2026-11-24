@@ -16,7 +16,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { AskScene, SelfStudyScene, TeachScene } from './guest-illustrations';
+import { GuestScene } from './guest-lumi';
 import { Reveal, RevealItem, RevealList, VerdictDemo } from './guest-motion';
 
 const inner = 'mx-auto w-full max-w-screen-xl px-4 py-20 lg:py-28';
@@ -36,7 +36,7 @@ export function PainSection() {
     <section aria-labelledby="guest-pain" className="bg-background">
       <div className={cn(inner, 'grid items-center gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-16')}>
         <Reveal className="order-2 lg:order-1">
-          <SelfStudyScene />
+          <GuestScene artboard="Study" label="Minh hoạ: Lumi tự học lập trình vào buổi tối, từng dấu hỏi lần lượt thành dấu tích" />
         </Reveal>
         <div className="order-1 lg:order-2">
           <Reveal>
@@ -209,7 +209,7 @@ export function TeachSection() {
         </div>
         <div className="relative">
           <Reveal>
-            <TeachScene />
+            <GuestScene artboard="Teach" label="Minh hoạ: Lumi soạn khung chương trình, từng bài được đánh dấu xong và khoá được duyệt" />
           </Reveal>
           <RevealList ordered className="relative -mt-10 grid gap-2 px-4 sm:mx-6 sm:-mt-16 sm:grid-cols-3 sm:px-0" >
             {FLOW.map(([title, desc, Icon, tone]) => (
@@ -269,7 +269,7 @@ export function FaqSection() {
             <p className={lead}>Những điều người học và giảng viên hay hỏi trước khi bắt đầu.</p>
           </Reveal>
           <Reveal delay={0.15} className="mt-8 hidden max-w-md lg:block">
-            <AskScene />
+            <GuestScene artboard="Ask" label="Minh hoạ: Lumi soi câu hỏi bằng kính lúp và tìm ra câu trả lời" />
           </Reveal>
         </div>
         <Reveal delay={0.1}>
