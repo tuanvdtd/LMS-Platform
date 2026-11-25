@@ -66,7 +66,7 @@ describe('validateBank', () => {
     expect(errs).toMatch(/domain "Undo & recovery" có 0 câu hard, cần ≥ 2/);
     expect(errs).toMatch(/domain "Staging & commits" có 0 câu/);
   });
-  it('strict: đủ 11 topic × 40 câu, độ khó 12–14 / 13–15 / 12–14, domain đủ phân bố', () => {
+  it('strict: đủ 17 topic × 40 câu, độ khó 12–14 / 13–15 / 12–14, domain đủ phân bố', () => {
     expect(validateBank(SKILL_BANK, { strict: true })).toEqual([]);
   });
 });
