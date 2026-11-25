@@ -1,5 +1,5 @@
 // Sinh public/rive/guest-home.riv (artboard Lumi, Study, Teach, Ask) từ lumi-spec.mjs + scenes.mjs
-// và public/rive/celebrate.riv (artboard Graduate, chúc mừng hoàn thành khoá) từ graduate.mjs
+// và public/rive/celebrate.riv (artboard Graduate + Confetti, chúc mừng hoàn thành khoá) từ graduate.mjs
 // bằng rive-mcp-server (công cụ cộng đồng, ghi thẳng .riv, không qua Rive Editor nên không có màn splash của gói Free).
 // Cài 1 lần ngoài repo: npm i --prefix ../tools/rive-mcp rive-mcp-server@0.12.0 --ignore-scripts
 // Chạy: node rive/build.mjs   (RIVE_MCP=<đường dẫn dist/index.js> nếu cài chỗ khác)
@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { lumiArtboard } from './lumi-spec.mjs';
 import { sceneArtboards } from './scenes.mjs';
-import { graduateArtboard } from './graduate.mjs';
+import { graduateArtboard, confettiArtboard } from './graduate.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const server = process.env.RIVE_MCP ?? path.resolve(here, '../../tools/rive-mcp/node_modules/rive-mcp-server/dist/index.js');
@@ -15,7 +15,7 @@ const sdk = path.resolve(path.dirname(server), '../../@modelcontextprotocol/sdk/
 const { Client } = await import(pathToFileURL(path.join(sdk, 'index.js')).href);
 const { StdioClientTransport } = await import(pathToFileURL(path.join(sdk, 'stdio.js')).href);
 
-const outputs = { 'guest-home.riv': [lumiArtboard, ...sceneArtboards], 'celebrate.riv': [graduateArtboard] };
+const outputs = { 'guest-home.riv': [lumiArtboard, ...sceneArtboards], 'celebrate.riv': [graduateArtboard, confettiArtboard] };
 const client = new Client({ name: 'aolumi-rive-build', version: '1' });
 await client.connect(new StdioClientTransport({ command: 'node', args: [server], stderr: 'ignore' }));
 try {
