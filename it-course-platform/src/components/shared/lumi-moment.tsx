@@ -11,7 +11,7 @@ RuntimeLoader.setWasmUrl('/rive/rive.wasm');
 const LAYOUT = new Layout({ fit: Fit.Contain, alignment: Alignment.Center });
 
 // mood: -1 trống, n phản ứng rồi giữ tư thế cuối, 10+n vào thẳng tư thế cuối (giảm chuyển động: chạy vài khung rồi dừng vẽ)
-function useLumi(artboard: 'Coder' | 'Examiner') {
+function useLumi(artboard: 'Coder' | 'Examiner' | ErrorScene) {
   const [reduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [ready, setReady] = useState(false);
   const { rive, RiveComponent } = useRive({
@@ -45,6 +45,16 @@ function useLumi(artboard: 'Coder' | 'Examiner') {
     </div>
   );
   return { rive, reduced, input, react, view };
+}
+
+export type ErrorScene = 'Lost' | 'Guard' | 'Fixer';
+
+export function ErrorLumi({ scene, className }: { scene: ErrorScene; className?: string }) {
+  const { rive, react, view } = useLumi(scene);
+  useEffect(() => {
+    if (rive) react(0, true);
+  }, [rive, react]);
+  return view(className);
 }
 
 export type CoderMood = 0 | 1 | 2;

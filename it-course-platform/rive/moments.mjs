@@ -2,10 +2,10 @@
 import { lumiArtboard } from './lumi-spec.mjs';
 import { lumi, tr, path, a, lin, rad, stroke } from './scenes.mjs';
 
-const K = { ink: '#0f172a', slate: '#1e293b', line: '#334155', mute: '#475569', gray: '#94a3b8', blue: '#60a5fa', deep: '#1e3a8a',
+export const K = { ink: '#0f172a', slate: '#1e293b', line: '#334155', mute: '#475569', gray: '#94a3b8', blue: '#60a5fa', deep: '#1e3a8a',
   ok: '#22c55e', okDeep: '#16a34a', bad: '#ef4444', badDeep: '#dc2626', orange: '#f97316', paper: '#f8fafc' };
 
-const rot = (deg, [x, y]) => { const r = (deg * Math.PI) / 180; return [x * Math.cos(r) - y * Math.sin(r), x * Math.sin(r) + y * Math.cos(r)]; };
+export const rot = (deg, [x, y]) => { const r = (deg * Math.PI) / 180; return [x * Math.cos(r) - y * Math.sin(r), x * Math.sin(r) + y * Math.cos(r)]; };
 const SHOULDER = { L: [-74, -100], R: [86, -100] };
 // Ưu tiên khuỷu chĩa ra ngoài và xuống cho dáng tay tự nhiên
 function ik(side, target) {
@@ -29,9 +29,9 @@ function arc(cx, cy, r, a0, a1, n = 4) {
   for (let i = 0; i < n; i++) d += ` Q${P(a0 + step * (i + 0.5), k).join(' ')} ${P(a0 + step * (i + 1), r).join(' ')}`;
   return d;
 }
-const star = (id, x, y, s, color) => ({ id, type: 'polygon', x, y, closed: true, scaleX: 0, scaleY: 0, fill: { color },
+export const star = (id, x, y, s, color) => ({ id, type: 'polygon', x, y, closed: true, scaleX: 0, scaleY: 0, fill: { color },
   points: Array.from({ length: 8 }, (_, k) => { const r = k % 2 ? s * 0.19 : s / 2; const t = (k * Math.PI) / 4 - Math.PI / 2; return { x: r * Math.cos(t), y: r * Math.sin(t) }; }) });
-const sparks = (list, from) => list.flatMap((_, i) => {
+export const sparks = (list, from) => list.flatMap((_, i) => {
   const t = from + i * 6;
   return [tr(`spark${i}`, 'scaleX', [[0, 0], [t, 0], [t + 10, 1.1], [t + 28, 0]]), tr(`spark${i}`, 'scaleY', [[0, 0], [t, 0], [t + 10, 1.1], [t + 28, 0]]),
     tr(`spark${i}`, 'rotation', [[t, 0], [t + 28, 90]])];
@@ -42,9 +42,9 @@ const full = (base, tracks) => {
   const have = new Set(tracks.map((t) => `${t.target}|${t.property}`));
   return [...tracks, ...Object.entries(base).filter(([k]) => !have.has(k)).map(([k, v]) => { const [t, p] = k.split('|'); return tr(t, p, [[0, v]]); })];
 };
-const anim = (name, duration, base, tracks, loop = 'oneShot') => ({ name, fps: 60, duration, loop, tracks: full(base, tracks) });
+export const anim = (name, duration, base, tracks, loop = 'oneShot') => ({ name, fps: 60, duration, loop, tracks: full(base, tracks) });
 // Bỏ thuộc tính lớp idle đang điều khiển để Lumi vẫn thở khi đứng ở tư thế cuối
-const holdOf = (name, src, base, p) => anim(name, 1, base, src.tracks
+export const holdOf = (name, src, base, p) => anim(name, 1, base, src.tracks
   .filter((t) => !(t.target === p + 'bar' || (t.target === p + 'shadowG' && t.property === 'scaleX')))
   .map((t) => tr(t.target, t.property, [[0, t.keyframes.at(-1).value]])));
 const hopOf = (p, d, withArms) => lumiArtboard.animations.find((an) => an.name === 'celebrate').tracks
@@ -52,7 +52,7 @@ const hopOf = (p, d, withArms) => lumiArtboard.animations.find((an) => an.name =
   .map((t) => ({ ...t, target: p + t.target, keyframes: t.keyframes.map((k) => ({ ...k, frame: k.frame + d })) }));
 const msOf = (frames) => Math.round((frames / 60) * 1000);
 
-function moodLayer(reacts, extra = []) {
+export function moodLayer(reacts, extra = []) {
   const states = [{ name: 'rest', animation: 'rest' }];
   const transitions = [{ from: 'entry', to: 'rest' }];
   reacts.forEach(({ name, len, loop }, i) => {
