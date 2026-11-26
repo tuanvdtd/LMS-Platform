@@ -14,7 +14,7 @@ const STORAGE = [
   { name: 'Cookie phiên đăng nhập', group: 'Thiết yếu', purpose: 'Giữ bạn ở trạng thái đăng nhập và bảo vệ tài khoản.', ttl: 'Đến khi đăng xuất hoặc phiên hết hạn' },
   { name: 'Giao diện sáng/tối', group: 'Thiết yếu', purpose: 'Nhớ giao diện bạn đã chọn.', ttl: 'Đến khi bạn xoá dữ liệu trình duyệt' },
   { name: 'Lựa chọn cookie', group: 'Thiết yếu', purpose: 'Nhớ bạn đã đồng ý hay từ chối để không hỏi lại.', ttl: 'Đến khi bạn xoá dữ liệu trình duyệt' },
-  { name: 'Bản nháp bài làm', group: 'Thiết yếu', purpose: 'Giữ đáp án trắc nghiệm đang làm dở, mã bạn đang viết và cách bạn sắp xếp trang học.', ttl: 'Đến khi nộp bài hoặc xoá dữ liệu trình duyệt' },
+  { name: 'Bản nháp bài làm', group: 'Thiết yếu', purpose: 'Giữ đáp án trắc nghiệm đang làm dở, mã bạn đang viết và cách bạn sắp xếp trang học (mục lục, kiểu xem tài liệu, tiếng lật trang).', ttl: 'Đến khi nộp bài hoặc xoá dữ liệu trình duyệt' },
   { name: 'Cookie của Stripe', group: 'Thiết yếu', purpose: 'Chống gian lận trên trang thanh toán của Stripe. Chỉ xuất hiện khi bạn thanh toán.', ttl: 'Theo chính sách của Stripe' },
   { name: 'Chẩn đoán lỗi (Sentry)', group: 'Cần đồng ý', purpose: 'Ghi nhận lỗi, tốc độ tải trang và bản ghi thao tác quanh thời điểm xảy ra lỗi.', ttl: 'Trong phiên duyệt web' },
   { name: 'Mã khách ẩn danh', group: 'Cần đồng ý', purpose: 'Nhận ra cùng một trình duyệt khi bạn quay lại trang khoá học, để giảng viên đếm đúng số người xem. Không chứa tên hay email.', ttl: 'Đến khi bạn xoá dữ liệu trình duyệt' },
