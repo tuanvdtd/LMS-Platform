@@ -1,4 +1,4 @@
-// page-flip 2.0.7 không kèm file kiểu → khai báo đúng phần đang dùng (xem node_modules/page-flip/src/PageFlip.ts).
+// page-flip 2.0.7 không kèm file kiểu → khai báo phần đang dùng.
 declare module 'page-flip' {
   export type FlipState = 'user_fold' | 'fold_corner' | 'flipping' | 'read';
 
@@ -27,7 +27,7 @@ declare module 'page-flip' {
     flipPrev(corner?: 'top' | 'bottom'): void;
     getCurrentPageIndex(): number;
     getState(): FlipState;
-    /** Xoá luôn phần tử gốc khỏi DOM (bản vá: dừng cả vòng requestAnimationFrame). */
+    /** Xoá luôn phần tử gốc khỏi DOM. */
     destroy(): void;
   }
 }

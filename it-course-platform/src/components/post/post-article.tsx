@@ -13,7 +13,7 @@ import { PostComments } from './post-comments';
 import { PostLikeButton } from './post-like-button';
 import { PostToc } from './post-toc';
 
-// Trang đọc bài (kiểu "Tối giản" sếp chốt 2026-11-18): đầu bài canh trái, ảnh bìa dải ngang 21:9,
+// Trang đọc bài: đầu bài canh trái, ảnh bìa dải ngang 21:9,
 // cột chữ 68ch + mục lục chỉ mục lớn bên phải; cuối bài là tác giả kèm bài khác của họ, khoá liên quan, bài cùng chủ đề.
 const DAY = 24 * 3600 * 1000;
 const initial = (name: string) => name.trim().charAt(0).toUpperCase() || '?';

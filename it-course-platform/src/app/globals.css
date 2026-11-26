@@ -550,11 +550,10 @@
 .post-editing .selectedCell { background: color-mix(in oklch, var(--primary) 12%, transparent); }
 .post-editing .tableWrapper { overflow-x: auto; }
 
-/* Trang giấy của chế độ Lật sách (learn/…/pdf-book.tsx). page-flip ghi đè style inline của trang mỗi lần vẽ nên mọi thứ đi qua class.
-   Giấy trắng cố ý không theo theme, như chế độ cuộn. */
+/* Trang giấy của chế độ Lật sách: page-flip ghi đè style inline mỗi lần vẽ nên mọi thứ đi qua class. Giấy trắng không theo theme. */
 .pdf-book-page { background: white; overflow: hidden; box-shadow: 0 6px 16px -4px rgb(15 23 42 / .10), 0 2px 4px -2px rgb(15 23 42 / .05); }
 .pdf-book-page canvas { position: absolute; inset: 0; margin: auto; }
-/* Gáy sách: bóng mờ dọc mép giữa hai trang. page-flip gắn class --left / --right theo vị trí trang. */
+/* Gáy sách; page-flip gắn class --left / --right. */
 .pdf-book-page::after { content: ''; position: absolute; inset: 0; pointer-events: none; }
 .pdf-book-page[class~='--left']::after { background: linear-gradient(to left, rgb(15 23 42 / .12), transparent 7%); }
 .pdf-book-page[class~='--right']::after { background: linear-gradient(to right, rgb(15 23 42 / .12), transparent 7%); }

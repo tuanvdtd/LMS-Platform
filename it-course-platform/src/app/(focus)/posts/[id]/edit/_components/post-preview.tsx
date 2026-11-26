@@ -46,7 +46,7 @@ export type PreviewInput = {
 };
 
 // Xem trước = chính trang đọc (PostArticle) dựng từ nội dung đang soạn, nên giống hệt bài người đọc thấy.
-// Bỏ "Bài viết khác của tác giả" và "Bài cùng chủ đề" (sếp chốt 2026-11-18): không cần khi đang soạn.
+// Bỏ "Bài viết khác của tác giả" và "Bài cùng chủ đề": không cần khi đang soạn.
 export function PostPreview({ input }: { input: PreviewInput }) {
   const { data: session } = authClient.useSession();
   const user = session?.user;

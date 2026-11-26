@@ -251,7 +251,7 @@ export class MessagesService {
     if (heads.some((h) => !h || h.size > IMAGE_MAX_BYTES)) throw bad();
   }
 
-  // Mốc đã đọc không bao giờ lùi (spec §7).
+  // Mốc đã đọc không bao giờ lùi.
   private setReadMark(id: string, field: 'aLastReadAt' | 'bLastReadAt', at: Date) {
     return field === 'aLastReadAt'
       ? this.prisma.$executeRaw`UPDATE conversations SET "aLastReadAt" = GREATEST(COALESCE("aLastReadAt", 'epoch'), ${at}) WHERE id = ${id}::uuid`

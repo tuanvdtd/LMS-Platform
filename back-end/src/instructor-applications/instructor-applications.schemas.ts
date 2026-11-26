@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const BIO_MIN_WORDS = 50;
-// Như Udemy: giới thiệu không chứa link (link để ở các ô mạng xã hội).
+// Giới thiệu không chứa link (link để ở các ô mạng xã hội).
 export const LINK = /https?:\/\/|\bwww\./i;
 
 export const wordCount = (s: string) => s.split(/\s+/).filter(Boolean).length;

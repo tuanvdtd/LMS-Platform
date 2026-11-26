@@ -120,7 +120,7 @@ export type StudentDetail = { student: StudentRow; timeline: TimelineEvent[] };
 export type SkipReason = 'not_enrolled' | 'completed' | 'recent';
 export type NudgeResult = { sent: string[]; skipped: { userId: string; reason: SkipReason }[] };
 
-// --- Gói 2: hợp đồng API (tỉ lệ là phân số 0..1) ---
+// --- Tổng quan, hành vi học, doanh thu: hợp đồng API (tỉ lệ là phân số 0..1) ---
 // GET /instructor/analytics/lectures/:itemId/retention  (và Engagement.defaultLecture)
 export type Retention = {
   itemId: string; title: string; label: string; // label "2.4" = phần.bài theo curriculum
@@ -188,7 +188,7 @@ export type InstructorOverview = {
   revenue12m: RevenuePoint[];
   atRisk: {
     userId: string; name: string; image: string | null; courseId: string; courseTitle: string; canMessage: boolean;
-    inactiveDays: number; progressPct: number; reasons: RiskReason[]; // RiskReason của gói 1
+    inactiveDays: number; progressPct: number; reasons: RiskReason[];
   }[];
   reviews: {
     distribution: { stars: 1 | 2 | 3 | 4 | 5; count: number }[]; // 5 → 1

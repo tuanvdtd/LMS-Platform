@@ -204,8 +204,8 @@ REFRESH MATERIALIZED VIEW mv_lesson_dropoff;
 REFRESH MATERIALIZED VIEW mv_course_completion;
 
 -- ---------------------------------------------------------------------------
---  7. Seed taxonomy — phần IT của Udemy, bỏ Hardware và "Other"
---  [2026-09-29] Cây này đã bị thay bằng taxonomy Udemy ở 04_taxonomy_seed.sql.
+--  7. Seed taxonomy — mảng IT, bỏ Hardware và "Other"
+--  [2026-09-29] Cây này đã bị thay bằng cây mới ở 04_taxonomy_seed.sql.
 --  courses."categoryId" NOT NULL nên phải chạy trước khi tạo khoá học đầu tiên.
 -- ---------------------------------------------------------------------------
 INSERT INTO categories (id, "parentId", slug, name, position) VALUES

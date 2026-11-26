@@ -51,7 +51,7 @@ test('ảnh: chỉ https tuyệt đối, bọc figure, title thành chú thích,
   const imgs = els.filter((e) => e.tagName === 'img');
   assert.deepEqual(imgs.map((i) => i.properties.src), ['https://cdn.test/a.png', 'https://cdn.test/b.png']);
   assert.deepEqual(Object.keys(imgs[0].properties).sort(), ['alt', 'loading', 'src']);
-  // "Rộng hơn cột" đã bỏ (sếp chốt 2026-11-18): bài cũ còn data-size thì hiện như ảnh thường.
+  // "Rộng hơn cột" đã bỏ: bài cũ còn data-size thì hiện như ảnh thường.
   const figures = els.filter((e) => e.tagName === 'figure');
   assert.deepEqual(figures.map((f) => Object.keys(f.properties)), [[], []]);
   assert.equal(text(tree), 'Chú thích');

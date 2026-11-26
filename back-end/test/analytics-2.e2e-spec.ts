@@ -22,7 +22,7 @@ const LEARNERS = 25;
 
 type TestUser = { id: string; cookie: string };
 
-describe('Dashboard phân tích giảng viên gói 2 (e2e)', () => {
+describe('Dashboard phân tích giảng viên: tổng quan, hành vi học, doanh thu (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   const emails: string[] = [];

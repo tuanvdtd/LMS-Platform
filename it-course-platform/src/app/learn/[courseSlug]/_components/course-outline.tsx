@@ -57,7 +57,7 @@ export function CourseOutline({
   const pointerFocus = usePointerFocus();
   const scrollerRef = useRef<HTMLDivElement>(null);
 
-  // Mở một chương → cuộn mượt cho tiêu đề chương lên sát mép trên khung (như Udemy) → mọi bài của chương lọt khung nhìn.
+  // Mở một chương → cuộn mượt cho tiêu đề chương lên sát mép trên khung → mọi bài của chương lọt khung nhìn.
   // Phải chờ panel đủ cao (khung đầu còn h-0 do starting-style): cuộn sớm thì vùng cuộn chưa dài ra, trình duyệt kẹp đích.
   function revealSection(id: string, tries = 10) {
     const box = scrollerRef.current;
@@ -105,7 +105,7 @@ export function CourseOutline({
           </ul>
         </details>
       )}
-      {/* Mở/đóng chương không giãn chiều cao (như Udemy): danh sách hiện ngay để revealSection có đủ vùng cuộn. */}
+      {/* Mở/đóng chương không giãn chiều cao: danh sách hiện ngay để revealSection có đủ vùng cuộn. */}
       <Accordion multiple value={open} onValueChange={onOpenChange} className="[&_[data-slot=accordion-content]]:animate-none">
         {outline.sections.map((s, si) => {
           const done = s.items.filter((i) => i.completed).length;

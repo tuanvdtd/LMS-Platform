@@ -153,7 +153,7 @@ describe('Admin quản lý người dùng (e2e)', () => {
     expect(again.body.code).toBe('USER_NOT_LOCKED');
   });
 
-  it('ban đã hết hạn tính là active, không mở khoá được (§3.8)', async () => {
+  it('ban đã hết hạn tính là active, không mở khoá được', async () => {
     const u = await makeUser();
     await prisma.user.update({ where: { id: u.id }, data: { banned: true, banReason: 'x', banExpires: new Date(Date.now() - 3_600_000) } });
     const q = encodeURIComponent(u.email);

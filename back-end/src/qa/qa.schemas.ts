@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Câu hỏi và câu trả lời đều là 1 ô Markdown kiểu bình luận (UI Hỏi đáp của sếp).
+// Câu hỏi và câu trả lời đều là 1 ô Markdown kiểu bình luận.
 export const QA_BODY_MAX = 2000;
 const qaBody = (empty: string) =>
   z

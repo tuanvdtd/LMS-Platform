@@ -1,6 +1,5 @@
 -- ============================================================================
---  Seed taxonomy kiểu Udemy.
---  Nguồn: menu "Khám phá" của udemy.com (vi) ngày 2026-09-29.
+--  Seed taxonomy: danh mục cấp 1 → cấp 2 → topic.
 --  Idempotent: chạy lại (prisma db execute --file) không sinh dòng trùng.
 -- ============================================================================
 
@@ -29,7 +28,7 @@ INSERT INTO categories (id, "parentId", slug, name, position) VALUES
   (gen_random_uuid(), NULL, 'design',                  'Thiết kế',          4)
 ON CONFLICT (slug) DO NOTHING;
 
--- 3. Category cấp 2 (slug theo udemy.com/courses/<cấp 1>/<cấp 2>)
+-- 3. Category cấp 2 (slug dùng ở /courses/<cấp 1>/<cấp 2>)
 INSERT INTO categories (id, "parentId", slug, name, position)
 SELECT gen_random_uuid(), p.id, s.slug, s.name, s.position
 FROM (VALUES
@@ -62,7 +61,7 @@ FROM (VALUES
 JOIN categories p ON p.slug = s.parent_slug
 ON CONFLICT (slug) DO NOTHING;
 
--- 4. Topic (slug theo udemy.com/topic/<slug>; nhóm theo nhánh chỉ để dễ đọc)
+-- 4. Topic (slug dùng ở /topic/<slug>; nhóm theo nhánh chỉ để dễ đọc)
 INSERT INTO topics (id, slug, name)
 SELECT gen_random_uuid(), t.slug, t.name
 FROM (VALUES

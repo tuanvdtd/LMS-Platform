@@ -36,7 +36,7 @@ export default function BlogPage(props: PageProps<'/blog'>) {
   );
 }
 
-// Bố cục bảng tin (sếp chốt 2026-11-24, tham khảo gendemyedu.com/social): cột luồng bài + cột phải (nổi bật, tác giả).
+// Bố cục bảng tin: cột luồng bài + cột phải (nổi bật, tác giả).
 // Không dùng thẻ: mỗi bài là một mục trong luồng, ngăn bằng đường kẻ.
 async function Body({ searchParams }: PageProps<'/blog'>) {
   const sp = await searchParams;

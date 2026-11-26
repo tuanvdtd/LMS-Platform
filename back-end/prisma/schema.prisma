@@ -308,9 +308,9 @@ model ContentReport {
 //  3. KHOÁ HỌC & NỘI DUNG
 // ============================================================================
 
-// Taxonomy chủ đề kiểu Udemy: Category → Subcategory, tự tham chiếu nên chỉ cần
+// Taxonomy chủ đề: Category → Subcategory, tự tham chiếu nên chỉ cần
 // một bảng. Là BẢNG chứ không phải enum vì admin thêm danh mục mới không nên
-// phải migrate + redeploy (Udemy sửa taxonomy của họ định kỳ).
+// phải migrate + redeploy.
 // Khoá học gắn vào node lá (subcategory).
 model Category {
   id       String  @id @default(uuid(7)) @db.Uuid
@@ -339,7 +339,7 @@ model Course {
   thumbnailUrl  String?
   promoVideoUrl String?
 
-  // categoryId — chủ đề khoá nói về cái gì. Dùng để duyệt/lọc/breadcrumb (kiểu Udemy).
+  // categoryId — chủ đề khoá nói về cái gì. Dùng để duyệt/lọc/breadcrumb.
   // Khoá KHÔNG gắn nghề: nghề → topic qua occupation_topics, topic → khoá qua course_topics.
   // Nháp được để trống; checklist gửi duyệt bắt buộc đủ.
   categoryId           String?      @db.Uuid
@@ -351,7 +351,7 @@ model Course {
   publishedAt          DateTime?
   copyrightConfirmedAt DateTime?
 
-  // Trang "Học viên mục tiêu" của Udemy. Độ dài/số mục kiểm lúc gửi duyệt (service).
+  // Trang "Học viên mục tiêu". Độ dài/số mục kiểm lúc gửi duyệt (service).
   // Bỏ trang "Tin nhắn khoá học" → không có welcomeMessage/congratsMessage.
   learningObjectives String[] @default([]) // ≥4 mục, ≤160 ký tự/mục
   requirements       String[] @default([]) // ≥1
@@ -413,7 +413,7 @@ model Section {
   @@map("sections")
 }
 
-// Mục trong khung chương trình kiểu Udemy. Một bảng cho mọi loại, cột riêng từng loại để nullable;
+// Mục trong khung chương trình. Một bảng cho mọi loại, cột riêng từng loại để nullable;
 // quiz/exercise là bảng 1-1 trỏ về itemId. Số "Bài giảng 3" tính lúc đọc (ROW_NUMBER theo type).
 // Unique (sectionId, position) DEFERRABLE tạo ở prisma/sql/05. Payload lecture kiểm bằng chk_item_payload.
 model CurriculumItem {
@@ -675,7 +675,7 @@ model PaymentEvent {
   @@map("payment_events")
 }
 
-// Coupon giảng viên tạo cho 1 khoá (Udemy rút gọn). Luật tháng/thời hạn/bậc giá kiểm ở service;
+// Coupon giảng viên tạo cho 1 khoá. Luật tháng/thời hạn/bậc giá kiểm ở service;
 // CHECK hình dạng dữ liệu ở prisma/sql/05. Trừ lượt bằng 1 câu UPDATE ... RETURNING.
 model Coupon {
   id             String     @id @default(uuid(7)) @db.Uuid
@@ -740,10 +740,10 @@ model Payout {
 }
 
 // ============================================================================
-//  6. TOPIC — taxonomy kiểu Udemy + lõi hồ sơ năng lực, gợi ý tầng 2
+//  6. TOPIC — taxonomy + lõi hồ sơ năng lực, gợi ý tầng 2
 // ============================================================================
 
-// Topic kiểu Udemy ("react", "docker", slug theo udemy.com/topic/<slug>).
+// Topic ("react", "docker"; slug dùng ở /topic/<slug>).
 // Không gắn cứng vào một category: một topic xuất hiện ở nhiều nhánh cấp 2
 // (Python ở cả Khoa học dữ liệu và Ngôn ngữ lập trình). Menu "Chủ đề phổ biến"
 // của từng nhánh được tính từ course_topics của các khoá đã duyệt (published) trong nhánh đó.
@@ -803,7 +803,7 @@ model ModeratorCategory {
   @@map("moderator_categories")
 }
 
-// isPrimary = "khoá học chủ yếu dạy gì?" của Udemy. Tối đa 1 dòng true mỗi khoá
+// isPrimary = "khoá học chủ yếu dạy gì?". Tối đa 1 dòng true mỗi khoá
 // (partial unique index uq_course_primary_topic); "đúng 1 khi publish" kiểm ở service.
 model CourseTopic {
   courseId  String  @db.Uuid
@@ -818,8 +818,8 @@ model CourseTopic {
   @@map("course_topics")
 }
 
-// Topic học viên TỰ KHAI muốn học ở bước 2 onboarding (kiểu /personalize/skills
-// của Udemy: đa chọn, có ô tìm kiếm và chip gợi ý theo nghề).
+// Topic học viên TỰ KHAI muốn học ở bước 2 onboarding (đa chọn, có ô tìm kiếm
+// và chip gợi ý theo nghề).
 //
 // Topic ĐO ĐƯỢC sẽ đến từ bài đánh giá kỹ năng Elo (chưa làm). Chênh lệch giữa topic đo được và topic tự khai là
 // tín hiệu chính của recommendation tầng 2, và quan trọng hơn: topic tự khai cho tầng 2
@@ -828,7 +828,7 @@ model CourseTopic {
 model UserTargetTopic {
   userId    String   @db.Uuid
   topicId   String   @db.Uuid
-  createdAt DateTime @default(now()) // Udemy gọi là "theo dõi", thêm/bỏ dần theo thời gian
+  createdAt DateTime @default(now()) // thêm/bỏ dần theo thời gian
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
@@ -856,7 +856,7 @@ model OccupationTopic {
 //  7. TRẮC NGHIỆM
 // ============================================================================
 
-// Câu hỏi THUỘC quiz (bỏ ngân hàng câu hỏi, giống Udemy). Unique (quizId, position) DEFERRABLE ở sql/05.
+// Câu hỏi THUỘC quiz (không có ngân hàng câu hỏi). Unique (quizId, position) DEFERRABLE ở sql/05.
 model Question {
   id            String       @id @default(uuid(7)) @db.Uuid
   quizId        String       @db.Uuid
@@ -1223,7 +1223,7 @@ model Certificate {
 
 // ============================================================================
 //  10. BỘ ĐẾM CHO DASHBOARD
-//  Chỉ giữ bộ đếm cho tín hiệu KHÔNG có dữ liệu gốc (lượt xem trang, giỏ, đoạn video — gói 2). Chỉ số còn lại
+//  Chỉ giữ bộ đếm cho tín hiệu KHÔNG có dữ liệu gốc (lượt xem trang, giỏ, đoạn video). Chỉ số còn lại
 //  (chất lượng câu hỏi, bài code, nguy cơ bỏ học, năng lực lớp) tính trực tiếp từ dữ liệu gốc ở src/analytics.
 // ============================================================================
 
@@ -1557,7 +1557,7 @@ model Message {
 //  ENUMS
 // ============================================================================
 
-// Trục NGHỀ NGHIỆP của học viên (bước 1 onboarding, kiểu /personalize/occupation của Udemy).
+// Trục NGHỀ NGHIỆP của học viên (bước 1 onboarding).
 // Enum vì danh sách ổn định, không cần admin thêm runtime. Khoá học không gắn nghề.
 enum Occupation {
   frontend_developer
@@ -1575,7 +1575,7 @@ enum Occupation {
 }
 
 enum SkillLevel {
-  all_levels // Udemy có, và phần lớn khoá thực tế rơi vào đây
+  all_levels // phần lớn khoá thực tế rơi vào đây
   beginner
   intermediate
   advanced

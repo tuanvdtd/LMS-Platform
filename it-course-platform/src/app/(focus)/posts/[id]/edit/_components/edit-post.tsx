@@ -31,7 +31,7 @@ function errorsOf(err: unknown): Record<string, string> | null {
   return Object.fromEntries(list.map((e) => [e.path[0], e.message]));
 }
 
-// Trang soạn (bố cục sếp chọn 2026-11-18): khung soạn bên trái (tiêu đề + thanh công cụ + nội dung),
+// Trang soạn: khung soạn bên trái (tiêu đề + thanh công cụ + nội dung),
 // cột thẻ bên phải (Xuất bản, Ảnh bìa, Tóm tắt, Chủ đề, Khoá học liên quan).
 function Editor({ initial }: { initial: MyPost }) {
   const [status, setStatus] = useState(initial.status);

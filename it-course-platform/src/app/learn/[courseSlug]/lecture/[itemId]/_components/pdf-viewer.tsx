@@ -17,7 +17,7 @@ const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2;
 const ZOOM_STEP = 0.25;
 const THRESHOLDS = Array.from({ length: 11 }, (_, i) => i / 10);
-// Hai trang dưới ~360px mỗi trang thì chữ quá nhỏ → khung hẹp (điện thoại) chỉ có chế độ cuộn.
+// Hẹp hơn thì mỗi trang < ~360px, chữ quá nhỏ → chỉ có chế độ cuộn.
 const BOOK_MIN_WIDTH = 720;
 
 type ViewMode = 'scroll' | 'book';
@@ -78,20 +78,19 @@ function PdfDocument({
   const [frame, setFrame] = useState<HTMLDivElement | null>(null); // callback ref: observer cần khung làm root
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [bookSize, setBookSize] = useState(size);
-  const [zoomPick, setZoomPick] = useState<number | null>(null); // null = mức mặc định của chế độ đang xem
-  const [current, setCurrent] = useState(0); // trang đang đọc (từ 0), dùng chung hai chế độ để đổi chế độ không mất chỗ
-  // Sau khi fetch xong mới render trang (pages null lúc hydrate) → đọc localStorage trong initializer không lệch hydrate.
+  const [zoomPick, setZoomPick] = useState<number | null>(null); // null = mặc định của chế độ
+  const [current, setCurrent] = useState(0); // từ 0, dùng chung hai chế độ
+  // pages null lúc hydrate → đọc localStorage trong initializer không lệch hydrate.
   const [mode, setMode] = useState<ViewMode>(readMode);
   const [sound, setSound] = useState(readSound);
   const bookApi = useRef<PdfBookApi>(null);
   const bookable = size.w >= BOOK_MIN_WIDTH;
   const book = mode === 'book' && bookable;
-  // Sếp chốt: sách 100%; cuộn trên màn rộng 75% (trang tràn cả khung thì quá to), màn hẹp (điện thoại) vẫn 100%.
+  // Cuộn trên màn rộng mặc định 75% (100% thì trang quá to); sách và màn hẹp 100%.
   const zoom = zoomPick ?? (book || !bookable ? 1 : 0.75);
   const first = pages?.[0].getViewport({ scale: 1 });
   const bookPage = bookPageSize(bookSize.w, bookSize.h, first ? first.width / first.height : 1, zoom);
-  // Sách vừa khung thì khung không cuộn: lúc lật, lớp bóng của page-flip (khối xoay cao gấp đôi trang) tràn ra ngoài sách
-  // và làm hiện thanh cuộn trong chốc lát. Phóng to quá khung thì mới cho cuộn.
+  // Sách vừa khung thì khung không cuộn: lớp bóng của page-flip tràn ra ngoài sách khi lật làm hiện thanh cuộn.
   const bookFits = bookPage.width * 2 <= bookSize.w + 1 && bookPage.height <= bookSize.h + 1;
 
   useEffect(() => {
@@ -130,14 +129,13 @@ function PdfDocument({
     return () => ro.disconnect();
   }, [frame]);
 
-  // Mục lục gập/mở trượt 300ms → khung đổi rộng từng khung hình; sách chỉ dựng lại khi khung đã đứng yên.
+  // Mục lục gập/mở trượt 300ms → chờ khung đứng yên mới dựng lại sách.
   useEffect(() => {
     const t = setTimeout(() => setBookSize(size), 150);
     return () => clearTimeout(t);
   }, [size]);
 
-  // Về chế độ cuộn (bấm "Cuộn" hoặc khung hẹp lại) → cuộn tới trang đang mở trong sách. Chạy trước khi vẽ và trước
-  // callback đầu tiên của các IntersectionObserver, nên bộ đếm và các trang được vẽ theo vị trí mới.
+  // Về chế độ cuộn → cuộn tới trang đang mở. Layout effect để chạy trước callback đầu của IntersectionObserver.
   const scrollToCurrent = useEffectEvent(() => {
     const el = frame?.children[current];
     if (!frame || !el) return;
@@ -148,8 +146,7 @@ function PdfDocument({
     if (!book) scrollToCurrent();
   }, [book, frame]);
 
-  // Sách vừa khung: lăn chuột / vuốt hai ngón = lật trang (xuống/phải → trang sau). Một lần lăn chỉ lật một cặp: khoá tới khi
-  // lật xong và lăn đã ngừng ~200ms, để quán tính trackpad không lật liên tục. Phóng to quá khung thì lăn để cuộn như thường.
+  // Lăn trên sách = lật một cặp; khoá tới khi lật xong và lăn ngừng ~200ms (quán tính trackpad).
   useEffect(() => {
     if (!frame || !book || !bookFits) return;
     let acc = 0;
@@ -157,13 +154,13 @@ function PdfDocument({
     let lockUntil = 0;
     const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey) return; // ctrl + lăn = phóng to của trình duyệt
-      e.preventDefault(); // khung không cuộn được → đừng để trang ngoài cuộn theo
+      e.preventDefault(); // không để trang ngoài cuộn theo
       const now = performance.now();
       if (now < lockUntil) {
         lockUntil = Math.max(lockUntil, now + 200);
         return;
       }
-      if (now - last > 300) acc = 0; // lăn lẻ tẻ từ lâu không cộng dồn
+      if (now - last > 300) acc = 0;
       last = now;
       const unit = e.deltaMode === 1 ? 16 : 1; // Firefox báo theo dòng
       acc += (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * unit;
@@ -214,7 +211,7 @@ function PdfDocument({
 
   function changeMode(next: ViewMode) {
     setMode(next);
-    setZoomPick(null); // đổi chế độ → về mức mặc định của chế độ mới
+    setZoomPick(null);
     save(MODE_KEY, next);
   }
 
@@ -226,7 +223,7 @@ function PdfDocument({
         role="region"
         aria-label={title}
         tabIndex={0}
-        // page-flip chặn mousedown (không cho focus) → tự focus khung để bấm sách xong dùng ← → lật được.
+        // page-flip chặn mousedown → tự focus khung để ← → lật được.
         onPointerDown={book ? (e) => e.currentTarget.focus({ preventScroll: true }) : undefined}
         onKeyDown={
           book

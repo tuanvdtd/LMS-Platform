@@ -1,4 +1,4 @@
-// src/components/qa/qa-thread.tsx — UI Hỏi đáp kiểu bình luận (khôi phục lesson-qa.tsx của sếp, commit 2c9f750).
+// src/components/qa/qa-thread.tsx — UI Hỏi đáp kiểu bình luận.
 'use client';
 
 import { useEffect, useState } from 'react';

@@ -27,7 +27,7 @@ import { NotificationPanel } from '@/components/layout/notification-panel';
 import { SignOutDialog } from '@/components/layout/sign-out-dialog';
 import { INSTRUCTOR_NAV } from '@/components/layout/instructor-sidebar';
 
-// Header khu giảng viên (kiểu Udemy instructor): không tìm khoá / danh mục / giỏ hàng; có nhãn "Giảng viên"
+// Header khu giảng viên: không tìm khoá / danh mục / giỏ hàng; có nhãn "Giảng viên"
 // và lối chuyển về Học viên. < lg: sidebar ẩn, ☰ mở drawer chứa đúng các mục sidebar giảng viên.
 export default function InstructorHeader() {
   const { resolvedTheme, setTheme } = useTheme();

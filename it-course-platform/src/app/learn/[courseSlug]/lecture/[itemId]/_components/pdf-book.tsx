@@ -1,6 +1,5 @@
 'use client';
 
-// …/_components/pdf-book.tsx
 import { type Ref, useEffect, useEffectEvent, useImperativeHandle, useRef, useState } from 'react';
 import type { PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import type { PageFlip } from 'page-flip';
@@ -8,8 +7,7 @@ import { bookShift, nextSpread, pagesToDraw, prevSpread } from './pdf-book-pages
 
 export type PdfBookApi = { next: () => void; prev: () => void };
 
-// Tiếng lật giấy tổng hợp bằng Web Audio, không cần file âm thanh: tiếng ồn trắng qua lọc dải quét lên (sột) rồi tắt dần.
-// Một AudioContext dùng chung cả trang; trình duyệt chặn âm thanh trước lần bấm đầu tiên thì im lặng, không báo lỗi.
+// Tiếng lật giấy tổng hợp bằng Web Audio, không cần file âm thanh.
 let audio: { ctx: AudioContext; noise: AudioBuffer } | null = null;
 function playFlipSound() {
   try {
@@ -38,13 +36,11 @@ function playFlipSound() {
     src.start(t);
     src.stop(t + 0.4);
   } catch {
-    /* không có Web Audio → im lặng */
+    /* không có Web Audio */
   }
 }
 
-// Chế độ Lật sách: page-flip (StPageFlip) lật các trang HTML, mỗi trang là một canvas PDF.js.
-// page-flip được vá (patches/page-flip@2.0.7.patch): bản gốc chạy requestAnimationFrame mãi kể cả sau destroy() và ghi lại
-// style mọi trang ở từng khung hình; bản vá dừng vòng vẽ khi huỷ, bỏ qua khung hình khi sách đứng yên, luôn gỡ listener resize.
+// page-flip đã vá (patches/): bản gốc chạy requestAnimationFrame mãi, kể cả sau destroy().
 export function PdfBook({
   ref,
   pages,
@@ -57,12 +53,11 @@ export function PdfBook({
 }: {
   ref: Ref<PdfBookApi>;
   pages: PDFPageProxy[];
-  /** Cỡ một trang (px); đổi cỡ thì dựng lại sách, giữ trang đang mở. */
+  /** Cỡ một trang (px). */
   width: number;
   height: number;
-  /** Trang mở khi dựng sách lần đầu (đánh số từ 0). */
+  /** Trang mở khi dựng sách (từ 0). */
   page: number;
-  /** Phát tiếng lật giấy mỗi lần lật. */
   sound: boolean;
   onPageChange: (page: number) => void;
   onFail: () => void;
@@ -70,7 +65,6 @@ export function PdfBook({
   const holderRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<PageFlip | null>(null);
   const pageRef = useRef(page);
-  // Trang đang mở, để dời sách: bìa / trang lẻ cuối đứng một mình thì nằm giữa khung.
   const [at, setAt] = useState(page);
 
   const changed = useEffectEvent((i: number) => onPageChange(i));
@@ -79,7 +73,7 @@ export function PdfBook({
     if (sound) playFlipSound();
   });
 
-  // Bấm nút / phím thì dời sách ngay lúc bắt đầu lật (trượt cùng nhịp trang lật); kéo góc trang thì dời khi lật xong.
+  // Dời sách ngay khi bắt đầu lật để bìa trượt vào giữa cùng nhịp trang lật.
   useImperativeHandle(ref, () => {
     const go = (dir: 'next' | 'prev') => {
       const book = bookRef.current;
@@ -96,25 +90,24 @@ export function PdfBook({
     if (!holder || !width || !height) return;
     let cancelled = false;
     let book: PageFlip | null = null;
-    // page-flip chuyển các trang vào cây của nó và destroy() xoá luôn phần tử gốc → dựng ngoài React.
+    // page-flip chuyển trang vào cây của nó và destroy() xoá luôn phần tử gốc → dựng ngoài React.
     const host = document.createElement('div');
     holder.append(host);
     const els = pages.map(() => {
       const el = document.createElement('div');
       el.className = 'pdf-book-page';
       const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = 0; // canvas mới mặc định 300×150 → trang chưa vẽ không giữ bitmap
+      canvas.width = canvas.height = 0; // mặc định 300×150
       el.append(canvas);
       return el;
     });
     const canvasOf = (i: number) => els[i].firstChild as HTMLCanvasElement;
 
-    // Chỉ vài cặp quanh trang đang mở có hình, trang ra xa thì xoá bitmap: vẽ sẵn mọi trang thì sách vài trăm trang
-    // ngốn hàng trăm MB tới cả GB (đo: 284 trang chỉ giữ 6–10 trang, ~10 MB).
+    // Chỉ giữ hình vài cặp quanh trang đang mở; vẽ hết thì sách dày tốn hàng trăm MB.
     const tasks = new Map<number, RenderTask>();
     const draw = (i: number) => {
       const base = pages[i].getViewport({ scale: 1 });
-      const fit = Math.min(width / base.width, height / base.height); // trang khác khổ trang đầu thì vừa khít, không méo
+      const fit = Math.min(width / base.width, height / base.height);
       const viewport = pages[i].getViewport({ scale: fit * devicePixelRatio });
       const canvas = canvasOf(i);
       canvas.width = Math.floor(viewport.width);
@@ -122,7 +115,7 @@ export function PdfBook({
       canvas.style.width = `${base.width * fit}px`;
       canvas.style.height = `${base.height * fit}px`;
       const task = pages[i].render({ canvas, viewport });
-      task.promise.catch(() => {}); // bị huỷ giữa chừng (lật xa / đổi cỡ / rời bài) → bỏ qua
+      task.promise.catch(() => {}); // bị huỷ giữa chừng
       tasks.set(i, task);
     };
     const clear = (i: number) => {
@@ -145,14 +138,14 @@ export function PdfBook({
           width,
           height,
           size: 'fixed',
-          usePortrait: false, // khung hẹp thì PdfViewer đã quay về chế độ cuộn
-          showCover: true, // trang đầu là bìa cứng đứng một mình
+          usePortrait: false, // khung hẹp đã quay về chế độ cuộn
+          showCover: true,
           startPage: pageRef.current,
-          flippingTime: still ? 1 : 700, // giảm chuyển động: đổi trang tức thì
+          flippingTime: still ? 1 : 700,
           showPageCorners: !still,
           maxShadowOpacity: 0.5,
         });
-        // 'flipping': bấm nút / phím / lăn / bấm vào trang; 'user_fold': bắt đầu kéo góc trang. Rê chuột lên góc thì không kêu.
+        // 'flipping': nút / phím / lăn / bấm trang; 'user_fold': kéo góc trang.
         book.on('changeState', ({ data }) => {
           if (data === 'flipping' || data === 'user_fold') rustle();
         });
@@ -167,7 +160,7 @@ export function PdfBook({
         bookRef.current = book;
       })
       .catch(() => {
-        if (!cancelled) failed(); // không tải được thư viện (mất mạng giữa chừng) → quay về chế độ cuộn
+        if (!cancelled) failed();
       });
 
     return () => {
@@ -179,7 +172,7 @@ export function PdfBook({
     };
   }, [pages, width, height]);
 
-  // my-auto: sách thấp hơn khung thì nằm giữa, cao hơn (phóng to) thì vẫn cuộn tới mép trên được.
+  // my-auto: thấp hơn khung thì nằm giữa, phóng to quá khung vẫn cuộn tới mép trên được.
   return (
     <div
       ref={holderRef}

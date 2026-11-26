@@ -55,7 +55,7 @@ export const withinDays = (iso: string, days: number, now = new Date()) => now.g
 // Bọc phương án trong ngoặc kép, trừ khi nội dung đã có sẵn ngoặc (vd "object").
 const quoted = (s = '') => (/^["“'].*["”']$/.test(s.trim()) ? s.trim() : `"${s}"`);
 
-// Lời khuyên cho giảng viên theo từng cờ (spec §4.3).
+// Lời khuyên cho giảng viên theo từng cờ.
 export function flagText(code: FlagCode, option?: string): string {
   switch (code) {
     case 'negative_d':
@@ -105,7 +105,7 @@ export const SKIP_REASON: Record<SkipReason, string> = {
   recent: 'đã được nhắc trong 7 ngày qua',
 };
 
-// --- Gói 2 ---
+// --- Tổng quan, hành vi học, doanh thu ---
 export const fmtShare = (x: number | null) => fmtPct(x === null ? null : Math.round(x * 1000) / 10);
 export const deltaPct = (cur: number, prev: number) => (prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : undefined);
 export const fmtClock = (sec: number) => formatDuration(Math.round(sec));

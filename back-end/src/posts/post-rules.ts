@@ -16,7 +16,7 @@ export function canWriteFrom(u: { role: string | null; hasInstructorProfile: boo
   return u.hasInstructorProfile || u.hasPublishedCourse;
 }
 
-// Ảnh bìa bắt buộc (sếp chốt 2026-11-18): thẻ bài ở /blog và ảnh chia sẻ link luôn có hình.
+// Ảnh bìa bắt buộc: thẻ bài ở /blog và ảnh chia sẻ link luôn có hình.
 export function publishProblems(p: { title: string; bodyHtml: string; topicCount: number; coverUrl: string | null }): FieldError[] {
   const errors: FieldError[] = [];
   if (!p.title.trim()) errors.push({ path: ['title'], message: 'Hãy nhập tiêu đề' });

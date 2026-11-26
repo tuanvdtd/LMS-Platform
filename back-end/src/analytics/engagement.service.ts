@@ -28,7 +28,7 @@ function retentionDto(item: PublishedItem, r: RetentionResult, enrolled: number)
   };
 }
 
-// Hành vi học của một khoá. Tính khi đọc (như gói 1).
+// Hành vi học của một khoá. Tính khi đọc.
 // ponytail: đọc toàn bộ đoạn video của khoá mỗi lần mở trang; khoá cỡ trăm nghìn đoạn thì gom sẵn theo ngày / bài hoặc cache Redis theo courseId.
 @Injectable()
 export class EngagementAnalyticsService {

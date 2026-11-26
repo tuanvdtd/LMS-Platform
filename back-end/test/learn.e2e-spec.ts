@@ -222,7 +222,7 @@ describe('Học viên học bài giảng (e2e)', () => {
       expect(e.lastItemId).toBe(zeroId);
       expect(e.lastAccessedAt).not.toBeNull();
       expect((await learn('get').expect(200)).body.resumeItemId).toBe(zeroId);
-      // Trả lại trạng thái ban đầu cho test resume ở Task 5.
+      // Trả lại trạng thái ban đầu cho test resume bên dưới.
       await prisma.enrollment.update({ where: { id: enrollmentId }, data: { lastItemId: null } });
     },
     SLOW,

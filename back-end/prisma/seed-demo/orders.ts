@@ -1,7 +1,7 @@
 import { splitRevenue } from '../../src/revenue/split-revenue.ts';
 
 // Đơn hàng cho học viên giả lập của khoá trình diễn (khoá có phí): mỗi ghi danh một đơn paid đúng lúc ghi danh.
-// Không gọi rng → không xáo luồng rng đã hiệu chỉnh của gói 1.
+// Không gọi rng → không xáo luồng rng đã hiệu chỉnh.
 export function planShowcaseOrders(
   enrollments: readonly { userId: string; at: Date }[],
   a: { courseId: string; instructorId: string; priceAmount: number; sharePct: number; id: () => string },

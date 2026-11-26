@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { PostArticle } from '@/components/post/post-article';
 import type { PostCard, PostDetail } from '@/types/post';
 
-// TẠM: bài mẫu đủ mọi thành phần của trang đọc để sếp soi giao diện. Chỉ chạy ở dev, xoá trước khi commit.
+// Bài mẫu đủ mọi thành phần của trang đọc để soi giao diện. Chỉ chạy ở dev (prod trả 404).
 const img = (id: string, w: number, h?: number) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}${h ? `&h=${h}` : ''}&q=75`;
 
@@ -28,7 +28,7 @@ const BODY = `
 <h3>Mỗi lần render có effect riêng</h3>
 <p>Hàm truyền vào <code>useEffect</code> là một hàm mới ở mỗi lần render. Nó đóng gói giá trị của lần render đó, nên không có chuyện effect "đọc nhầm" state của lần sau.</p>
 <blockquote><p>Đừng hỏi effect chạy khi nào. Hãy hỏi: với những giá trị này, bên ngoài cần ở trạng thái nào.</p></blockquote>
-<img src="${img('photo-1461749280684-dccba630e2f6', 600, 400)}" alt="Trình soạn mã mở nhiều tệp" title="Ảnh ngang nhỏ (600×400, như ảnh sếp tải): được phóng lên bằng cột chữ.">
+<img src="${img('photo-1461749280684-dccba630e2f6', 600, 400)}" alt="Trình soạn mã mở nhiều tệp" title="Ảnh ngang nhỏ (600×400): được phóng lên bằng cột chữ.">
 <h2>Mảng phụ thuộc không phải công tắc</h2>
 <p>Mảng phụ thuộc mô tả những giá trị mà effect đọc. Nó không phải nơi để bạn chọn "muốn chạy lại khi nào". Bỏ bớt một giá trị để effect chạy ít hơn là cách nhanh nhất tạo ra lỗi dữ liệu cũ.</p>
 <ol>

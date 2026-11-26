@@ -25,7 +25,7 @@ const GRID = 'grid items-start gap-6 md:grid-cols-[220px_minmax(0,1fr)]';
 // Bước đầu tiên còn thiếu; đủ hết → màn tóm tắt.
 const firstScreen = (v: ApplicationView): Screen => v.missing[0]?.step ?? 'review';
 
-// Đơn giảng viên cao cấp kiểu Udemy: 4 bước, mỗi bước lưu lên server, admin duyệt.
+// Đơn giảng viên cao cấp: 4 bước, mỗi bước lưu lên server, admin duyệt.
 export function PremiumFlow() {
   const [view, setView] = useState<ApplicationView | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);

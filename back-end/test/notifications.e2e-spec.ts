@@ -62,7 +62,7 @@ describe('Thông báo (e2e)', () => {
       .compile();
     app = moduleRef.createNestApplication({ bodyParser: false });
     setupApp(app);
-    await app.listen(0); // socket.io (Task 2) cần cổng thật
+    await app.listen(0); // socket.io cần cổng thật
     prisma = app.get(PrismaService);
     [stu, other, mod] = await Promise.all([makeUser(), makeUser(), makeUser('moderator')]);
     // 25 bản, cách nhau 1 phút; chẵn = verdict, lẻ = qa_answer; 5 bản cũ nhất đã đọc.
