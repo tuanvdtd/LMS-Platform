@@ -342,7 +342,7 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </div>
-        <CertificateDialog serial={cert.open} onClose={() => setCert((c) => ({ ...c, open: null }))} />
+        <CertificateDialog serial={cert.open} courseTitle={outline.course.title} onClose={() => setCert((c) => ({ ...c, open: null }))} />
         {myReview && (
           <ReviewDialog
             courseSlug={courseSlug}

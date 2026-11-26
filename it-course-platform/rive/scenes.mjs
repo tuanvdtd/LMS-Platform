@@ -351,3 +351,4 @@ function ask() {
 }
 
 export const sceneArtboards = [study(), teach(), ask()];
+export { lumi, tr, path, a, lin, rad, stroke }; // cho graduate.mjs
