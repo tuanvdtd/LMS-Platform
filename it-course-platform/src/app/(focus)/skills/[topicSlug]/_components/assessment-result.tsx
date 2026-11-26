@@ -1,3 +1,4 @@
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { CircleCheck, CircleHelp, CircleMinus, CircleX, TrendingDown, TrendingUp, Minus, TriangleAlert } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
@@ -7,6 +8,8 @@ import { formatDuration, MASTERY_COLOR, MASTERY_LABEL, masteryLevel } from '@/li
 import { cn } from '@/lib/utils';
 import type { AttemptResult } from '@/types/skills';
 import { BACK_LINK } from './assessment-intro';
+
+const ExaminerLumi = dynamic(() => import('@/components/shared/lumi-moment').then((m) => m.ExaminerLumi), { ssr: false });
 
 const MINUS = '−';
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `${MINUS}${-n}` : '0');
@@ -26,10 +29,14 @@ export function AssessmentResult({ result }: { result: AttemptResult }) {
   const DeltaIcon = delta === null ? null : delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
   const eloDelta = result.ratingAfter - result.ratingBefore;
   const duration = formatDuration(Date.parse(result.finishedAt) - Date.parse(result.startedAt));
+  const lumiMood = result.answered === 0 ? -1 : delta === null ? 0 : delta > 0 ? 1 : delta < 0 ? 2 : 3;
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-10">
       <section aria-labelledby="result-heading" className="flex flex-col items-center gap-3 rounded-xl border bg-card p-6 text-center shadow-sm">
+        <div className="aspect-4/3 w-64 max-w-full">
+          <ExaminerLumi mood={lumiMood} from={result.pctBefore ?? 0} to={result.pctAfter} className="size-full" />
+        </div>
         <h1 id="result-heading" className="text-sm font-medium text-muted-foreground">Kết quả đánh giá {result.topic.name}</h1>
 
         {result.answered === 0 ? (
