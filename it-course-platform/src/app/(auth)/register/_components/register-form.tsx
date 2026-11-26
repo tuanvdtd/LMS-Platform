@@ -16,6 +16,8 @@ import { Banner, Field, PasswordToggle } from '../../_components/form-parts';
 import { fallbackError, NETWORK, onboardingUrl, resendVerification } from '../../_components/auth-messages';
 import { registerSchema, type RegisterInput, type RegisterValues } from './register-form.schema';
 
+const VERIFY_STEPS = ['Tạo tài khoản', 'Mở link xác minh trong email, link còn hiệu lực 24 giờ', 'Đăng nhập và bắt đầu học'];
+
 // Lỗi 400 của Better Auth lọt qua zod → gắn vào đúng ô
 const FIELD_ERRORS: Record<string, { field: 'email' | 'password'; message: string }> = {
   INVALID_EMAIL: { field: 'email', message: 'Email không hợp lệ' },
@@ -72,6 +74,7 @@ export function RegisterForm({ redirect }: { redirect?: string }) {
     return (
       <CheckEmailScreen
         title="Kiểm tra email"
+        steps={VERIFY_STEPS}
         onResend={() => resendVerification(sentTo, redirect)}
         footer={
           <Button
@@ -91,7 +94,7 @@ export function RegisterForm({ redirect }: { redirect?: string }) {
           Chúng tôi đã gửi link xác minh tới <strong>{sentTo}</strong>.
         </p>
         <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-          Link hết hạn sau 24 giờ. Nếu email này đã có tài khoản, hãy{' '}
+          Nếu email này đã có tài khoản, hãy{' '}
           <Link href={withRedirect('/login', redirect)} className="text-primary font-semibold hover:underline">đăng nhập</Link>.
         </p>
       </CheckEmailScreen>
@@ -101,7 +104,7 @@ export function RegisterForm({ redirect }: { redirect?: string }) {
   const describedBy = (field: keyof RegisterInput) => (errors[field] ? `${field}-error` : undefined);
 
   return (
-    <AuthShell title="Tạo tài khoản">
+    <AuthShell title="Tạo tài khoản" progress>
       <SocialButtons redirect={redirect} />
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">

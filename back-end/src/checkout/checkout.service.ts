@@ -255,7 +255,10 @@ export class CheckoutService {
     const find = () =>
       this.prisma.order.findFirst({
         where: { userId, providerSessionId: sessionId },
-        select: { id: true, status: true, items: { select: { course: { select: { slug: true, title: true } } } } },
+        select: {
+          id: true, status: true, paidAt: true, provider: true, subtotalAmount: true, discountAmount: true, totalAmount: true,
+          items: { select: { unitPriceAmount: true, listPriceAmount: true, course: { select: { slug: true, title: true, thumbnailUrl: true, instructor: { select: { name: true } } } } } },
+        },
       });
     const order = await find();
     if (!order) throw new NotFoundException({ statusCode: 404, code: 'ORDER_NOT_FOUND', message: 'Không tìm thấy đơn hàng' });

@@ -1,6 +1,8 @@
 // Sinh public/rive/guest-home.riv (artboard Lumi, Study, Teach, Ask) từ lumi-spec.mjs + scenes.mjs
 // và public/rive/celebrate.riv (artboard Graduate + Confetti, chúc mừng hoàn thành khoá) từ graduate.mjs
 // và public/rive/lumi.riv (artboard Coder, Examiner từ moments.mjs; Lost, Guard, Fixer từ errors.mjs)
+// và public/rive/auth.riv (artboard Library, trang đăng nhập/đăng ký) từ library.mjs
+// và public/rive/checkout.riv (artboard Stamp, thanh toán thành công) từ stamp.mjs
 // bằng rive-mcp-server (công cụ cộng đồng, ghi thẳng .riv, không qua Rive Editor nên không có màn splash của gói Free).
 // Cài 1 lần ngoài repo: npm i --prefix ../tools/rive-mcp rive-mcp-server@0.12.0 --ignore-scripts
 // Chạy: node rive/build.mjs   (RIVE_MCP=<đường dẫn dist/index.js> nếu cài chỗ khác)
@@ -11,6 +13,8 @@ import { sceneArtboards } from './scenes.mjs';
 import { graduateArtboard, confettiArtboard } from './graduate.mjs';
 import { coderArtboard, examinerArtboard } from './moments.mjs';
 import { lostArtboard, guardArtboard, fixerArtboard } from './errors.mjs';
+import { libraryArtboard } from './library.mjs';
+import { stampArtboard } from './stamp.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const server = process.env.RIVE_MCP ?? path.resolve(here, '../../tools/rive-mcp/node_modules/rive-mcp-server/dist/index.js');
@@ -22,6 +26,8 @@ const outputs = {
   'guest-home.riv': [lumiArtboard, ...sceneArtboards],
   'celebrate.riv': [graduateArtboard, confettiArtboard],
   'lumi.riv': [coderArtboard, examinerArtboard, lostArtboard, guardArtboard, fixerArtboard],
+  'auth.riv': [libraryArtboard],
+  'checkout.riv': [stampArtboard],
 };
 // node rive/build.mjs lumi.riv → chỉ build file được nêu
 const only = process.argv.slice(2);

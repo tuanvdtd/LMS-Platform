@@ -8,7 +8,7 @@ export const K = { ink: '#0f172a', slate: '#1e293b', line: '#334155', mute: '#47
 export const rot = (deg, [x, y]) => { const r = (deg * Math.PI) / 180; return [x * Math.cos(r) - y * Math.sin(r), x * Math.sin(r) + y * Math.cos(r)]; };
 const SHOULDER = { L: [-74, -100], R: [86, -100] };
 // Ưu tiên khuỷu chĩa ra ngoài và xuống cho dáng tay tự nhiên
-function ik(side, target) {
+export function ik(side, target) {
   const [sx, sy] = SHOULDER[side], out = side === 'L' ? -1 : 1;
   let best;
   for (let r1 = -180; r1 <= 180; r1++) for (let r2 = -150; r2 <= 150; r2++) {
@@ -50,7 +50,7 @@ export const holdOf = (name, src, base, p) => anim(name, 1, base, src.tracks
 const hopOf = (p, d, withArms) => lumiArtboard.animations.find((an) => an.name === 'celebrate').tracks
   .filter((t) => (withArms ? /^(hop|shadowG|bar|arm|fore)/ : /^(hop|shadowG|bar)$/).test(t.target))
   .map((t) => ({ ...t, target: p + t.target, keyframes: t.keyframes.map((k) => ({ ...k, frame: k.frame + d })) }));
-const msOf = (frames) => Math.round((frames / 60) * 1000);
+export const msOf = (frames) => Math.round((frames / 60) * 1000);
 
 export function moodLayer(reacts, extra = []) {
   const states = [{ name: 'rest', animation: 'rest' }];
