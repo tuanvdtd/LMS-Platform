@@ -1,7 +1,7 @@
 import type { BankAccount } from '@/types/revenue';
 
 // Khớp response API module instructor-applications.
-export type ApplicationStep = 'info' | 'avatar' | 'terms' | 'payout';
+export type ApplicationStep = 'info' | 'avatar' | 'terms' | 'identity' | 'payout';
 export type ApplicationDisplayStatus = 'none' | 'draft' | 'pending' | 'approved' | 'rejected';
 export type ReviewedStatus = 'pending' | 'approved' | 'rejected';
 
@@ -9,9 +9,18 @@ export const STEP_LABEL: Record<ApplicationStep, string> = {
   info: 'Thông tin cá nhân',
   avatar: 'Ảnh hồ sơ',
   terms: 'Điều khoản',
+  identity: 'Xác minh danh tính',
   payout: 'Tài khoản nhận tiền',
 };
 export const STEPS = Object.keys(STEP_LABEL) as ApplicationStep[];
+
+export type IdentityStatus = 'pending' | 'in_review' | 'approved' | 'declined';
+export const IDENTITY_LABEL: Record<IdentityStatus, string> = {
+  pending: 'Chưa hoàn tất',
+  in_review: 'Đang được xem xét',
+  approved: 'Đã xác minh',
+  declined: 'Không thành công',
+};
 
 export const REVIEW_STATUS_LABEL: Record<ReviewedStatus, string> = {
   pending: 'Chờ duyệt',
@@ -37,6 +46,7 @@ export type ApplicationView = {
   socials: Socials;
   termsAccepted: boolean;
   bank: BankAccount | null;
+  identity: { status: IdentityStatus | null; name: string | null };
   submittedAt: string | null;
   rejectReason: string | null;
   rejectedAt: string | null;
@@ -65,6 +75,8 @@ export type AdminApplicationDetail = AdminApplicationRow & {
   bankBin: string | null;
   bankAccountName: string | null;
   bankAccountNoMasked: string | null;
+  identityStatus: IdentityStatus | null;
+  identityName: string | null;
   rejectReason: string | null;
   reviewedBy: { id: string; name: string } | null;
   user: Person & { createdAt: string };

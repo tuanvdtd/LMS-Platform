@@ -7,10 +7,12 @@ import type { MockInstance } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { requireEnv } from '../src/env.js';
 import { PrismaService } from '../src/infra/prisma.service.js';
+import { DiditGateway } from '../src/instructor-applications/didit.gateway.js';
 import { StorageService } from '../src/infra/storage.service.js';
 import { MailService } from '../src/mail/mail.service.js';
 import { NotificationsGateway } from '../src/notifications/notifications.gateway.js';
 import { setupApp } from '../src/setup-app.js';
+import { FakeDidit } from './fake-didit.js';
 import { FakeStorage } from './fake-storage.js';
 import { png } from './fixtures/files.js';
 
@@ -30,6 +32,7 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
   let prisma: PrismaService;
   let push: MockInstance<NotificationsGateway['push']>;
   const storage = new FakeStorage();
+  const didit = new FakeDidit();
   const mail = { sendVerification: vi.fn(), sendResetPassword: vi.fn(), sendInstructorApplicationReviewed: vi.fn() };
   const emails: string[] = [];
   let admin: TestUser;
@@ -71,6 +74,8 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
       .useValue(mail)
       .overrideProvider(StorageService)
       .useValue(storage)
+      .overrideProvider(DiditGateway)
+      .useValue(didit)
       .compile();
     app = moduleRef.createNestApplication({ bodyParser: false });
     setupApp(app);
@@ -95,16 +100,16 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
   }, 120_000);
 
   describe('giảng viên', () => {
-    it('chưa có đơn: displayStatus none, thiếu đủ 4 bước', async () => {
+    it('chưa có đơn: displayStatus none, thiếu đủ 5 bước', async () => {
       const { body } = await call('get', '/api/instructor/application', teacher.cookie).expect(200);
       expect(body).toMatchObject({ displayStatus: 'none', name: 'E2E', image: null, bank: null, revenueSharePct: expect.any(Number) });
-      expect(body.missing.map((m: { step: string }) => m.step)).toEqual(['info', 'avatar', 'terms', 'payout']);
+      expect(body.missing.map((m: { step: string }) => m.step)).toEqual(['info', 'avatar', 'terms', 'identity', 'payout']);
     });
 
     it('submit khi chưa có đơn → 400 APPLICATION_INCOMPLETE', async () => {
       const res = await submit(teacher).expect(400);
       expect(res.body.code).toBe('APPLICATION_INCOMPLETE');
-      expect(res.body.missing).toHaveLength(4);
+      expect(res.body.missing).toHaveLength(5);
     });
 
     it('info: bio 49 từ → 400 path bio', async () => {
@@ -121,7 +126,7 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
 
     it('submit thiếu bước → 400 kèm missing đúng bước', async () => {
       const res = await submit(teacher).expect(400);
-      expect(res.body.missing.map((m: { step: string }) => m.step)).toEqual(['avatar', 'terms', 'payout']);
+      expect(res.body.missing.map((m: { step: string }) => m.step)).toEqual(['avatar', 'terms', 'identity', 'payout']);
     });
 
     it(
@@ -147,9 +152,13 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
       SLOW,
     );
 
-    it('terms + payout → missing rỗng', async () => {
+    it('terms + xác minh + payout → missing rỗng', async () => {
       await step(teacher, 'terms', { accepted: false }).expect(400);
       await step(teacher, 'terms', { accepted: true }).expect(200);
+      await call('post', '/api/instructor/application/identity/session', teacher.cookie).send({ consent: true }).expect(200);
+      const sid = (await prisma.instructorApplication.findUniqueOrThrow({ where: { userId: teacher.id } })).identitySessionId!;
+      didit.decide(sid, 'Approved', 'NGUYEN VAN A');
+      await call('post', '/api/instructor/application/identity/sync', teacher.cookie).expect(200);
       const { body } = await step(teacher, 'payout', BANK).expect(200);
       expect(body).toMatchObject({ termsAccepted: true, bank: BANK, missing: [] });
     });
@@ -195,7 +204,13 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
       const list = await call('get', base, admin.cookie).expect(200);
       expect(list.body.items.map((i: { id: string }) => i.id)).toContain(appId);
       const { body } = await call('get', `${base}/${appId}`, admin.cookie).expect(200);
-      expect(body).toMatchObject({ status: 'pending', bankAccountNoMasked: '••••6789', courseCount: 0 });
+      expect(body).toMatchObject({
+        status: 'pending',
+        bankAccountNoMasked: '••••6789',
+        courseCount: 0,
+        identityStatus: 'approved',
+        identityName: 'NGUYEN VAN A',
+      });
       expect(body).not.toHaveProperty('bankAccountNo');
     });
 

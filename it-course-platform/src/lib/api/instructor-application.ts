@@ -16,6 +16,8 @@ export const saveInfo = (body: InfoPayload) => api.put<ApplicationView>(`${mine}
 export const saveAvatar = (key: string) => api.put<ApplicationView>(`${mine}/avatar`, { key }).then((r) => r.data);
 export const acceptTerms = () => api.put<ApplicationView>(`${mine}/terms`, { accepted: true }).then((r) => r.data);
 export const savePayout = (body: BankAccount) => api.put<ApplicationView>(`${mine}/payout`, body).then((r) => r.data);
+export const startIdentity = () =>
+  api.post<{ url: string }>(`${mine}/identity/session`, { consent: true }).then((r) => r.data);
 export const submitApplication = () => api.post<ApplicationView>(`${mine}/submit`).then((r) => r.data);
 
 const admin = '/admin/instructor-applications';

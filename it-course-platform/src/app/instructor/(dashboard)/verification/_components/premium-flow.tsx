@@ -11,6 +11,7 @@ import { useNotificationStore } from '@/lib/notification-store';
 import { cn } from '@/lib/utils';
 import { type ApplicationStep, type ApplicationView, STEP_LABEL, STEPS } from '@/types/instructor-application';
 import { AvatarStep } from './avatar-step';
+import { IdentityStep } from './identity-step';
 import { InfoStep } from './info-step';
 import { PayoutStep } from './payout-step';
 import { ReviewStep } from './review-step';
@@ -18,14 +19,21 @@ import type { StepSave } from './step-shared';
 import { TermsStep } from './terms-step';
 
 type Screen = ApplicationStep | 'review';
-const SCREENS = { info: InfoStep, avatar: AvatarStep, terms: TermsStep, payout: PayoutStep, review: ReviewStep };
+const SCREENS = {
+  info: InfoStep,
+  avatar: AvatarStep,
+  terms: TermsStep,
+  identity: IdentityStep,
+  payout: PayoutStep,
+  review: ReviewStep,
+};
 
 const GRID = 'grid items-start gap-6 md:grid-cols-[220px_minmax(0,1fr)]';
 
 // Bước đầu tiên còn thiếu; đủ hết → màn tóm tắt.
 const firstScreen = (v: ApplicationView): Screen => v.missing[0]?.step ?? 'review';
 
-// Đơn giảng viên cao cấp: 4 bước, mỗi bước lưu lên server, admin duyệt.
+// Đơn giảng viên cao cấp: 5 bước, mỗi bước lưu lên server, admin duyệt.
 export function PremiumFlow() {
   const [view, setView] = useState<ApplicationView | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);

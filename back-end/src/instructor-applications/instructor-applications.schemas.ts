@@ -40,3 +40,6 @@ export const rejectSchema = z
   .object({ reason: z.string().trim().min(1, 'Nhập lý do từ chối').max(500, 'Tối đa 500 ký tự') })
   .strict();
 export type RejectInput = z.output<typeof rejectSchema>;
+
+// POST /instructor/application/identity/session: phải tick đồng ý xử lý ảnh giấy tờ + sinh trắc học mới tạo phiên.
+export const identityConsentSchema = z.object({ consent: z.literal(true, 'Cần đồng ý để xác minh') }).strict();

@@ -1,5 +1,15 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Prisma, type Notification } from '@prisma/client';
+import * as Sentry from '@sentry/nestjs';
 import { AVATAR_MIN, imageProblem, THUMBNAIL_MAX_BYTES } from '../assets/file-check.js';
 import { AUTH, type Auth } from '../auth/auth.js';
 import { isGuid, validationError } from '../common/zod.pipe.js';
@@ -11,6 +21,8 @@ import { NotificationsGateway } from '../notifications/notifications.gateway.js'
 import type { PayoutAccountInput } from '../revenue/revenue.schemas.js';
 import { RevenueService } from '../revenue/revenue.service.js';
 import { applicationMissing, maskAccountNo, type MissingStep } from './application-rules.js';
+import { DiditGateway } from './didit.gateway.js';
+import { mapDiditStatus, pickName } from './identity-rules.js';
 import type { ApplicationsQuery, InfoInput } from './instructor-applications.schemas.js';
 
 const EDITABLE = ['draft', 'rejected'] as const;
@@ -28,6 +40,8 @@ const DETAIL_SELECT = {
   bankBin: true,
   bankAccountNo: true,
   bankAccountName: true,
+  identityStatus: true,
+  identityName: true,
   submittedAt: true,
   reviewedAt: true,
   rejectReason: true,
@@ -47,23 +61,48 @@ const alreadyPremium = (message = 'Bạn đã là giảng viên cao cấp') =>
   new ConflictException({ statusCode: 409, code: 'ALREADY_PREMIUM', message });
 const incomplete = (missing: MissingStep[]) =>
   new BadRequestException({ statusCode: 400, code: 'APPLICATION_INCOMPLETE', message: 'Đơn chưa đủ thông tin', missing });
+const notRestartable = () =>
+  new ConflictException({
+    statusCode: 409,
+    code: 'IDENTITY_NOT_RESTARTABLE',
+    message: 'Danh tính đã xác minh hoặc đang được xem xét',
+  });
+const noIdentitySession = () =>
+  new ConflictException({ statusCode: 409, code: 'NO_IDENTITY_SESSION', message: 'Chưa bắt đầu xác minh danh tính' });
+// 502 là HttpException nên SentryGlobalFilter bỏ qua → tự gửi Sentry trước. Chi tiết lỗi Didit không trả ra FE.
+const providerError = (err: unknown) => {
+  Sentry.captureException(err);
+  return new BadGatewayException({
+    statusCode: 502,
+    code: 'IDENTITY_PROVIDER_ERROR',
+    message: 'Không kết nối được dịch vụ xác minh, thử lại sau',
+  });
+};
+// Chỉ ghi đè khi chưa approved. Viết bằng `in`, không dùng `not: 'approved'`, vì `not` của Prisma loại luôn dòng NULL.
+const SYNCABLE = ['pending', 'in_review', 'declined'] as const;
 
 // Đơn giảng viên cao cấp. Duyệt xong mới có instructor_profiles → price-guard / gửi duyệt / chi trả không phải đổi.
 @Injectable()
 export class InstructorApplicationsService {
+  private readonly logger = new Logger(InstructorApplicationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly revenue: RevenueService,
     private readonly mail: MailService,
     private readonly notifications: NotificationsGateway,
+    private readonly didit: DiditGateway,
     @Inject(AUTH) private readonly auth: Auth,
   ) {}
 
   // ---- Giảng viên ----
 
   // Đọc DB chứ không đọc user của session: ngay sau PUT, session trong request vẫn là bản cũ.
-  async view(userId: string) {
+  // refresh (chỉ GET): phiên đang dở / đang xem xét → hỏi Didit trước khi đọc đơn.
+  // Các PUT/submit không refresh để lưu bước khác không phải chờ Didit.
+  async view(userId: string, opts: { refresh?: boolean } = {}) {
+    if (opts.refresh) await this.refreshQuietly(userId);
     const [user, profile, app, { sharePct }, own] = await Promise.all([
       this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true, image: true } }),
       this.prisma.instructorProfile.findUnique({ where: { userId }, select: { userId: true } }),
@@ -90,6 +129,7 @@ export class InstructorApplicationsService {
       submittedAt: a?.submittedAt ?? null,
       rejectReason: a?.rejectReason ?? null,
       rejectedAt: a?.rejectReason ? a.reviewedAt : null, // ngày bị từ chối, hiện cùng lý do
+      identity: { status: a?.identityStatus ?? null, name: a?.identityName ?? null },
       missing: done ? [] : applicationMissing(a, user.image),
       revenueSharePct: sharePct,
     };
@@ -145,6 +185,63 @@ export class InstructorApplicationsService {
     await this.assertEditable(userId);
     await this.write(userId, input);
     return this.view(userId);
+  }
+
+  // ---- Xác minh danh tính (Didit) ----
+
+  // Tạo phiên (hoặc nhận lại phiên đang dở) rồi trả url trang xác minh của Didit. Bằng chứng đồng ý là phiên đã tạo bên Didit.
+  async startIdentity(userId: string) {
+    await this.assertEditable(userId);
+    const app = await this.prisma.instructorApplication.findUniqueOrThrow({
+      where: { userId },
+      select: { identityStatus: true },
+    });
+    if (app.identityStatus === 'approved' || app.identityStatus === 'in_review') throw notRestartable();
+    let session: { sessionId: string; url: string };
+    try {
+      session = await this.didit.createSession(userId);
+    } catch (e) {
+      throw providerError(e);
+    }
+    await this.write(userId, {
+      identitySessionId: session.sessionId,
+      identityStatus: 'pending',
+      identityName: null,
+      identityCheckedAt: new Date(),
+    });
+    return { url: session.url };
+  }
+
+  // Hỏi Didit trạng thái mới nhất ngay, báo lỗi 502 nếu Didit không trả lời (khác GET: GET lỗi thì im lặng giữ trạng thái cũ).
+  async refreshIdentity(userId: string) {
+    const app = await this.prisma.instructorApplication.findUnique({
+      where: { userId },
+      select: { identitySessionId: true },
+    });
+    if (!app?.identitySessionId) throw noIdentitySession();
+    try {
+      await this.syncIdentity(app.identitySessionId);
+    } catch (e) {
+      throw providerError(e);
+    }
+    return this.view(userId);
+  }
+
+  // Webhook status.updated của Didit. Chỉ dùng session_id, còn kết quả thì kéo lại từ Didit: không phải tin payload,
+  // webhook trùng hay sai thứ tự cũng vô hại. syncIdentity lỗi → ném ra 500 để Didit gửi lại.
+  async handleDiditWebhook(raw: Buffer, signature: string | undefined) {
+    const body = this.didit.verifyWebhook(raw, signature);
+    if (!body) throw new UnauthorizedException();
+    const sessionId = body.session_id;
+    if (typeof sessionId !== 'string') return { received: true };
+    // Phiên không còn gắn với đơn nào (đã bị thay bằng phiên mới) → 200 để Didit thôi gửi lại.
+    const known = await this.prisma.instructorApplication.findFirst({
+      where: { identitySessionId: sessionId },
+      select: { id: true },
+    });
+    if (!known) return { received: true };
+    await this.syncIdentity(sessionId);
+    return { received: true };
   }
 
   async submit(userId: string) {
@@ -336,6 +433,39 @@ export class InstructorApplicationsService {
       data: { ...data, status: 'draft' },
     });
     if (res.count === 0) throw locked();
+  }
+
+  // Ghi kết quả mới nhất của phiên vào đơn. WHERE theo đúng phiên (phiên đã bị thay → không ghi)
+  // và theo SYNCABLE (approved không bao giờ bị hạ). Lỗi gọi Didit ném ra cho nơi gọi tự xử lý.
+  private async syncIdentity(sessionId: string) {
+    const decision = await this.didit.getDecision(sessionId);
+    const mapped = mapDiditStatus(decision.status);
+    if (!mapped) {
+      this.logger.warn(`Trạng thái Didit lạ "${decision.status}" ở phiên ${sessionId}`);
+      return;
+    }
+    const now = new Date();
+    const data =
+      mapped === 'expired'
+        ? { identitySessionId: null, identityStatus: null, identityName: null, identityCheckedAt: now }
+        : { identityStatus: mapped, identityName: mapped === 'approved' ? pickName(decision) : null, identityCheckedAt: now };
+    await this.prisma.instructorApplication.updateMany({
+      where: { identitySessionId: sessionId, identityStatus: { in: [...SYNCABLE] } },
+      data,
+    });
+  }
+
+  // Làm mới cho tiện ở GET: Didit lỗi thì giữ trạng thái cũ, không làm hỏng việc mở wizard.
+  private async refreshQuietly(userId: string) {
+    const app = await this.prisma.instructorApplication.findUnique({
+      where: { userId },
+      select: { identitySessionId: true, identityStatus: true },
+    });
+    const waiting = app?.identityStatus === 'pending' || app?.identityStatus === 'in_review';
+    if (!app?.identitySessionId || !waiting) return;
+    await this.syncIdentity(app.identitySessionId).catch((e: unknown) =>
+      this.logger.warn(`Không làm mới được xác minh: ${e instanceof Error ? e.message : String(e)}`),
+    );
   }
 
   // Qua internalAdapter để cache {session, user} trong Redis được làm mới (như become-instructor).

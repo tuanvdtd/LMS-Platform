@@ -21,7 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { approveApplication, getApplicationDetail, listApplications, rejectApplication } from '@/lib/api/instructor-application';
 import { getVietQrBanks } from '@/lib/api/revenue';
 import { cn } from '@/lib/utils';
-import { type AdminApplicationDetail, BIO_MIN_WORDS, wordCount } from '@/types/instructor-application';
+import { type AdminApplicationDetail, BIO_MIN_WORDS, IDENTITY_LABEL, wordCount } from '@/types/instructor-application';
 import { NextPending, QueueMessage } from '../../../_components/queue';
 import { BackLink, type Check, CheckList, fmtDate, fmtDateTime, Panel, RejectDialog, ReviewStatusBadge, Spinner } from '../../../_components/review-ui';
 
@@ -134,9 +134,16 @@ export function ApplicationDetail() {
     { label: 'GitHub', url: detail.socials.github, icon: Link2 },
   ].filter((l): l is { label: string; url: string; icon: typeof Globe } => !!l.url);
   const nameMatches = detail.bankAccountName ? plain(detail.bankAccountName) === plain(user.name) : null;
+  // Tên trên giấy tờ (Didit) so với chủ tài khoản ngân hàng, đều so không dấu.
+  const idMatchesBank =
+    detail.identityName && detail.bankAccountName ? plain(detail.identityName) === plain(detail.bankAccountName) : null;
   // Bằng chứng của đơn, đặt cạnh nút duyệt. Tài khoản đã chuyển sang hồ sơ GV sau khi duyệt → chỉ kiểm khi còn chờ.
   const checks: Check[] = [
     { ok: !!user.image, label: user.image ? 'Có ảnh hồ sơ' : 'Chưa có ảnh hồ sơ' },
+    {
+      ok: detail.identityStatus === 'approved',
+      label: detail.identityStatus ? `Danh tính: ${IDENTITY_LABEL[detail.identityStatus].toLowerCase()}` : 'Chưa xác minh danh tính',
+    },
     { ok: !!detail.headline, label: detail.headline ? 'Có chức danh' : 'Chưa ghi chức danh' },
     { ok: words >= BIO_MIN_WORDS, label: words >= BIO_MIN_WORDS ? `Giới thiệu ${words} từ` : `Giới thiệu chỉ ${words}/${BIO_MIN_WORDS} từ` },
     { ok: links.length > 0, label: links.length ? `${links.length} liên kết hồ sơ` : 'Không có liên kết hồ sơ' },
@@ -256,7 +263,7 @@ export function ApplicationDetail() {
           <Panel title="Tài khoản nhận tiền">
             {detail.bankAccountNoMasked ? (
               <div className="flex flex-col gap-4">
-                <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+                <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <dt className="text-xs text-muted-foreground">Ngân hàng</dt>
                     <dd className="font-medium text-foreground">
@@ -266,6 +273,10 @@ export function ApplicationDetail() {
                   <div>
                     <dt className="text-xs text-muted-foreground">Chủ tài khoản</dt>
                     <dd className="font-medium text-foreground">{detail.bankAccountName}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Tên trên giấy tờ</dt>
+                    <dd className="font-medium text-foreground">{detail.identityName ?? 'Chưa xác minh'}</dd>
                   </div>
                   <div>
                     <dt className="text-xs text-muted-foreground">Số tài khoản</dt>
@@ -283,6 +294,19 @@ export function ApplicationDetail() {
                     {nameMatches
                       ? 'Tên chủ tài khoản khớp tên hồ sơ (so không dấu).'
                       : `Tên chủ tài khoản khác tên hồ sơ "${user.name}". Kiểm tra lại trước khi duyệt.`}
+                  </p>
+                )}
+                {idMatchesBank !== null && (
+                  <p
+                    className={cn(
+                      'flex items-start gap-2 rounded-lg border p-3 text-sm',
+                      idMatchesBank ? 'border-success-border bg-success-soft text-success' : 'border-warning-border bg-warning-soft text-warning',
+                    )}
+                  >
+                    {idMatchesBank ? <CircleCheck className="mt-0.5 size-4 shrink-0" aria-hidden /> : <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />}
+                    {idMatchesBank
+                      ? 'Tên chủ tài khoản khớp tên trên giấy tờ đã xác minh.'
+                      : `Tên chủ tài khoản khác tên trên giấy tờ "${detail.identityName}". Kiểm tra lại trước khi duyệt.`}
                   </p>
                 )}
               </div>

@@ -8,7 +8,7 @@ import { savePayout } from '@/lib/api/instructor-application';
 import type { BankAccount } from '@/types/revenue';
 import { handleStepError, type StepProps, useStepSave } from './step-shared';
 
-// Bước 4: tài khoản nhận doanh thu (VietQR). Không có phần thuế.
+// Bước 5: tài khoản nhận doanh thu (VietQR). Không có phần thuế.
 export function PayoutStep({ view, onSaved, registerSave }: StepProps) {
   const initial = view.bank ?? EMPTY_BANK;
   const [bank, setBank] = useState<BankAccount>(initial);
@@ -35,7 +35,15 @@ export function PayoutStep({ view, onSaved, registerSave }: StepProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-muted-foreground">Tài khoản phải đứng tên bạn. Doanh thu chuyển khoản hằng tháng.</p>
+      <p className="text-sm text-muted-foreground">
+        Tài khoản phải đứng tên bạn. Doanh thu chuyển khoản hằng tháng.
+        {view.identity.name && (
+          <>
+            {' '}Tên chủ tài khoản nên khớp với tên trên giấy tờ:{' '}
+            <span className="font-medium text-foreground">{view.identity.name}</span>.
+          </>
+        )}
+      </p>
       <BankFields value={bank} onChange={setBank} errors={errors} />
       <div>
         <Button onClick={run} disabled={saving}>

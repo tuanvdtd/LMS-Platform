@@ -223,10 +223,18 @@ model InstructorApplication {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Xác minh danh tính qua Didit (eKYC). Không lưu ảnh giấy tờ/selfie, số giấy tờ hay ngày sinh:
+  // đó là dữ liệu nhạy cảm, Didit giữ. Ở đây chỉ còn kết quả và họ tên để admin đối chiếu với chủ tài khoản ngân hàng.
+  identitySessionId String? // phiên Didit gần nhất; webhook tìm đơn theo cột này
+  identityStatus    IdentityStatus? // null = chưa bắt đầu (hoặc phiên cũ đã hết hạn)
+  identityName      String? // họ tên trên giấy tờ, chỉ có khi approved
+  identityCheckedAt DateTime? // lần cuối lấy kết quả từ Didit
+
   user       User  @relation("applicant", fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy User? @relation("applicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([status, submittedAt]) // hàng đợi duyệt của admin
+  @@index([identitySessionId])
   @@map("instructor_applications")
 }
 
@@ -1589,6 +1597,13 @@ enum ApplicationStatus {
   pending
   approved
   rejected
+}
+
+enum IdentityStatus {
+  pending
+  in_review
+  approved
+  declined
 }
 
 enum ApprovalStatus {
