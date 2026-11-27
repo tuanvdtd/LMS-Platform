@@ -116,6 +116,7 @@ Repo → Settings → Secrets and variables → Actions → **Variables** (khôn
 ### 10. Đối chiếu dịch vụ ngoài
 Đã trỏ `api-learn.tuandt.me` từ thời `dev:tunnel`, chỉ cần kiểm:
 - Stripe → Developers → Webhooks: endpoint `https://api-learn.tuandt.me/api/webhooks/stripe`, signing secret khớp `STRIPE_WEBHOOK_SECRET` trong `.env` máy.
+- Didit → API & Webhooks: destination `https://api-learn.tuandt.me/api/webhooks/didit` (sự kiện `status.updated`), secret khớp `DIDIT_WEBHOOK_SECRET`; `DIDIT_API_KEY` / `DIDIT_WORKFLOW_ID` có trong `.env` máy. Phải điền đủ 3 biến `DIDIT_*` vào `.env` máy **trước** khi merge: thiếu một biến là API không khởi động được.
 - Google/GitHub OAuth: callback `https://api-learn.tuandt.me/api/auth/callback/google` / `.../github`.
 - EventBridge API destination MediaConvert trỏ `https://api-learn.tuandt.me/...`.
 

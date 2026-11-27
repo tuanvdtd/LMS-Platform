@@ -4,12 +4,14 @@ import { MailModule } from '../mail/mail.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { RevenueModule } from '../revenue/revenue.module.js';
 import { AdminInstructorApplicationsController } from './admin-instructor-applications.controller.js';
+import { DiditWebhookController } from './didit-webhook.controller.js';
+import { DiditGateway } from './didit.gateway.js';
 import { InstructorApplicationController } from './instructor-application.controller.js';
 import { InstructorApplicationsService } from './instructor-applications.service.js';
 
 @Module({
   imports: [AuthModule, MailModule, NotificationsModule, RevenueModule],
-  controllers: [InstructorApplicationController, AdminInstructorApplicationsController],
-  providers: [InstructorApplicationsService],
+  controllers: [InstructorApplicationController, AdminInstructorApplicationsController, DiditWebhookController],
+  providers: [InstructorApplicationsService, DiditGateway],
 })
 export class InstructorApplicationsModule {}

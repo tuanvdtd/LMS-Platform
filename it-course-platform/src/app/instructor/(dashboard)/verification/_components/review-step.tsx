@@ -49,6 +49,12 @@ export function ReviewStep({ view, onSaved }: StepProps) {
         </div>
       </div>
       <p className="whitespace-pre-line text-sm leading-relaxed">{view.bio}</p>
+      {view.identity.status === 'approved' && (
+        <p className="text-sm">
+          <span className="text-muted-foreground">Danh tính: </span>
+          đã xác minh ({view.identity.name})
+        </p>
+      )}
       {view.bank && (
         <p className="text-sm">
           <span className="text-muted-foreground">Nhận tiền: </span>

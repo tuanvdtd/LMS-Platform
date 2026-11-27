@@ -4,7 +4,7 @@ import { CurrentUser, Roles } from '../auth/decorators.js';
 import { ZodValidationPipe } from '../common/zod.pipe.js';
 import { mediaKeySchema, type MediaKeyInput } from '../instructor-courses/instructor-courses.schemas.js';
 import { payoutAccountSchema, type PayoutAccountInput } from '../revenue/revenue.schemas.js';
-import { infoSchema, type InfoInput, termsSchema } from './instructor-applications.schemas.js';
+import { identityConsentSchema, infoSchema, type InfoInput, termsSchema } from './instructor-applications.schemas.js';
 import { InstructorApplicationsService } from './instructor-applications.service.js';
 
 type User = AuthSession['user'];
@@ -17,7 +17,7 @@ export class InstructorApplicationController {
 
   @Get()
   view(@CurrentUser() user: User) {
-    return this.apps.view(user.id);
+    return this.apps.view(user.id, { refresh: true });
   }
 
   @Put('info')
@@ -38,6 +38,19 @@ export class InstructorApplicationController {
   @Put('payout')
   savePayout(@CurrentUser() user: User, @Body(new ZodValidationPipe(payoutAccountSchema)) body: PayoutAccountInput) {
     return this.apps.savePayout(user.id, body);
+  }
+
+  // Trả { url } trang xác minh của Didit; FE chuyển hẳn sang đó, xong Didit đưa về wizard.
+  @Post('identity/session')
+  @HttpCode(200)
+  startIdentity(@CurrentUser() user: User, @Body(new ZodValidationPipe(identityConsentSchema)) _body: unknown) {
+    return this.apps.startIdentity(user.id);
+  }
+
+  @Post('identity/sync')
+  @HttpCode(200)
+  syncIdentity(@CurrentUser() user: User) {
+    return this.apps.refreshIdentity(user.id);
   }
 
   @Post('submit')
