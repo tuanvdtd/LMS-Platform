@@ -25,6 +25,8 @@ export const QUIZ_SELECT = {
   description: true,
   passScorePct: true,
   shuffle: true,
+  timeLimitMin: true,
+  maxAttempts: true,
   questions: { where: { archivedAt: null }, orderBy: { position: 'asc' }, select: QUESTION_SELECT },
 } satisfies Prisma.QuizSelect;
 

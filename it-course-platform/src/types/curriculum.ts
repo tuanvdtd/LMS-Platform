@@ -107,6 +107,8 @@ export const QUIZ_LIMITS = {
   minOptions: 2,
   maxOptions: 5,
   maxQuestions: 15,
+  maxTimeLimitMin: 180,
+  maxAttempts: 10,
   maxTopics: 3,
 } as const;
 
@@ -138,6 +140,8 @@ export interface QuizDetail {
   description: string | null;
   passScorePct: number;
   shuffle: boolean;
+  timeLimitMin: number | null; // null = không giới hạn
+  maxAttempts: number | null; // số lượt trong 24 giờ; null = không giới hạn
   questions: QuizQuestion[];
 }
 
@@ -150,6 +154,8 @@ export interface UpdateQuizPayload {
   description?: string | null;
   passScorePct?: number;
   shuffle?: boolean;
+  timeLimitMin?: number | null;
+  maxAttempts?: number | null;
 }
 
 export interface QuestionPayload {

@@ -1,11 +1,11 @@
+import { useState } from 'react';
 import Link from 'next/link';
 import { CircleCheck, CircleX, Play, RotateCcw } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { QuizOverview } from '@/types/learn-quiz';
-import { PassBadge } from './quiz-result';
+import { formatNextAttempt, PassBadge, StartConfirm } from './quiz-result';
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -26,6 +26,15 @@ export function QuizStart({
   const resume = !!overview.inProgressAttemptId;
   const cta = resume ? 'Làm tiếp' : attempts.length ? 'Làm lại' : 'Bắt đầu';
   const CtaIcon = resume || !attempts.length ? Play : RotateCcw;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const outOfAttempts = !resume && overview.attemptsLeft === 0;
+  const note = resume
+    ? 'Bạn đang có một lượt làm dở — tiếp tục từ chỗ đã dừng.'
+    : outOfAttempts && overview.nextAttemptAt
+      ? `Bạn đã dùng hết ${overview.maxAttempts} lượt. Có thể làm lại lúc ${formatNextAttempt(overview.nextAttemptAt)}.`
+      : overview.timeLimitMin
+        ? `Mỗi lượt làm có ${overview.timeLimitMin} phút.`
+        : 'Không giới hạn thời gian làm bài.';
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-10">
@@ -40,16 +49,27 @@ export function QuizStart({
           <Stat label="Số câu hỏi" value={overview.questionCount} />
           <Stat label="Điểm đạt" value={`${overview.passScorePct}%`} />
           <Stat label="Điểm cao nhất" value={overview.bestScorePct === null ? '—' : `${overview.bestScorePct}%`} />
+          <Stat label="Thời gian" value={overview.timeLimitMin ? `${overview.timeLimitMin} phút` : 'Không giới hạn'} />
+          <Stat
+            label="Lượt còn lại"
+            value={overview.attemptsLeft == null ? 'Không giới hạn' : `${overview.attemptsLeft}/${overview.maxAttempts} trong 24 giờ`}
+          />
         </dl>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            {resume ? 'Bạn đang có một lượt làm dở — tiếp tục từ chỗ đã dừng.' : 'Không giới hạn thời gian và số lần làm.'}
-          </p>
-          <Button size="lg" className="h-11 w-full sm:w-auto" disabled={starting} onClick={onStart}>
+          <p className="text-sm text-muted-foreground">{note}</p>
+          <Button
+            size="lg"
+            className="h-11 w-full sm:w-auto"
+            disabled={starting || outOfAttempts}
+            onClick={() => (overview.timeLimitMin && !resume ? setConfirmOpen(true) : onStart())}
+          >
             <CtaIcon data-icon="inline-start" aria-hidden /> {starting ? 'Đang mở…' : cta}
           </Button>
         </div>
+        {overview.timeLimitMin && (
+          <StartConfirm timeLimitMin={overview.timeLimitMin} open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={onStart} />
+        )}
       </section>
 
       <section aria-labelledby="history-heading" className="mt-8 flex flex-col gap-3">
@@ -109,31 +129,6 @@ function Stat({ label, value }: { label: string; value: string | number }) {
     <div className="rounded-lg border bg-background p-3">
       <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd className="mt-1 font-mono text-xl font-bold text-foreground">{value}</dd>
-    </div>
-  );
-}
-
-// Skeleton khớp layout màn Start (loading.tsx + lúc tải ở client).
-export function QuizStartSkeleton() {
-  return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-10" role="status" aria-busy="true" aria-label="Đang tải">
-      <Skeleton className="mb-4 h-5 w-28" />
-      <div className="flex flex-col gap-5 rounded-xl border bg-card p-5 sm:p-6">
-        <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="h-4 w-full" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-19 rounded-lg" />)}
-        </div>
-        <div className="flex gap-2">
-          <Skeleton className="h-6 w-20 rounded-full" />
-          <Skeleton className="h-6 w-24 rounded-full" />
-        </div>
-        <Skeleton className="h-11 w-full sm:ml-auto sm:w-32" />
-      </div>
-      <Skeleton className="mt-8 mb-3 h-6 w-40" />
-      <div className="flex flex-col gap-2 rounded-xl border bg-card p-3">
-        {Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-      </div>
     </div>
   );
 }

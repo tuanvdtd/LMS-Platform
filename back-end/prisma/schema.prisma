@@ -901,6 +901,8 @@ model Quiz {
   description  String?
   passScorePct Int      @default(70)
   shuffle      Boolean  @default(true)
+  timeLimitMin Int? // phút; null = không giới hạn
+  maxAttempts  Int? // số lượt tối đa trong 24 giờ; null = không giới hạn
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -927,6 +929,7 @@ model QuizAttempt {
   questionIds  String[]      @db.Uuid // câu của lượt, đúng thứ tự hiển thị; không FK từng phần tử — câu đã nằm trong lượt chỉ archive, không xoá
   passScorePct Int // điểm đạt lúc bắt đầu lượt
   shuffle      Boolean // có xáo đáp án không, lúc bắt đầu lượt
+  timeLimitMin Int? // thời gian làm bài lúc bắt đầu lượt; GV đổi cấu hình sau đó không ảnh hưởng lượt này
 
   quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -945,9 +948,9 @@ model QuizAnswer {
   attemptId         String   @db.Uuid
   questionId        String   @db.Uuid
   selectedOptionIds String[] @db.Uuid
-  isCorrect         Boolean
+  isCorrect         Boolean? // null = lượt đang làm, chưa chấm; lượt đã nộp luôn có giá trị
   pointsAwarded     Int      @default(0)
-  answeredAt        DateTime @default(now())
+  answeredAt        DateTime @default(now()) // lần lưu gần nhất của câu này
 
   attempt  QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)

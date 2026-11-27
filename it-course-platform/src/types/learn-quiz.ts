@@ -1,11 +1,25 @@
 import type { QuestionType } from '@/types/curriculum';
 
+// Câu + đáp án đang chọn. optionIds rỗng = bỏ chọn hết.
+export interface AnswerEntry {
+  questionId: string;
+  optionIds: string[];
+}
+
+// Số lượt trong 24 giờ; null = không giới hạn (hoặc là chủ khoá).
+export interface AttemptQuota {
+  attemptsLeft: number | null;
+  nextAttemptAt: string | null; // có giá trị khi hết lượt
+}
+
 // Học viên làm quiz.
-export interface QuizOverview {
+export interface QuizOverview extends AttemptQuota {
   itemId: string;
   title: string;
   description: string | null;
   passScorePct: number;
+  timeLimitMin: number | null;
+  maxAttempts: number | null;
   questionCount: number;
   passed: boolean;
   bestScorePct: number | null;
@@ -24,6 +38,8 @@ export interface SheetQuestion {
 export interface AttemptSheet {
   attemptId: string;
   attemptNo: number;
+  remainingSec: number | null; // null = không giới hạn thời gian
+  savedAnswers: AnswerEntry[];
   questions: SheetQuestion[];
 }
 
@@ -38,7 +54,7 @@ export interface ResultQuestion {
   options: { id: string; content: string; isCorrect: boolean | null; explanation: string | null }[];
 }
 
-export interface AttemptResult {
+export interface AttemptResult extends AttemptQuota {
   attemptId: string;
   attemptNo: number;
   scorePct: number;
@@ -47,11 +63,12 @@ export interface AttemptResult {
   correctCount: number;
   total: number;
   timeSpentSec: number;
+  timedOut: boolean; // hết giờ, hệ thống tự nộp
   answersRevealed: boolean;
   certificateSerial: string | null; // khác null = lượt nộp này vừa làm khoá hoàn thành và được cấp chứng chỉ
   questions: ResultQuestion[];
 }
 
 export interface SubmitPayload {
-  answers: { questionId: string; optionIds: string[] }[];
+  answers: AnswerEntry[];
 }

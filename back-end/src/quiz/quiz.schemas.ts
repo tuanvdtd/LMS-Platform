@@ -3,11 +3,19 @@ import { z } from 'zod';
 import { emptyToNull } from '../curriculum/curriculum.schemas.js';
 
 // Giới hạn khi soạn quiz. FE dùng cùng giới hạn.
+export const QUIZ_MAX_TIME_LIMIT_MIN = 180;
+export const QUIZ_MAX_ATTEMPTS = 10;
+const timeLimitMsg = `Từ 1 đến ${QUIZ_MAX_TIME_LIMIT_MIN} phút`;
+const attemptsMsg = `Từ 1 đến ${QUIZ_MAX_ATTEMPTS} lượt`;
+
 export const updateQuizSchema = z
   .object({
     description: z.string().trim().max(1000, 'Tối đa 1000 ký tự').transform(emptyToNull).nullable(),
     passScorePct: z.int().min(0, 'Từ 0 đến 100').max(100, 'Từ 0 đến 100'),
     shuffle: z.boolean(),
+    // null = không giới hạn
+    timeLimitMin: z.int().min(1, timeLimitMsg).max(QUIZ_MAX_TIME_LIMIT_MIN, timeLimitMsg).nullable(),
+    maxAttempts: z.int().min(1, attemptsMsg).max(QUIZ_MAX_ATTEMPTS, attemptsMsg).nullable(),
   })
   .partial()
   .strict();
