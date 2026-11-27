@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Flag, Send } from 'lucide-react';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { Check, ChevronLeft, ChevronRight, Flag, Send, Timer, WifiOff } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,60 +17,95 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { apiErrorCode, saveAnswers, saveAnswersOnHide } from '@/lib/api/learn-quiz';
 import { cn } from '@/lib/utils';
 import type { AttemptSheet, SubmitPayload } from '@/types/learn-quiz';
 
-type Saved = { answers: Record<string, string[]>; flagged: string[]; current: number };
+type Answers = Record<string, string[]>;
+// localStorage chỉ giữ câu chưa gửi được + đánh dấu + vị trí; đáp án chính thức nằm trên máy chủ.
+type Local = { pending: Answers; flagged: string[]; current: number };
 
-// Đáp án giữ ở client theo attemptId, nộp một lần.
 const storageKey = (attemptId: string) => `quiz-attempt:${attemptId}`;
 
 export function clearSavedAttempt(attemptId: string) {
   try { localStorage.removeItem(storageKey(attemptId)); } catch { /* storage bị chặn */ }
 }
 
-// Chỉ giữ đáp án/đánh dấu còn khớp đề hiện tại (giảng viên có thể đã sửa câu).
-function loadSaved(sheet: AttemptSheet): Saved {
-  const empty: Saved = { answers: {}, flagged: [], current: 0 };
+const sameIds = (a: string[] = [], b: string[] = []) => a.length === b.length && a.every((x) => b.includes(x));
+const toEntries = (a: Answers) => Object.entries(a).map(([questionId, optionIds]) => ({ questionId, optionIds }));
+const mmss = (sec: number) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+
+// Chỉ giữ dữ liệu còn khớp đề (giảng viên có thể đã sửa câu).
+// Dạng cũ { answers } (lượt dở từ trước khi đáp án được lưu lên máy chủ) → coi là câu chờ gửi.
+function loadLocal(sheet: AttemptSheet): Local {
+  const empty: Local = { pending: {}, flagged: [], current: 0 };
   try {
-    const raw = JSON.parse(localStorage.getItem(storageKey(sheet.attemptId)) ?? 'null') as Partial<Saved> | null;
+    const raw = JSON.parse(localStorage.getItem(storageKey(sheet.attemptId)) ?? 'null') as
+      | (Partial<Local> & { answers?: Answers })
+      | null;
     if (!raw || typeof raw !== 'object') return empty;
-    const answers: Record<string, string[]> = {};
+    const source = raw.pending ?? raw.answers ?? {};
+    const pending: Answers = {};
     for (const q of sheet.questions) {
-      const ids = raw.answers?.[q.id];
-      if (Array.isArray(ids)) {
-        const valid = ids.filter((id) => q.options.some((o) => o.id === id));
-        if (valid.length) answers[q.id] = q.type === 'single_choice' ? valid.slice(0, 1) : valid;
-      }
+      const ids = source[q.id];
+      if (!Array.isArray(ids)) continue;
+      const valid = ids.filter((id) => q.options.some((o) => o.id === id));
+      pending[q.id] = q.type === 'single_choice' ? valid.slice(0, 1) : valid;
     }
     const flagged = Array.isArray(raw.flagged) ? raw.flagged.filter((id) => sheet.questions.some((q) => q.id === id)) : [];
     const current = Number.isInteger(raw.current) ? Math.min(Math.max(raw.current!, 0), sheet.questions.length - 1) : 0;
-    return { answers, flagged, current };
+    return { pending, flagged, current };
   } catch {
     return empty;
   }
 }
 
 export function QuizRunner({
+  courseSlug,
+  itemId,
   title,
   sheet,
   submitting,
   onSubmit,
+  onClosed,
 }: {
+  courseSlug: string;
+  itemId: string;
   title: string;
   sheet: AttemptSheet;
   submitting: boolean;
-  onSubmit: (body: SubmitPayload) => void;
+  onSubmit: (body: SubmitPayload, auto: boolean) => Promise<boolean>; // true = lượt đã đóng; auto = tự nộp khi hết giờ
+  onClosed: () => void; // máy chủ báo lượt đã đóng (hết giờ / đã nộp ở tab khác)
 }) {
   // Runner chỉ render sau khi fetch ở client → đọc localStorage trong initializer không lệch hydrate.
-  const [initial] = useState(() => loadSaved(sheet));
-  const [answers, setAnswers] = useState(initial.answers);
-  const [flagged, setFlagged] = useState(() => new Set(initial.flagged));
-  const [current, setCurrent] = useState(initial.current);
+  const [initial] = useState(() => {
+    const local = loadLocal(sheet);
+    const saved: Answers = Object.fromEntries(sheet.savedAnswers.map((a) => [a.questionId, a.optionIds]));
+    return { local, saved, answers: { ...saved, ...local.pending } };
+  });
+  const [answers, setAnswers] = useState<Answers>(initial.answers);
+  const [saved, setSaved] = useState<Answers>(initial.saved); // bản máy chủ đang giữ
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [flagged, setFlagged] = useState(() => new Set(initial.local.flagged));
+  const [current, setCurrent] = useState(initial.local.current);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const inflight = useRef(false);
+  // Đã bấm nộp (hoặc tự nộp): PUT lưu câu về muộn với 409 không được gọi onClosed lần nữa.
+  const closing = useRef(false);
   // Đổi câu → câu mới trượt vào từ phía đang đi tới (giống trang soạn quiz của giảng viên). Lần đầu đứng yên.
   const [slide, setSlide] = useState({ index: current, from: '' as '' | 'left' | 'right' });
   if (slide.index !== current) setSlide({ index: current, from: current > slide.index ? 'right' : 'left' });
+
+  // Hạn theo đồng hồ máy học viên, tính lại mỗi khi máy chủ trả remainingSec.
+  const [deadline, setDeadline] = useState(() => (sheet.remainingSec == null ? null : Date.now() + sheet.remainingSec * 1000));
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (deadline == null) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [deadline]);
+  const leftSec = deadline == null ? null : Math.max(0, Math.ceil((deadline - now) / 1000));
+  const timeUp = leftSec === 0;
 
   const total = sheet.questions.length;
   const q = sheet.questions[current];
@@ -78,14 +114,74 @@ export function QuizRunner({
   const answeredCount = sheet.questions.filter((x) => answers[x.id]?.length).length;
   const unanswered = total - answeredCount;
 
+  // Câu chưa lưu = khác bản máy chủ đang giữ.
+  const unsaved = useMemo(() => {
+    const out: Answers = {};
+    for (const x of sheet.questions) if (!sameIds(answers[x.id], saved[x.id])) out[x.id] = answers[x.id] ?? [];
+    return out;
+  }, [answers, saved, sheet.questions]);
+  const showUnsaved = saveFailed && Object.keys(unsaved).length > 0;
+
   useEffect(() => {
     try {
-      const saved: Saved = { answers, flagged: [...flagged], current };
-      localStorage.setItem(storageKey(sheet.attemptId), JSON.stringify(saved));
-    } catch { /* storage đầy/bị chặn: vẫn làm bài được, chỉ mất khả năng khôi phục */ }
-  }, [answers, flagged, current, sheet.attemptId]);
+      const local: Local = { pending: unsaved, flagged: [...flagged], current };
+      localStorage.setItem(storageKey(sheet.attemptId), JSON.stringify(local));
+    } catch { /* storage đầy/bị chặn: chỉ mất khả năng khôi phục câu chưa gửi */ }
+  }, [unsaved, flagged, current, sheet.attemptId]);
+
+  async function flush() {
+    const batch = unsaved;
+    // Đang có request lưu: không gửi chồng. Câu đổi trong lúc chờ vẫn nằm trong `unsaved`,
+    // sẽ đi ở lần rời câu / có mạng lại kế tiếp hoặc trong body nộp bài.
+    if (inflight.current || closing.current || !Object.keys(batch).length) return;
+    inflight.current = true;
+    try {
+      const res = await saveAnswers(courseSlug, itemId, sheet.attemptId, { answers: toEntries(batch) });
+      setSaved((prev) => ({ ...prev, ...batch }));
+      setSaveFailed(false);
+      setDeadline(res.remainingSec == null ? null : Date.now() + res.remainingSec * 1000);
+    } catch (e) {
+      const code = apiErrorCode(e);
+      if (code === 'ATTEMPT_EXPIRED' || code === 'ATTEMPT_SUBMITTED') {
+        if (!closing.current) {
+          closing.current = true;
+          onClosed();
+        }
+      } else if (code === 'QUESTION_NOT_IN_ATTEMPT') {
+        setSaved((prev) => ({ ...prev, ...batch })); // lỗi dữ liệu, không gửi lại mãi
+      } else {
+        setSaveFailed(true);
+      }
+    } finally {
+      inflight.current = false;
+    }
+  }
+
+  // Listener luôn đọc state mới nhất mà không phải gán ref trong lúc render.
+  const onOnline = useEffectEvent(() => void flush());
+  const onHide = useEffectEvent(() => {
+    if (document.visibilityState !== 'hidden' || closing.current) return;
+    const batch = unsaved;
+    if (!Object.keys(batch).length) return;
+    void saveAnswersOnHide(courseSlug, itemId, sheet.attemptId, { answers: toEntries(batch) }).then((ok) => {
+      if (ok) setSaved((prev) => ({ ...prev, ...batch }));
+    });
+  });
+  useEffect(() => {
+    const online = () => onOnline();
+    const hide = () => onHide();
+    const resend = setTimeout(online, 0); // gửi bù câu chờ từ lần trước (localStorage)
+    window.addEventListener('online', online);
+    document.addEventListener('visibilitychange', hide);
+    return () => {
+      clearTimeout(resend);
+      window.removeEventListener('online', online);
+      document.removeEventListener('visibilitychange', hide);
+    };
+  }, []);
 
   function toggle(optionId: string) {
+    if (timeUp) return;
     setAnswers((prev) => {
       const cur = prev[q.id] ?? [];
       const next = !multi ? [optionId] : cur.includes(optionId) ? cur.filter((x) => x !== optionId) : [...cur, optionId];
@@ -93,7 +189,10 @@ export function QuizRunner({
     });
   }
 
-  const go = (i: number) => setCurrent(Math.min(Math.max(i, 0), total - 1));
+  function go(i: number) {
+    void flush();
+    setCurrent(Math.min(Math.max(i, 0), total - 1));
+  }
 
   function toggleFlag() {
     setFlagged((prev) => {
@@ -104,14 +203,24 @@ export function QuizRunner({
     });
   }
 
-  function submit() {
+  async function submit(auto = false) {
     setConfirmOpen(false);
-    onSubmit({
-      answers: sheet.questions
-        .filter((x) => answers[x.id]?.length)
-        .map((x) => ({ questionId: x.id, optionIds: answers[x.id] })),
-    });
+    closing.current = true;
+    // Nộp lỗi (mạng) → mở lại để lưu câu / thử nộp tiếp; thành công thì runner bị gỡ.
+    if (!(await onSubmit({ answers: toEntries(unsaved) }, auto))) closing.current = false;
   }
+
+  // Hết giờ → tự nộp; lỗi mạng thì thử lại tối đa 3 lần, cách nhau 3 giây.
+  const autoTries = useRef(0);
+  const autoSubmit = useEffectEvent(() => void submit(true));
+  useEffect(() => {
+    if (!timeUp || submitting || autoTries.current >= 3) return;
+    const t = setTimeout(() => {
+      autoTries.current++;
+      autoSubmit();
+    }, autoTries.current ? 3000 : 0);
+    return () => clearTimeout(t);
+  }, [timeUp, submitting]);
 
   // Phím tắt: 1–9 chọn đáp án, ←/→ chuyển câu. Bỏ qua khi đang gõ hoặc dialog mở.
   useEffect(() => {
@@ -135,9 +244,24 @@ export function QuizRunner({
           <div className="flex flex-col gap-3">
             <p className="truncate text-sm text-muted-foreground">{title} · Lần {sheet.attemptNo}</p>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 id="question-heading" className="text-lg font-semibold text-foreground">
-                Câu {current + 1} / {total}
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 id="question-heading" className="text-lg font-semibold text-foreground">
+                  Câu {current + 1} / {total}
+                </h1>
+                {leftSec != null && (
+                  <span
+                    role="timer"
+                    aria-label={`Thời gian còn lại ${Math.floor(leftSec / 60)} phút ${leftSec % 60} giây`}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-semibold tabular-nums',
+                      leftSec < 60 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground',
+                    )}
+                  >
+                    <Timer className="size-4" aria-hidden />
+                    {mmss(leftSec)}
+                  </span>
+                )}
+              </div>
               <Button variant={flagged.has(q.id) ? 'secondary' : 'outline'} aria-pressed={flagged.has(q.id)} onClick={toggleFlag} className="h-11">
                 <Flag data-icon="inline-start" className={cn(flagged.has(q.id) && 'fill-current text-brand-accent')} aria-hidden />
                 {flagged.has(q.id) ? 'Đã đánh dấu' : 'Đánh dấu xem lại'}
@@ -145,6 +269,16 @@ export function QuizRunner({
             </div>
             <Progress value={(answeredCount / total) * 100} aria-label={`Đã trả lời ${answeredCount} trên ${total} câu`} />
             <p className="text-sm text-muted-foreground">Đã trả lời {answeredCount}/{total} câu</p>
+            {/* Trình đọc màn hình chỉ được báo ở mốc 5 phút và 1 phút, không đọc từng giây. */}
+            <p className="sr-only" aria-live="polite">
+              {leftSec == null ? '' : leftSec <= 60 ? 'Còn 1 phút làm bài' : leftSec <= 300 ? 'Còn 5 phút làm bài' : ''}
+            </p>
+            {showUnsaved && (
+              <Alert>
+                <WifiOff aria-hidden />
+                <AlertDescription>Mất kết nối, đáp án sẽ được lưu khi có mạng lại.</AlertDescription>
+              </Alert>
+            )}
           </div>
 
           {/* overflow-x-clip: câu đang trượt vào không làm trang hiện thanh cuộn ngang (clip không chặn sticky). */}
@@ -223,7 +357,8 @@ export function QuizRunner({
             {sheet.questions.map((x, i) => {
               const done = !!answers[x.id]?.length;
               const isFlag = flagged.has(x.id);
-              const label = `Câu ${i + 1}${done ? ', đã trả lời' : ', chưa trả lời'}${isFlag ? ', đã đánh dấu' : ''}`;
+              const pending = showUnsaved && x.id in unsaved;
+              const label = `Câu ${i + 1}${done ? ', đã trả lời' : ', chưa trả lời'}${isFlag ? ', đã đánh dấu' : ''}${pending ? ', chưa lưu' : ''}`;
               return (
                 <li key={x.id}>
                   <button
@@ -239,6 +374,7 @@ export function QuizRunner({
                   >
                     {i + 1}
                     {isFlag && <Flag aria-hidden className="absolute -top-1.5 -right-1.5 size-4 fill-current text-brand-accent" />}
+                    {pending && <span aria-hidden className="absolute -right-1 -bottom-1 size-2.5 rounded-full bg-(--skill-mid)" />}
                   </button>
                 </li>
               );
@@ -248,6 +384,9 @@ export function QuizRunner({
             <li className="flex items-center gap-2"><span aria-hidden className="size-3 rounded-sm border border-primary/40 bg-(--primary-light)" /> Đã trả lời</li>
             <li className="flex items-center gap-2"><span aria-hidden className="size-3 rounded-sm ring-2 ring-primary" /> Đang làm</li>
             <li className="flex items-center gap-2"><Flag aria-hidden className="size-3 fill-current text-brand-accent" /> Đánh dấu xem lại</li>
+            {showUnsaved && (
+              <li className="flex items-center gap-2"><span aria-hidden className="size-2.5 rounded-full bg-(--skill-mid)" /> Chưa lưu</li>
+            )}
           </ul>
           <Button variant="outline" className="h-11" disabled={submitting} onClick={() => (unanswered ? setConfirmOpen(true) : submit())}>
             {submitting ? 'Đang nộp…' : 'Nộp bài'}
@@ -263,7 +402,7 @@ export function QuizRunner({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={submitting}>Làm tiếp</AlertDialogCancel>
-            <AlertDialogAction disabled={submitting} onClick={submit}>Nộp bài</AlertDialogAction>
+            <AlertDialogAction disabled={submitting} onClick={() => void submit()}>Nộp bài</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

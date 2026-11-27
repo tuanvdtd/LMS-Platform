@@ -1,9 +1,20 @@
 import Link from 'next/link';
-import { BookOpen, ChevronLeft, ChevronRight, CircleCheck, CircleX, Lock, RotateCcw } from 'lucide-react';
+import { useState } from 'react';
+import { BookOpen, ChevronLeft, ChevronRight, CircleCheck, CircleX, Lock, RotateCcw, Timer } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { AttemptResult, ResultQuestion } from '@/types/learn-quiz';
 
 // Đạt/chưa đạt: màu + icon + chữ (không chỉ màu). Chữ dùng foreground để đủ tương phản.
@@ -22,6 +33,43 @@ export function PassBadge({ passed, labels = ['Đạt', 'Chưa đạt'] }: { pas
   );
 }
 
+// "14:30, 28/11"
+export function formatNextAttempt(iso: string) {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+}
+
+// Quiz có giới hạn giờ: hỏi trước khi bắt đầu lượt mới, vì đồng hồ chạy ngay và không dừng.
+export function StartConfirm({
+  timeLimitMin,
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  timeLimitMin: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Bắt đầu làm bài?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Bài làm có {timeLimitMin} phút. Đồng hồ bắt đầu chạy ngay và không dừng khi bạn rời trang.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Để sau</AlertDialogCancel>
+          <AlertDialogAction onClick={() => { onOpenChange(false); onConfirm(); }}>Bắt đầu</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 function formatDuration(sec: number) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
@@ -33,6 +81,7 @@ export function QuizResult({
   itemId,
   title,
   result,
+  timeLimitMin,
   starting,
   onRetake,
   nextHref,
@@ -41,10 +90,13 @@ export function QuizResult({
   itemId: string;
   title: string | null;
   result: AttemptResult;
+  timeLimitMin: number | null; // của quiz hiện tại; null khi chưa biết (mở thẳng link kết quả) → không hỏi xác nhận
   starting: boolean;
   onRetake: () => void;
   nextHref: string | null; // bài kế trong mục lục; null = bài cuối
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const outOfAttempts = result.attemptsLeft === 0;
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-10">
       <Link href={`/learn/${courseSlug}/quiz/${itemId}`} className="mb-4 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -60,8 +112,17 @@ export function QuizResult({
         <p className="text-sm text-muted-foreground">
           Đúng {result.correctCount}/{result.total} · Điểm đạt {result.passScorePct}% · {formatDuration(result.timeSpentSec)}
         </p>
+        {result.timedOut && (
+          <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Timer className="size-4" aria-hidden /> Hết giờ, hệ thống đã tự nộp bài.
+          </p>
+        )}
         <div className="mt-2 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <Button className="h-11" disabled={starting} onClick={onRetake}>
+          <Button
+            className="h-11"
+            disabled={starting || outOfAttempts}
+            onClick={() => (timeLimitMin ? setConfirmOpen(true) : onRetake())}
+          >
             <RotateCcw data-icon="inline-start" aria-hidden /> {starting ? 'Đang mở…' : 'Làm lại'}
           </Button>
           {nextHref && (
@@ -70,6 +131,12 @@ export function QuizResult({
             </Link>
           )}
         </div>
+        {outOfAttempts && result.nextAttemptAt && (
+          <p className="text-sm text-muted-foreground">
+            Bạn đã dùng hết lượt. Có thể làm lại lúc {formatNextAttempt(result.nextAttemptAt)}.
+          </p>
+        )}
+        {timeLimitMin && <StartConfirm timeLimitMin={timeLimitMin} open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={onRetake} />}
       </section>
 
       <section aria-labelledby="review-heading" className="mt-8 flex flex-col gap-4">

@@ -7,13 +7,14 @@ import { FileQuestion, Lock, TriangleAlert, type LucideIcon } from 'lucide-react
 import { toast } from 'sonner';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { apiMessage } from '@/lib/api/checkout';
-import { apiErrorCode, getAttemptResult, getQuizOverview, startAttempt, submitAttempt } from '@/lib/api/learn-quiz';
+import { apiErrorCode, apiErrorField, getAttemptResult, getQuizOverview, startAttempt, submitAttempt } from '@/lib/api/learn-quiz';
 import type { AttemptResult, AttemptSheet, QuizOverview, SubmitPayload } from '@/types/learn-quiz';
 import { itemHref, neighbors } from '../../../_components/learn-nav';
 import { useLearnShell, useSidebarMode } from '../../../_components/learn-shell';
-import { QuizResult } from './quiz-result';
+import { formatNextAttempt, QuizResult } from './quiz-result';
 import { clearSavedAttempt, QuizRunner } from './quiz-runner';
-import { QuizStart, QuizStartSkeleton } from './quiz-start';
+import { QuizStart } from './quiz-start';
+import { QuizStartSkeleton } from './quiz-start-skeleton';
 
 // key = attemptId trong URL ('' = màn tổng quan). Dữ liệu chỉ hiển thị khi key khớp URL hiện tại.
 type Loaded =
@@ -30,6 +31,7 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [sheet, setSheet] = useState<AttemptSheet | null>(null);
   const [title, setTitle] = useState<string | null>(null);
+  const [timeLimitMin, setTimeLimitMin] = useState<number | null>(null); // để màn kết quả hỏi xác nhận khi làm lại
   const [busy, setBusy] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
   const skipFetch = useRef<string | null>(null); // kết quả vừa nộp đã có sẵn, không GET lại
@@ -43,7 +45,11 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
     req.then(
       (d) => {
         if (cancelled) return;
-        if ('attempts' in d) { setTitle(d.title); setLoaded({ key, kind: 'overview', overview: d }); }
+        if ('attempts' in d) {
+          setTitle(d.title);
+          setTimeLimitMin(d.timeLimitMin);
+          setLoaded({ key, kind: 'overview', overview: d });
+        }
         else setLoaded({ key, kind: 'result', result: d });
       },
       (e) => { if (!cancelled) setLoaded({ key, kind: 'error', code: apiErrorCode(e), message: apiMessage(e) }); },
@@ -57,15 +63,21 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
       setSheet(await startAttempt(courseSlug, itemId));
       if (key) router.replace(pathname);
     } catch (e) {
-      if (apiErrorCode(e) === 'NOT_ENROLLED') setLoaded({ key, kind: 'error', code: 'NOT_ENROLLED', message: apiMessage(e) });
-      else toast.error(apiMessage(e, 'Không bắt đầu được bài kiểm tra'));
+      const code = apiErrorCode(e);
+      if (code === 'NOT_ENROLLED') setLoaded({ key, kind: 'error', code: 'NOT_ENROLLED', message: apiMessage(e) });
+      else if (code === 'ATTEMPT_LIMIT') {
+        const next = apiErrorField(e, 'nextAttemptAt');
+        toast.error(typeof next === 'string' ? `Bạn đã dùng hết lượt. Có thể làm lại lúc ${formatNextAttempt(next)}.` : apiMessage(e));
+        setReloadNonce((n) => n + 1); // tải lại để nút hiện trạng thái hết lượt
+      } else toast.error(apiMessage(e, 'Không bắt đầu được bài kiểm tra'));
     } finally {
       setBusy(false);
     }
   }
 
-  async function submit(body: SubmitPayload) {
-    if (!sheet) return;
+  // true = lượt đã đóng (nộp xong hoặc đã nộp trước đó); auto = tự nộp khi hết giờ → không hiện toast lỗi.
+  async function submit(body: SubmitPayload, auto: boolean): Promise<boolean> {
+    if (!sheet) return true;
     const { attemptId } = sheet;
     setBusy(true);
     try {
@@ -76,6 +88,7 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
       skipFetch.current = attemptId;
       router.replace(`${pathname}?attempt=${attemptId}`);
       window.scrollTo({ top: 0 });
+      if (result.timedOut) toast.info('Hết giờ, bài đã được nộp');
       if (result.passed) {
         markCompleted(itemId); // tự tải lại mục lục
         toast.success('Chúc mừng, bạn đã đạt bài kiểm tra!');
@@ -83,24 +96,41 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
       } else {
         reloadOutline();
       }
+      return true;
     } catch (e) {
       if (apiErrorCode(e) === 'ATTEMPT_SUBMITTED') {
-        // Lượt này đã nộp (tab khác) → mở kết quả của nó.
-        clearSavedAttempt(attemptId);
-        setSheet(null);
-        router.replace(`${pathname}?attempt=${attemptId}`);
-        reloadOutline();
-        toast.info('Lượt làm này đã được nộp trước đó');
-      } else {
-        toast.error(apiMessage(e, 'Nộp bài thất bại, đáp án vẫn được giữ — thử lại'));
+        closed(attemptId);
+        return true;
       }
+      if (!auto) toast.error(apiMessage(e, 'Nộp bài thất bại, đáp án vẫn được giữ — thử lại'));
+      return false;
     } finally {
       setBusy(false);
     }
   }
 
+  // Lượt đã đóng phía máy chủ (hết giờ hoặc đã nộp ở tab khác) → mở kết quả của nó.
+  function closed(attemptId: string) {
+    clearSavedAttempt(attemptId);
+    setSheet(null);
+    router.replace(`${pathname}?attempt=${attemptId}`);
+    reloadOutline();
+    toast.info('Lượt làm này đã được nộp');
+  }
+
   if (sheet) {
-    return <QuizRunner key={sheet.attemptId} title={title ?? 'Bài kiểm tra'} sheet={sheet} submitting={busy} onSubmit={submit} />;
+    return (
+      <QuizRunner
+        key={sheet.attemptId}
+        courseSlug={courseSlug}
+        itemId={itemId}
+        title={title ?? 'Bài kiểm tra'}
+        sheet={sheet}
+        submitting={busy}
+        onSubmit={submit}
+        onClosed={() => closed(sheet.attemptId)}
+      />
+    );
   }
   if (!loaded || loaded.key !== key) return <QuizStartSkeleton />;
 
@@ -115,6 +145,7 @@ export default function QuizView({ courseSlug, itemId }: { courseSlug: string; i
         itemId={itemId}
         title={title}
         result={loaded.result}
+        timeLimitMin={timeLimitMin}
         starting={busy}
         onRetake={start}
         nextHref={next && itemHref(courseSlug, next)}

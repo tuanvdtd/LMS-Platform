@@ -1,9 +1,9 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Put } from '@nestjs/common';
 import type { AuthSession } from '../auth/auth.js';
 import { CurrentUser } from '../auth/decorators.js';
 import { ZodValidationPipe } from '../common/zod.pipe.js';
-import { submitSchema } from './learn-quiz.schemas.js';
-import type { SubmitInput } from './learn-quiz.schemas.js';
+import { answersSchema } from './learn-quiz.schemas.js';
+import type { AnswersInput } from './learn-quiz.schemas.js';
 import { LearnQuizService } from './learn-quiz.service.js';
 
 type User = AuthSession['user'];
@@ -24,6 +24,18 @@ export class LearnQuizController {
     return this.quiz.start(slug, user.id, itemId);
   }
 
+  // Lưu đáp án nháp khi đang làm (rời câu / ẩn trang / có mạng lại). Không chấm.
+  @Put('attempts/:attemptId/answers')
+  save(
+    @CurrentUser() user: User,
+    @Param('courseSlug') slug: string,
+    @Param('itemId') itemId: string,
+    @Param('attemptId') attemptId: string,
+    @Body(new ZodValidationPipe(answersSchema)) body: AnswersInput,
+  ) {
+    return this.quiz.saveAnswers(slug, user.id, itemId, attemptId, body);
+  }
+
   @Post('attempts/:attemptId/submit')
   @HttpCode(200)
   submit(
@@ -31,7 +43,7 @@ export class LearnQuizController {
     @Param('courseSlug') slug: string,
     @Param('itemId') itemId: string,
     @Param('attemptId') attemptId: string,
-    @Body(new ZodValidationPipe(submitSchema)) body: SubmitInput,
+    @Body(new ZodValidationPipe(answersSchema)) body: AnswersInput,
   ) {
     return this.quiz.submit(slug, user.id, itemId, attemptId, body);
   }

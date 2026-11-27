@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { learnItemMetadata } from '@/lib/api/catalog';
 import QuizView from './_components/quiz-view';
-import { QuizStartSkeleton } from './_components/quiz-start';
+import { QuizStartSkeleton } from './_components/quiz-start-skeleton';
 
 export async function generateMetadata({ params }: PageProps<'/learn/[courseSlug]/quiz/[itemId]'>): Promise<Metadata> {
   const { courseSlug, itemId } = await params;

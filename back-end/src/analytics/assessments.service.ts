@@ -193,7 +193,8 @@ export class AssessmentsAnalyticsService {
       attemptNo: r.attemptNo,
       scorePct: Number(r.scorePct ?? 0),
       passed: r.passed ?? false,
-      answers: r.answers,
+      // Lượt đã nộp luôn được chấm; null chỉ có ở lượt đang làm (đã lọc ở trên).
+      answers: r.answers.map((a) => ({ ...a, isCorrect: a.isCorrect ?? false })),
     }));
     return groupBy(list, (a) => a.quizId);
   }

@@ -24,7 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
@@ -398,7 +398,7 @@ function Editor({
         </TabsContent>
         <TabsContent value="settings" keepMounted className="pt-2">
           <QuizSettings
-            key={`${quiz.description}|${quiz.passScorePct}|${quiz.shuffle}`}
+            key={`${quiz.description}|${quiz.passScorePct}|${quiz.shuffle}|${quiz.timeLimitMin}|${quiz.maxAttempts}`}
             quiz={quiz}
             locked={locked}
             onDirtyChange={setSettingsDirty}
@@ -650,10 +650,22 @@ function Slot({
   );
 }
 
+// Ô trống = không giới hạn (null).
+const optionalLimit = (max: number, unit: string) =>
+  z
+    .number({ error: 'Nhập số' })
+    .int('Nhập số nguyên')
+    .min(1, `Từ 1 đến ${max} ${unit}`)
+    .max(max, `Từ 1 đến ${max} ${unit}`)
+    .nullable();
+const emptyToNullNumber = (v: unknown) => (v === '' || v == null ? null : Number(v));
+
 const settingsSchema = z.object({
   description: z.string().max(L.description, `Tối đa ${L.description} ký tự`),
   passScorePct: z.number({ error: 'Nhập số' }).int('Nhập số nguyên').min(0, 'Từ 0 đến 100').max(100, 'Từ 0 đến 100'),
   shuffle: z.boolean(),
+  timeLimitMin: optionalLimit(L.maxTimeLimitMin, 'phút'),
+  maxAttempts: optionalLimit(L.maxAttempts, 'lượt'),
 });
 type Settings = z.infer<typeof settingsSchema>;
 
@@ -682,6 +694,8 @@ function QuizSettings({
       description: quiz.description ?? '',
       passScorePct: quiz.passScorePct,
       shuffle: quiz.shuffle,
+      timeLimitMin: quiz.timeLimitMin,
+      maxAttempts: quiz.maxAttempts,
     },
   });
   useEffect(() => onDirtyChange(isDirty), [isDirty, onDirtyChange]);
@@ -709,6 +723,34 @@ function QuizSettings({
                 <Input id="quiz-pass" type="number" min={0} max={100} {...register('passScorePct', { valueAsNumber: true })} />
                 <FieldError errors={[errors.passScorePct]} />
               </Field>
+              <Field data-invalid={!!errors.timeLimitMin} className="w-52">
+                <FieldLabel htmlFor="quiz-time">Thời gian làm bài (phút)</FieldLabel>
+                <Input
+                  id="quiz-time"
+                  type="number"
+                  min={1}
+                  max={L.maxTimeLimitMin}
+                  placeholder="Không giới hạn"
+                  aria-invalid={!!errors.timeLimitMin}
+                  aria-describedby="quiz-limits-hint"
+                  {...register('timeLimitMin', { setValueAs: emptyToNullNumber })}
+                />
+                <FieldError errors={[errors.timeLimitMin]} />
+              </Field>
+              <Field data-invalid={!!errors.maxAttempts} className="w-52">
+                <FieldLabel htmlFor="quiz-attempts">Số lượt tối đa trong 24 giờ</FieldLabel>
+                <Input
+                  id="quiz-attempts"
+                  type="number"
+                  min={1}
+                  max={L.maxAttempts}
+                  placeholder="Không giới hạn"
+                  aria-invalid={!!errors.maxAttempts}
+                  aria-describedby="quiz-limits-hint"
+                  {...register('maxAttempts', { setValueAs: emptyToNullNumber })}
+                />
+                <FieldError errors={[errors.maxAttempts]} />
+              </Field>
               <Controller
                 control={control}
                 name="shuffle"
@@ -720,6 +762,9 @@ function QuizSettings({
                 )}
               />
             </div>
+            <FieldDescription id="quiz-limits-hint">
+              Để trống thời gian hoặc số lượt nếu không muốn giới hạn. Học viên dùng hết lượt sẽ được làm lại sau 24 giờ.
+            </FieldDescription>
           </fieldset>
         </CardContent>
         {!locked && (
