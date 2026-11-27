@@ -15,7 +15,8 @@ export function validationError(errors: FieldError[]) {
 
 // Dùng ở tham số: @Body(new ZodValidationPipe(schema)), @Query(new ZodValidationPipe(schema)).
 export class ZodValidationPipe<T extends z.ZodType> implements PipeTransform<unknown, z.output<T>> {
-  constructor(private readonly schema: T) {}
+  // public để trang Swagger đọc schema và tự sinh tài liệu body/query.
+  constructor(readonly schema: T) {}
 
   transform(value: unknown): z.output<T> {
     const result = this.schema.safeParse(value);
