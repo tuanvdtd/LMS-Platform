@@ -96,7 +96,10 @@ COOKIE_DOMAIN=.tuandt.me
 SENTRY_ENVIRONMENT=production
 PISTON_URL=
 TUNNEL_TOKEN=<chuỗi ở bước 6>
+DOCS_USER=<tên đăng nhập trang /api/docs>
+DOCS_PASSWORD=<mật khẩu trang /api/docs>
 ```
+Bỏ trống `DOCS_USER`/`DOCS_PASSWORD` thì trang Swagger không bật trên prod.
 `PORT` không cần (compose ép 4000). Giá trị nào chứa `$` phải bọc nháy đơn: `KEY='abc$def'`.
 Giữ một bản sao file này ở Mac (ngoài git) — Terminate máy là mất.
 

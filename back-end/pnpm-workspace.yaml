@@ -2,6 +2,7 @@ allowBuilds:
   prisma: true
   '@prisma/client': true
   '@prisma/engines': true
+  '@scarf/scarf': false
 # Prisma 6 ghim deepmerge-ts 7.1.5 (lỗi tràn stack khi gộp đối tượng lồng vòng); bản vá chỉ có từ 8.0.0.
 # Bỏ dòng này khi nâng Prisma lên bản đã tự dùng deepmerge-ts 8.
 overrides:
