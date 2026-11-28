@@ -2,7 +2,7 @@
 
 import { isAxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { getPopularTopics, getPreferences, updatePreferences } from '@/lib/api/preferences';
 import { safeRedirect } from '@/lib/safe-redirect';
@@ -11,6 +11,8 @@ import type { LearnerLevel, Occupation, UpdatePreferencesPayload } from '@/types
 
 export const STEP_COUNT = 3;
 type Step = 0 | 1 | 2;
+// Đủ để Lumi lên tới đích và cờ kéo xong (artboard Trail, animation w23) trước khi rời trang
+const ARRIVE_MS = 1500;
 
 // Toàn bộ logic wizard /onboarding; view chỉ render.
 // 401 do interceptor của api chuyển /login?redirect=/onboarding — ở đây chỉ không toast.
@@ -24,7 +26,11 @@ export function useOnboarding() {
   const [popular, setPopular] = useState<{ occupation: Occupation; list: Ref[] } | null>(null);
   // Chưa đụng vào kỹ năng thì không gửi topicIds — tránh xoá danh sách cũ khi GET chưa về/lỗi.
   const [topicsTouched, setTopicsTouched] = useState(false);
+  const [levelTouched, setLevelTouched] = useState(false);
+  const [pickKey, setPickKey] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [arrived, setArrived] = useState(false);
+  const arriveTimer = useRef(0);
 
   // cacheComponents giữ trang bằng <Activity> → vào lại (Settings → "Chỉnh sửa") vẫn ở bước cũ.
   // Rời trang thì về trạng thái đầu; effect điền sẵn bên dưới chạy lại khi trang hiện ra.
@@ -35,6 +41,10 @@ export function useOnboarding() {
     setLevel(null);
     setPopular(null);
     setTopicsTouched(false);
+    setLevelTouched(false);
+    setPickKey(0);
+    setArrived(false);
+    window.clearTimeout(arriveTimer.current);
   }, []);
 
   // Điền sẵn lựa chọn cũ; lỗi thì bắt đầu với form trống.
@@ -65,6 +75,15 @@ export function useOnboarding() {
     return [...list, ...topics.filter((t) => !list.some((p) => p.id === t.id))];
   }, [popular, occupation, topics]);
   const isSelected = (id: string) => topics.some((t) => t.id === id);
+  const chooseOccupation = (o: Occupation) => {
+    setOccupation(o);
+    setPickKey((k) => k + 1);
+  };
+  const chooseLevel = (l: LearnerLevel) => {
+    setLevelTouched(true);
+    setLevel(l);
+    setPickKey((k) => k + 1);
+  };
   const toggleTopic = (t: Ref) => {
     setTopicsTouched(true);
     setTopics((prev) => (prev.some((x) => x.id === t.id) ? prev.filter((x) => x.id !== t.id) : [...prev, t]));
@@ -89,19 +108,24 @@ export function useOnboarding() {
   // Đến từ đăng ký / OAuth lần đầu khi đang dở việc (vd thêm giỏ) → quay lại đúng trang đó, mặc định '/'.
   // Đọc từ window lúc bấm: dùng useSearchParams thì trang phải bọc Suspense.
   const finish = () => router.push(safeRedirect(new URLSearchParams(window.location.search).get('redirect')));
+  const arrive = () => {
+    setArrived(true);
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    arriveTimer.current = window.setTimeout(finish, reduced ? 0 : ARRIVE_MS);
+  };
 
   const canNext = step !== 0 || occupation !== null;
 
   async function next() {
     if (!canNext || !(await save(payloadOf(step)))) return;
     if (step < 2) setStep((step + 1) as Step);
-    else finish();
+    else arrive();
   }
 
   const back = () => setStep((s) => (s > 0 ? ((s - 1) as Step) : s));
 
   // Bước 3 "Bỏ qua": không gửi level.
-  const skip = () => finish();
+  const skip = () => arrive();
 
   async function saveAndExit() {
     if (step === 0 && !occupation) return finish();
@@ -109,7 +133,8 @@ export function useOnboarding() {
   }
 
   return {
-    step, occupation, setOccupation, level, setLevel, chips, popularLoading, isSelected, toggleTopic,
-    saving, canNext, next, back, skip, saveAndExit,
+    step, occupation, chooseOccupation, level, chooseLevel, chips, popularLoading, isSelected, toggleTopic,
+    topics, topicsTouched, levelTouched, pickKey,
+    saving, arrived, canNext, next, back, skip, saveAndExit,
   };
 }
