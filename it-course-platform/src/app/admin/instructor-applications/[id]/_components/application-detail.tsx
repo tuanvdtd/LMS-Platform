@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
-import { BookOpen, CalendarDays, CircleCheck, CircleX, ExternalLink, Globe, Link2, Mail, TriangleAlert } from 'lucide-react';
+import { BookOpen, CalendarDays, CircleCheck, CircleX, ExternalLink, Globe, Info, Link2, Mail, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -31,7 +31,6 @@ const PRESETS = [
   'Phần giới thiệu chưa nêu rõ kinh nghiệm chuyên môn hoặc giảng dạy.',
   'Ảnh hồ sơ chưa rõ mặt hoặc không phù hợp.',
   'Liên kết hồ sơ không truy cập được.',
-  'Tên chủ tài khoản ngân hàng không khớp tên hồ sơ.',
   'Chức danh chưa phản ánh đúng chuyên môn.',
 ];
 
@@ -133,8 +132,7 @@ export function ApplicationDetail() {
     { label: 'LinkedIn', url: detail.socials.linkedin, icon: Link2 },
     { label: 'GitHub', url: detail.socials.github, icon: Link2 },
   ].filter((l): l is { label: string; url: string; icon: typeof Globe } => !!l.url);
-  const nameMatches = detail.bankAccountName ? plain(detail.bankAccountName) === plain(user.name) : null;
-  // Tên trên giấy tờ (Didit) so với chủ tài khoản ngân hàng, đều so không dấu.
+  // Tên trên giấy tờ (Didit) so với chủ tài khoản ngân hàng, so không dấu. Chỉ để tham khảo: tài khoản không bắt buộc chính chủ.
   const idMatchesBank =
     detail.identityName && detail.bankAccountName ? plain(detail.identityName) === plain(detail.bankAccountName) : null;
   // Bằng chứng của đơn, đặt cạnh nút duyệt. Tài khoản đã chuyển sang hồ sơ GV sau khi duyệt → chỉ kiểm khi còn chờ.
@@ -147,10 +145,7 @@ export function ApplicationDetail() {
     { ok: !!detail.headline, label: detail.headline ? 'Có chức danh' : 'Chưa ghi chức danh' },
     { ok: words >= BIO_MIN_WORDS, label: words >= BIO_MIN_WORDS ? `Giới thiệu ${words} từ` : `Giới thiệu chỉ ${words}/${BIO_MIN_WORDS} từ` },
     { ok: links.length > 0, label: links.length ? `${links.length} liên kết hồ sơ` : 'Không có liên kết hồ sơ' },
-    {
-      ok: nameMatches === true,
-      label: nameMatches === null ? 'Chưa có tài khoản nhận tiền' : nameMatches ? 'Tên chủ tài khoản khớp hồ sơ' : 'Tên chủ tài khoản khác tên hồ sơ',
-    },
+    { ok: !!detail.bankAccountName, label: detail.bankAccountName ? 'Có tài khoản nhận tiền' : 'Chưa có tài khoản nhận tiền' },
   ];
   const warnings = checks.filter((c) => !c.ok).map((c) => c.label);
 
@@ -283,30 +278,17 @@ export function ApplicationDetail() {
                     <dd className="font-mono font-medium text-foreground">{detail.bankAccountNoMasked}</dd>
                   </div>
                 </dl>
-                {nameMatches !== null && (
-                  <p
-                    className={cn(
-                      'flex items-start gap-2 rounded-lg border p-3 text-sm',
-                      nameMatches ? 'border-success-border bg-success-soft text-success' : 'border-warning-border bg-warning-soft text-warning',
-                    )}
-                  >
-                    {nameMatches ? <CircleCheck className="mt-0.5 size-4 shrink-0" aria-hidden /> : <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />}
-                    {nameMatches
-                      ? 'Tên chủ tài khoản khớp tên hồ sơ (so không dấu).'
-                      : `Tên chủ tài khoản khác tên hồ sơ "${user.name}". Kiểm tra lại trước khi duyệt.`}
-                  </p>
-                )}
                 {idMatchesBank !== null && (
                   <p
                     className={cn(
                       'flex items-start gap-2 rounded-lg border p-3 text-sm',
-                      idMatchesBank ? 'border-success-border bg-success-soft text-success' : 'border-warning-border bg-warning-soft text-warning',
+                      idMatchesBank ? 'border-success-border bg-success-soft text-success' : 'bg-muted text-muted-foreground',
                     )}
                   >
-                    {idMatchesBank ? <CircleCheck className="mt-0.5 size-4 shrink-0" aria-hidden /> : <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />}
+                    {idMatchesBank ? <CircleCheck className="mt-0.5 size-4 shrink-0" aria-hidden /> : <Info className="mt-0.5 size-4 shrink-0" aria-hidden />}
                     {idMatchesBank
                       ? 'Tên chủ tài khoản khớp tên trên giấy tờ đã xác minh.'
-                      : `Tên chủ tài khoản khác tên trên giấy tờ "${detail.identityName}". Kiểm tra lại trước khi duyệt.`}
+                      : `Tên chủ tài khoản khác tên trên giấy tờ "${detail.identityName}". Tài khoản không bắt buộc chính chủ, chỉ để tham khảo.`}
                   </p>
                 )}
               </div>

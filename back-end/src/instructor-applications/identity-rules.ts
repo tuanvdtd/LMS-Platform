@@ -4,7 +4,16 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 // Phần response GET /v3/session/{id}/decision/ của Didit mà Aolumi dùng tới.
 export type DiditDecision = {
   status?: string;
-  id_verifications?: { full_name?: string | null; first_name?: string | null; last_name?: string | null }[] | null;
+  id_verifications?:
+    | {
+        full_name?: string | null;
+        first_name?: string | null;
+        last_name?: string | null;
+        document_number?: string | null;
+        personal_number?: string | null;
+        issuing_state?: string | null;
+      }[]
+    | null;
 };
 
 // Trạng thái Didit → trạng thái lưu ở đơn. 'expired' = phiên chết (hết hạn / bỏ dở), xoá để người dùng làm lại.
@@ -37,6 +46,16 @@ export function pickName(decision: DiditDecision): string | null {
   if (!v) return null;
   const name = v.full_name?.trim() || [v.first_name, v.last_name].filter(Boolean).join(' ').trim();
   return name || null;
+}
+
+// HMAC của nước cấp + số giấy tờ đã chuẩn hoá (bỏ khoảng trắng, gạch, in hoa) để cùng một giấy tờ luôn ra cùng mã.
+// Không có số giấy tờ → null, khi đó không kiểm trùng được.
+export function documentHash(decision: DiditDecision, secret: string): string | null {
+  const v = decision.id_verifications?.[0];
+  const number = (v?.document_number || v?.personal_number || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+  if (!number) return null;
+  const state = (v?.issuing_state ?? '').toUpperCase().trim();
+  return createHmac('sha256', secret).update(`${state}:${number}`).digest('hex');
 }
 
 // Webhook Didit: X-Signature = HMAC-SHA256 (hex, 64 ký tự) trên đúng byte body nhận được.

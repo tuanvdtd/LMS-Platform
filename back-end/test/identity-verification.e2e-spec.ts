@@ -76,11 +76,11 @@ describe('Xác minh danh tính giảng viên (e2e)', () => {
     const { body } = await start(u).expect(200);
     expect(body.url).toMatch(/^https:\/\/verify\.didit\.test\/session\//);
     const sid = await sessionOf(u.id);
-    expect((await call('get', base, u.cookie).expect(200)).body.identity).toEqual({ status: 'pending', name: null });
+    expect((await call('get', base, u.cookie).expect(200)).body.identity).toEqual({ status: 'pending', name: null, issue: null });
 
     didit.decide(sid, 'Approved', 'NGUYEN VAN A');
     const after = await sync(u).expect(200);
-    expect(after.body.identity).toEqual({ status: 'approved', name: 'NGUYEN VAN A' });
+    expect(after.body.identity).toEqual({ status: 'approved', name: 'NGUYEN VAN A', issue: null });
     expect(after.body.missing.map((m: { step: string }) => m.step)).not.toContain('identity');
     expect((await start(u).expect(409)).body.code).toBe('IDENTITY_NOT_RESTARTABLE');
   });
@@ -103,7 +103,7 @@ describe('Xác minh danh tính giảng viên (e2e)', () => {
     const u = await makeUser('student,instructor');
     await start(u).expect(200);
     didit.decide(await sessionOf(u.id), 'Expired');
-    expect((await sync(u).expect(200)).body.identity).toEqual({ status: null, name: null });
+    expect((await sync(u).expect(200)).body.identity).toEqual({ status: null, name: null, issue: null });
     expect((await prisma.instructorApplication.findUniqueOrThrow({ where: { userId: u.id } })).identitySessionId).toBeNull();
     await start(u).expect(200);
   });
@@ -116,7 +116,7 @@ describe('Xác minh danh tính giảng viên (e2e)', () => {
     await sync(u).expect(200);
     didit.decide(sid, 'Expired');
     const { body } = await sync(u).expect(200);
-    expect(body.identity).toEqual({ status: 'approved', name: 'NGUYEN VAN B' });
+    expect(body.identity).toEqual({ status: 'approved', name: 'NGUYEN VAN B', issue: null });
   });
 
   it('submit chặn khi chưa approved, qua khi approved; đã gửi đơn thì tạo phiên → 409 APPLICATION_LOCKED', async () => {
@@ -134,6 +134,45 @@ describe('Xác minh danh tính giảng viên (e2e)', () => {
     await sync(u).expect(200);
     await call('post', `${base}/submit`, u.cookie).expect(200);
     expect((await start(u).expect(409)).body.code).toBe('APPLICATION_LOCKED');
+  });
+
+  it('cùng một giấy tờ ở tài khoản thứ hai → declined, issue duplicate_document; lưu mã băm, không lưu số gốc', async () => {
+    const doc = `0791${randomInt(10_000_000, 99_999_999)}`;
+    const a = await makeUser('student,instructor');
+    const b = await makeUser('student,instructor');
+    await start(a).expect(200);
+    didit.decide(await sessionOf(a.id), 'Approved', 'PHAM VAN F', doc);
+    await sync(a).expect(200);
+    const rowA = await prisma.instructorApplication.findUniqueOrThrow({ where: { userId: a.id } });
+    expect(rowA.identityDocHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(rowA)).not.toContain(doc);
+
+    await start(b).expect(200);
+    // Cùng số, khác cách viết: vẫn nhận ra là một giấy tờ.
+    didit.decide(await sessionOf(b.id), 'Approved', 'PHAM VAN F', `${doc.slice(0, 4)} ${doc.slice(4)}`);
+    const { body } = await sync(b).expect(200);
+    expect(body.identity).toEqual({ status: 'declined', name: null, issue: 'duplicate_document' });
+    expect(body.missing.map((m: { step: string }) => m.step)).toContain('identity');
+    // Gọi lại không tạo thêm thông báo.
+    await sync(b).expect(200);
+    const notes = await prisma.notification.findMany({ where: { userId: b.id, type: 'instructor_application' } });
+    expect(notes).toHaveLength(1);
+    expect(notes[0].data).toMatchObject({ identity: 'declined', approved: false });
+    // Làm lại phiên mới thì xoá cờ trùng.
+    await start(b).expect(200);
+    expect((await call('get', base, b.cookie).expect(200)).body.identity).toEqual({ status: 'pending', name: null, issue: null });
+  });
+
+  it('kết quả approved → đúng một thông báo dù webhook và sync cùng chạy', async () => {
+    const u = await makeUser('student,instructor');
+    await start(u).expect(200);
+    const sid = await sessionOf(u.id);
+    didit.decide(sid, 'Approved', 'VO THI G');
+    const { payload, headers } = signedDidit({ session_id: sid });
+    await Promise.all([hook(payload, headers).expect(200), sync(u).expect(200)]);
+    const notes = await prisma.notification.findMany({ where: { userId: u.id, type: 'instructor_application' } });
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toMatchObject({ title: 'Đã xác minh danh tính', data: { identity: 'approved', approved: true } });
   });
 
   it('sync khi chưa có phiên → 409; Didit lỗi khi tạo / sync → 502', async () => {

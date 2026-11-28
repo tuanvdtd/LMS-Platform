@@ -117,7 +117,8 @@ const SECTIONS: LegalSection[] = [
         <p>Bất kỳ học viên nào cũng có thể bật vai trò giảng viên. Khi đăng khoá học, bạn đồng ý thêm các điều sau:</p>
         <ul>
           <li>Mọi khoá, kể cả khoá miễn phí, phải qua kiểm duyệt trước khi xuất bản. Người gửi và người duyệt không bao giờ là cùng một người. Khoá bị từ chối sẽ kèm lý do để bạn chỉnh sửa và gửi lại.</li>
-          <li>Muốn đặt giá lớn hơn 0 và nhận doanh thu, bạn cần là giảng viên đã xác minh: hồ sơ chuyên môn được duyệt và có tài khoản ngân hàng chính chủ.</li>
+          <li>Muốn đặt giá lớn hơn 0 và nhận doanh thu, bạn cần là giảng viên cao cấp: hồ sơ chuyên môn được duyệt, đã xác minh danh tính bằng giấy tờ tuỳ thân qua Didit (xem <Link href="/privacy#xac-minh-danh-tinh">Chính sách bảo mật</Link>) và có tài khoản ngân hàng nhận tiền. Mỗi giấy tờ chỉ dùng cho một tài khoản giảng viên cao cấp. Dùng giấy tờ giả hoặc của người khác sẽ bị từ chối đơn và có thể bị khoá tài khoản.</li>
+          <li>Tài khoản nhận tiền nên đứng tên bạn. Nếu bạn khai tài khoản của người khác, bạn tự chịu trách nhiệm với khoản tiền đã chuyển vào đó. Mỗi lần đổi tài khoản nhận tiền, Aolumi gửi email và thông báo cho bạn.</li>
           <li>Doanh thu chia theo tỉ lệ hiển thị tại bước đồng ý điều khoản giảng viên (hiện là 70% cho giảng viên), tính trên số tiền học viên thực trả sau mã giảm giá.</li>
           <li>Doanh thu được chốt và chuyển khoản hằng tháng vào tài khoản ngân hàng bạn đã khai. Khoản thuộc đơn hàng bị hoàn tiền sẽ được khấu trừ.</li>
           <li>Giá khoá học cố định từ lần xuất bản đầu tiên; muốn giảm giá sau đó thì dùng mã giảm giá.</li>

@@ -5,14 +5,22 @@ export type ApplicationStep = 'info' | 'avatar' | 'terms' | 'identity' | 'payout
 export type ApplicationDisplayStatus = 'none' | 'draft' | 'pending' | 'approved' | 'rejected';
 export type ReviewedStatus = 'pending' | 'approved' | 'rejected';
 
-export const STEP_LABEL: Record<ApplicationStep, string> = {
-  info: 'Thông tin cá nhân',
-  avatar: 'Ảnh hồ sơ',
-  terms: 'Điều khoản',
+// Wizard gộp 5 bước của BE thành 4 màn; điều khoản đồng ý ngay ở màn gửi đơn.
+export type Screen = 'profile' | 'identity' | 'payout' | 'review';
+export const SCREEN_LABEL: Record<Screen, string> = {
+  profile: 'Hồ sơ công khai',
   identity: 'Xác minh danh tính',
   payout: 'Tài khoản nhận tiền',
+  review: 'Xem lại và gửi',
 };
-export const STEPS = Object.keys(STEP_LABEL) as ApplicationStep[];
+export const SCREENS = Object.keys(SCREEN_LABEL) as Screen[];
+export const SCREEN_OF: Record<ApplicationStep, Screen> = {
+  info: 'profile',
+  avatar: 'profile',
+  identity: 'identity',
+  payout: 'payout',
+  terms: 'review',
+};
 
 export type IdentityStatus = 'pending' | 'in_review' | 'approved' | 'declined';
 export const IDENTITY_LABEL: Record<IdentityStatus, string> = {
@@ -46,7 +54,7 @@ export type ApplicationView = {
   socials: Socials;
   termsAccepted: boolean;
   bank: BankAccount | null;
-  identity: { status: IdentityStatus | null; name: string | null };
+  identity: { status: IdentityStatus | null; name: string | null; issue: 'duplicate_document' | null };
   submittedAt: string | null;
   rejectReason: string | null;
   rejectedAt: string | null;

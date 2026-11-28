@@ -228,7 +228,10 @@ model InstructorApplication {
   identitySessionId String? // phiên Didit gần nhất; webhook tìm đơn theo cột này
   identityStatus    IdentityStatus? // null = chưa bắt đầu (hoặc phiên cũ đã hết hạn)
   identityName      String? // họ tên trên giấy tờ, chỉ có khi approved
-  identityCheckedAt DateTime? // lần cuối lấy kết quả từ Didit
+  identityCheckedAt DateTime? // lần cuối kết quả xác minh đổi
+  // HMAC(nước cấp + số giấy tờ), không đọc ngược ra số gốc. Unique: một giấy tờ chỉ gắn với một tài khoản.
+  identityDocHash   String?        @unique
+  identityIssue     IdentityIssue? // lý do bị từ chối do Aolumi (khác lý do của Didit)
 
   user       User  @relation("applicant", fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy User? @relation("applicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
@@ -1100,6 +1103,7 @@ enum NotificationType {
   instructor_application
   post_comment
   course_nudge
+  payout_account
 }
 
 // ============================================================================
@@ -1604,6 +1608,10 @@ enum IdentityStatus {
   in_review
   approved
   declined
+}
+
+enum IdentityIssue {
+  duplicate_document // giấy tờ đã xác minh cho tài khoản khác
 }
 
 enum ApprovalStatus {

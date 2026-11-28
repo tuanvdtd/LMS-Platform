@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 // Khung chung cho trang Điều khoản và Chính sách bảo mật: mục lục dính bên trái, cột đọc ~72 ký tự.
 export const SUPPORT_EMAIL = 'support@tuandt.me';
-export const LEGAL_UPDATED = '15/11/2026';
+export const LEGAL_UPDATED = '28/11/2026';
 
 export type LegalSection = { id: string; title: string; body: React.ReactNode };
 

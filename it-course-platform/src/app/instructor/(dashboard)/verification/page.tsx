@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: 'Giảng viên cao cấp | Aolumi' };
 
 export default function InstructorVerificationPage() {
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 p-4 sm:p-6">
       <PremiumFlow />
     </div>
   );

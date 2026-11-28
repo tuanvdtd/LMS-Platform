@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto';
-import { mapDiditStatus, pickName, verifyDiditWebhook } from './identity-rules.js';
+import { documentHash, mapDiditStatus, pickName, verifyDiditWebhook } from './identity-rules.js';
 
 describe('mapDiditStatus', () => {
   it.each([
@@ -62,5 +62,25 @@ describe('verifyDiditWebhook', () => {
     expect(verifyDiditWebhook(noTs, sign(noTs), secret, now)).toBeNull();
     const notJson = Buffer.from('not json');
     expect(verifyDiditWebhook(notJson, sign(notJson), secret, now)).toBeNull();
+  });
+});
+
+describe('documentHash', () => {
+  const doc = (document_number?: string | null, issuing_state = 'VNM', personal_number?: string) => ({
+    id_verifications: [{ document_number, personal_number, issuing_state }],
+  });
+
+  it('cùng số khác cách viết → cùng mã; khác nước cấp hoặc khác secret → khác mã', () => {
+    const h = documentHash(doc('079 204-001234'), 's');
+    expect(h).toMatch(/^[0-9a-f]{64}$/);
+    expect(documentHash(doc('079204001234'), 's')).toBe(h);
+    expect(documentHash(doc('079204001234', 'USA'), 's')).not.toBe(h);
+    expect(documentHash(doc('079204001234'), 'other')).not.toBe(h);
+  });
+
+  it('thiếu document_number thì dùng personal_number; không có số nào → null', () => {
+    expect(documentHash(doc(null, 'VNM', '079204001234'), 's')).toBe(documentHash(doc('079204001234'), 's'));
+    expect(documentHash(doc(null), 's')).toBeNull();
+    expect(documentHash({}, 's')).toBeNull();
   });
 });

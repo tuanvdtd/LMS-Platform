@@ -14,6 +14,8 @@ export const NOTIF_META: Record<NotificationType, Meta> = {
   post_comment: { label: 'Bình luận bài viết', audience: 'student' },
   // Giảng viên nhắc học viên quay lại học (dashboard Học viên).
   course_nudge: { label: 'Nhắc học', audience: 'student' },
+  // Báo đổi tài khoản nhận doanh thu, phòng bị chiếm phiên đăng nhập.
+  payout_account: { label: 'Tài khoản nhận tiền', audience: 'instructor' },
 };
 
 // Chip trang Thông báo: học viên thường không bao giờ nhận loại của giảng viên → không hiện chip đó.

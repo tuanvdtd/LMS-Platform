@@ -8,7 +8,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma, type Notification } from '@prisma/client';
+import { type IdentityStatus, Prisma, type Notification } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import { AVATAR_MIN, imageProblem, THUMBNAIL_MAX_BYTES } from '../assets/file-check.js';
 import { AUTH, type Auth } from '../auth/auth.js';
@@ -129,7 +129,8 @@ export class InstructorApplicationsService {
       submittedAt: a?.submittedAt ?? null,
       rejectReason: a?.rejectReason ?? null,
       rejectedAt: a?.rejectReason ? a.reviewedAt : null, // ngày bị từ chối, hiện cùng lý do
-      identity: { status: a?.identityStatus ?? null, name: a?.identityName ?? null },
+      // Đọc từ app chứ không từ a: màn "đã duyệt" vẫn nhắc tên đã xác minh.
+      identity: { status: app?.identityStatus ?? null, name: app?.identityName ?? null, issue: app?.identityIssue ?? null },
       missing: done ? [] : applicationMissing(a, user.image),
       revenueSharePct: sharePct,
     };
@@ -207,6 +208,7 @@ export class InstructorApplicationsService {
       identitySessionId: session.sessionId,
       identityStatus: 'pending',
       identityName: null,
+      identityIssue: null,
       identityCheckedAt: new Date(),
     });
     return { url: session.url };
@@ -437,6 +439,7 @@ export class InstructorApplicationsService {
 
   // Ghi kết quả mới nhất của phiên vào đơn. WHERE theo đúng phiên (phiên đã bị thay → không ghi)
   // và theo SYNCABLE (approved không bao giờ bị hạ). Lỗi gọi Didit ném ra cho nơi gọi tự xử lý.
+  // Chỉ ghi khi trạng thái thật sự đổi: webhook và GET chạy song song thì đúng một bên có count 1 → thông báo một lần.
   private async syncIdentity(sessionId: string) {
     const decision = await this.didit.getDecision(sessionId);
     const mapped = mapDiditStatus(decision.status);
@@ -445,14 +448,61 @@ export class InstructorApplicationsService {
       return;
     }
     const now = new Date();
-    const data =
-      mapped === 'expired'
-        ? { identitySessionId: null, identityStatus: null, identityName: null, identityCheckedAt: now }
-        : { identityStatus: mapped, identityName: mapped === 'approved' ? pickName(decision) : null, identityCheckedAt: now };
-    await this.prisma.instructorApplication.updateMany({
-      where: { identitySessionId: sessionId, identityStatus: { in: [...SYNCABLE] } },
-      data,
+    const where = { identitySessionId: sessionId, identityStatus: { in: SYNCABLE.filter((s) => s !== mapped) } };
+    if (mapped === 'expired') {
+      await this.prisma.instructorApplication.updateMany({
+        where,
+        data: { identitySessionId: null, identityStatus: null, identityName: null, identityCheckedAt: now },
+      });
+      return;
+    }
+    let status: IdentityStatus = mapped;
+    let changed: number;
+    try {
+      const data =
+        mapped === 'approved'
+          ? { identityStatus: mapped, identityName: pickName(decision), identityDocHash: this.didit.documentHash(decision), identityCheckedAt: now }
+          : { identityStatus: mapped, identityName: null, identityCheckedAt: now };
+      changed = (await this.prisma.instructorApplication.updateMany({ where, data })).count;
+    } catch (e) {
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')) throw e;
+      // Giấy tờ đã gắn với tài khoản khác. Đã đánh dấu trùng rồi thì count 0: webhook gửi lại không báo lần nữa.
+      status = 'declined';
+      changed = (
+        await this.prisma.instructorApplication.updateMany({
+          where: {
+            identitySessionId: sessionId,
+            OR: [{ identityStatus: { in: ['pending', 'in_review'] } }, { identityStatus: 'declined', identityIssue: null }],
+          },
+          data: { identityStatus: status, identityName: null, identityIssue: 'duplicate_document', identityCheckedAt: now },
+        })
+      ).count;
+    }
+    if (changed && (status === 'approved' || status === 'declined')) await this.notifyIdentity(sessionId);
+  }
+
+  private async notifyIdentity(sessionId: string) {
+    const app = await this.prisma.instructorApplication.findFirst({
+      where: { identitySessionId: sessionId },
+      select: { userId: true, identityStatus: true, identityName: true, identityIssue: true },
     });
+    if (!app) return;
+    const approved = app.identityStatus === 'approved';
+    const notification = await this.prisma.notification.create({
+      data: {
+        userId: app.userId,
+        type: 'instructor_application',
+        title: approved ? 'Đã xác minh danh tính' : 'Xác minh danh tính chưa thành công',
+        body: approved
+          ? `Họ tên trên giấy tờ: ${app.identityName ?? 'không đọc được'}. Bạn có thể khai tài khoản nhận tiền.`
+          : app.identityIssue === 'duplicate_document'
+            ? 'Giấy tờ này đã được dùng để xác minh một tài khoản khác trên Aolumi.'
+            : 'Hãy thử lại với ảnh giấy tờ rõ nét, đủ sáng.',
+        link: '/instructor/verification',
+        data: { identity: app.identityStatus, approved },
+      },
+    });
+    this.notifications.push(notification);
   }
 
   // Làm mới cho tiện ở GET: Didit lỗi thì giữ trạng thái cũ, không làm hỏng việc mở wizard.

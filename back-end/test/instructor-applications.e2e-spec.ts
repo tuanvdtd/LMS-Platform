@@ -192,8 +192,11 @@ describe('Đơn giảng viên cao cấp (e2e)', () => {
   });
   describe('admin', () => {
     const base = '/api/admin/instructor-applications';
-    const appNotes = (userId: string) =>
-      prisma.notification.findMany({ where: { userId, type: 'instructor_application' }, orderBy: { createdAt: 'asc' } });
+    // Chỉ thông báo kết quả duyệt đơn, bỏ thông báo kết quả xác minh danh tính (data.identity).
+    const appNotes = async (userId: string) =>
+      (
+        await prisma.notification.findMany({ where: { userId, type: 'instructor_application' }, orderBy: { createdAt: 'asc' } })
+      ).filter((n) => !(n.data as { identity?: string }).identity);
 
     it('moderator / giảng viên → 403', async () => {
       await call('get', base, moderator.cookie).expect(403);

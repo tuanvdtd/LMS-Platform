@@ -22,11 +22,11 @@ export function SellEmpty({ verified }: { verified: boolean }) {
       title="Chưa thể bán khoá có phí"
       action={
         <Link href="/instructor/verification" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-          Xác minh hồ sơ
+          Đăng ký giảng viên cao cấp
         </Link>
       }
     >
-      Xác minh hồ sơ và thêm tài khoản ngân hàng để đặt giá khoá.
+      Giảng viên cao cấp mới đặt được giá trả phí cho khoá học.
     </AnalyticsEmpty>
   );
 }

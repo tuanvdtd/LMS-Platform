@@ -3,6 +3,9 @@ import { Prisma } from '@prisma/client';
 import { isGuid, validationError } from '../common/zod.pipe.js';
 import { PrismaService } from '../infra/prisma.service.js';
 import { TX_OPTIONS } from '../instructor-courses/instructor-courses.service.js';
+import { maskAccountNo } from '../instructor-applications/application-rules.js';
+import { MailService } from '../mail/mail.service.js';
+import { NotificationsGateway } from '../notifications/notifications.gateway.js';
 import { vietQrUrl } from './bank.js';
 import { isPeriodEnded, periodEnd } from './period.js';
 import type { AdminPayoutsQuery, MarkPaidInput, PayoutAccountInput } from './revenue.schemas.js';
@@ -26,7 +29,11 @@ const BANK = { bankBin: true, bankAccountNo: true, bankAccountName: true } as co
 
 @Injectable()
 export class RevenueService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+    private readonly notifications: NotificationsGateway,
+  ) {}
 
   // ---- Tỷ lệ chia ----
 
@@ -56,12 +63,35 @@ export class RevenueService {
     return { verified: !!p, account: p?.bankBin ? p : null };
   }
 
-  // Không có DELETE: khoá trả phí luôn cần TK.
+  // Không có DELETE: khoá trả phí luôn cần TK. Đổi sang tài khoản khác → báo email + thông báo trong app.
   async setPayoutAccount(userId: string, input: PayoutAccountInput) {
-    const res = await this.prisma.instructorProfile.updateMany({ where: { userId }, data: input });
-    if (res.count === 0) {
-      throw new ForbiddenException({ statusCode: 403, code: 'INSTRUCTOR_NOT_VERIFIED', message: 'Bạn chưa được xác minh giảng viên' });
+    const before = await this.prisma.instructorProfile.findUnique({
+      where: { userId },
+      select: { ...BANK, user: { select: { email: true } } },
+    });
+    if (!before) {
+      throw new ForbiddenException({ statusCode: 403, code: 'INSTRUCTOR_NOT_VERIFIED', message: 'Bạn chưa là giảng viên cao cấp' });
     }
+    const same =
+      before.bankBin === input.bankBin && before.bankAccountNo === input.bankAccountNo && before.bankAccountName === input.bankAccountName;
+    if (same) return this.getPayoutAccount(userId);
+    const masked = maskAccountNo(input.bankAccountNo)!;
+    const notification = await this.prisma.$transaction(async (tx) => {
+      await tx.instructorProfile.update({ where: { userId }, data: input });
+      return tx.notification.create({
+        data: {
+          userId,
+          type: 'payout_account',
+          title: 'Tài khoản nhận tiền vừa được đổi',
+          body: `Doanh thu sẽ chuyển vào ${input.bankAccountName} · ${masked}. Không phải bạn đổi? Đổi mật khẩu ngay.`,
+          link: '/instructor/profile',
+          data: {},
+        },
+      });
+    }, TX_OPTIONS);
+    this.notifications.push(notification); // sau commit
+    // Không await: MailService không throw, lỗi chỉ ghi log.
+    void this.mail.sendPayoutAccountChanged(before.user.email, { accountName: input.bankAccountName, masked, at: new Date() });
     return this.getPayoutAccount(userId);
   }
 

@@ -169,7 +169,7 @@ export function ProfileTab() {
             </FieldGroup>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Website và mạng xã hội chỉ dành cho giảng viên đã xác minh.{' '}
+              Website và mạng xã hội chỉ dành cho giảng viên cao cấp.{' '}
               <Link href="/instructor/verification" className="font-semibold text-primary hover:underline">
                 Đăng ký giảng viên cao cấp
               </Link>

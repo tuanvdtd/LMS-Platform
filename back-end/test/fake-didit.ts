@@ -22,8 +22,9 @@ export class FakeDidit extends DiditGateway {
     return d ? Promise.resolve(d) : Promise.reject(new Error('Didit 404'));
   }
 
-  decide(sessionId: string, status: string, fullName?: string) {
-    this.decisions.set(sessionId, { status, id_verifications: fullName ? [{ full_name: fullName }] : [] });
+  decide(sessionId: string, status: string, fullName?: string, documentNumber?: string) {
+    const doc = documentNumber ? { document_number: documentNumber, issuing_state: 'VNM' } : {};
+    this.decisions.set(sessionId, { status, id_verifications: fullName ? [{ full_name: fullName, ...doc }] : [] });
   }
 
   private takeFail() {
