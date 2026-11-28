@@ -17,11 +17,11 @@ import { handleStepError, type StepProps } from './step-shared';
 const HOW = [
   { icon: IdCard, title: 'Chụp 2 mặt giấy tờ', text: 'Căn cước hoặc hộ chiếu còn hạn' },
   { icon: ScanFace, title: 'Chụp khuôn mặt', text: 'Nhìn thẳng camera, đủ sáng' },
-  { icon: Undo2, title: 'Quay lại Aolumi', text: 'Didit tự đưa bạn về đây' },
+  { icon: Undo2, title: 'Quay lại Aolumi', text: 'Xong là tự quay về đây' },
 ];
 const NOTICE = [
   'Aolumi cần biết đúng người bán khoá trả phí và nhận doanh thu, để chi trả và chống mạo danh.',
-  'Việc chụp và kiểm tra do Didit, đơn vị xác minh danh tính, thực hiện trên trang của họ.',
+  'Việc chụp và kiểm tra do đối tác xác minh danh tính của Aolumi thực hiện, trên trang xác minh riêng.',
   'Ảnh chân dung được dùng để so khớp khuôn mặt với ảnh trên giấy tờ, đây là dữ liệu sinh trắc học.',
   'Aolumi không giữ ảnh của bạn. Aolumi chỉ lưu kết quả, họ tên trên giấy tờ và một mã băm của số giấy tờ để mỗi giấy tờ chỉ dùng cho một tài khoản.',
 ];
@@ -65,6 +65,15 @@ export function IdentityStep({ view, onSaved, onUpdate, go, returning }: StepPro
     };
   }, [polling, onUpdate]);
 
+  // Bấm Back từ trang xác minh: trình duyệt khôi phục trang từ bộ nhớ đệm, giữ nguyên busy = true → mở lại nút.
+  useEffect(() => {
+    const restore = (e: PageTransitionEvent) => {
+      if (e.persisted) setBusy(false);
+    };
+    window.addEventListener('pageshow', restore);
+    return () => window.removeEventListener('pageshow', restore);
+  }, []);
+
   async function start() {
     setBusy(true);
     try {
@@ -73,12 +82,12 @@ export function IdentityStep({ view, onSaved, onUpdate, go, returning }: StepPro
       window.location.assign(url);
     } catch (e) {
       setBusy(false);
-      if (providerDown(e)) toast.error('Không kết nối được Didit, thử lại sau ít phút');
+      if (providerDown(e)) toast.error('Không kết nối được dịch vụ xác minh, thử lại sau ít phút');
       else handleStepError(e, () => undefined);
     }
   }
 
-  const startLabel = status === 'pending' ? 'Tiếp tục xác minh' : status === 'declined' ? 'Xác minh lại' : 'Tiếp tục với Didit';
+  const startLabel = status === 'pending' ? 'Tiếp tục xác minh' : status === 'declined' ? 'Xác minh lại' : 'Bắt đầu xác minh';
   const showHow = status !== 'approved' && status !== 'in_review' && !polling;
 
   return (
@@ -89,7 +98,7 @@ export function IdentityStep({ view, onSaved, onUpdate, go, returning }: StepPro
             <BadgeCheck aria-hidden />
             <AlertTitle>Đã xác minh danh tính</AlertTitle>
             <AlertDescription>
-              Họ tên trên giấy tờ: <span className="font-semibold text-foreground">{name ?? 'Didit không đọc được tên'}</span>. Tên này
+              Họ tên trên giấy tờ: <span className="font-semibold text-foreground">{name ?? 'không đọc được tên'}</span>. Tên này
               chỉ người duyệt đơn thấy, không hiện công khai.
             </AlertDescription>
           </Alert>
@@ -97,9 +106,9 @@ export function IdentityStep({ view, onSaved, onUpdate, go, returning }: StepPro
         {status === 'in_review' && (
           <Alert variant="warning">
             <Clock aria-hidden />
-            <AlertTitle>Didit đang xem xét thêm</AlertTitle>
+            <AlertTitle>Hồ sơ đang được xem xét thêm</AlertTitle>
             <AlertDescription>
-              Một số hồ sơ cần người của Didit kiểm tra lại. Có kết quả, bạn sẽ nhận thông báo. Trong lúc chờ, bạn khai tài khoản nhận
+              Một số hồ sơ cần người kiểm tra lại. Có kết quả, bạn sẽ nhận thông báo. Trong lúc chờ, bạn khai tài khoản nhận
               tiền được.
             </AlertDescription>
           </Alert>
@@ -107,17 +116,17 @@ export function IdentityStep({ view, onSaved, onUpdate, go, returning }: StepPro
         {polling && (
           <Alert>
             <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden />
-            <AlertTitle>Đang lấy kết quả từ Didit…</AlertTitle>
+            <AlertTitle>Đang lấy kết quả xác minh…</AlertTitle>
             <AlertDescription>Thường mất vài giây. Bạn cứ để trang mở.</AlertDescription>
           </Alert>
         )}
         {status === 'pending' && !polling && (
           <Alert>
             <Clock aria-hidden />
-            <AlertTitle>{gaveUp ? 'Didit chưa trả kết quả' : 'Bạn chưa hoàn tất xác minh'}</AlertTitle>
+            <AlertTitle>{gaveUp ? 'Chưa có kết quả xác minh' : 'Bạn chưa hoàn tất xác minh'}</AlertTitle>
             <AlertDescription>
               {gaveUp
-                ? 'Nếu bạn đã làm xong các bước bên Didit, kết quả sẽ tự cập nhật và bạn sẽ nhận thông báo. Nếu chưa, tiếp tục xác minh.'
+                ? 'Nếu bạn đã làm xong các bước xác minh, kết quả sẽ tự cập nhật và bạn sẽ nhận thông báo. Nếu chưa, tiếp tục xác minh.'
                 : 'Phiên xác minh vẫn còn. Tiếp tục từ chỗ đã dừng.'}
             </AlertDescription>
           </Alert>
@@ -187,7 +196,7 @@ export function IdentityStep({ view, onSaved, onUpdate, go, returning }: StepPro
               <Field orientation="horizontal">
                 <Checkbox id="identity-agree" checked={agree} onCheckedChange={(v) => setAgree(v === true)} />
                 <FieldLabel htmlFor="identity-agree" className="font-normal leading-snug">
-                  Tôi đồng ý để Didit xử lý ảnh giấy tờ và ảnh chân dung của tôi cho việc xác minh danh tính
+                  Tôi đồng ý cho việc chụp và xử lý ảnh giấy tờ, ảnh chân dung của tôi để xác minh danh tính
                 </FieldLabel>
               </Field>
             )}
@@ -204,7 +213,7 @@ export function IdentityStep({ view, onSaved, onUpdate, go, returning }: StepPro
           <Button disabled>Đang lấy kết quả…</Button>
         ) : (
           <>
-            <span className="hidden text-xs text-muted-foreground sm:inline">Bạn sẽ chuyển sang trang của Didit</span>
+            <span className="hidden text-xs text-muted-foreground sm:inline">Bạn sẽ chuyển sang trang xác minh</span>
             <Button onClick={start} disabled={busy || (needsConsent && !agree)}>
               {busy ? 'Đang chuyển…' : startLabel}
               <ArrowUpRight data-icon="inline-end" />

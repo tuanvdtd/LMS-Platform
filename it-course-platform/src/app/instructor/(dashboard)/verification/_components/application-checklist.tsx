@@ -20,7 +20,7 @@ const lastFour = (no: string) => `••••${no.slice(-4)}`;
 
 function identityItem({ status, name, issue }: ApplicationView['identity']): Item {
   if (status === 'approved') return { tone: 'done', text: `Đã xác minh · ${name ?? 'không đọc được tên'}` };
-  if (status === 'in_review') return { tone: 'wait', text: 'Didit đang xem xét thêm' };
+  if (status === 'in_review') return { tone: 'wait', text: 'Đang được xem xét thêm' };
   if (status === 'pending') return { tone: 'todo', text: 'Chưa hoàn tất xác minh' };
   if (status === 'declined') {
     return { tone: 'todo', text: issue === 'duplicate_document' ? 'Giấy tờ đã dùng cho tài khoản khác' : 'Xác minh chưa thành công' };
