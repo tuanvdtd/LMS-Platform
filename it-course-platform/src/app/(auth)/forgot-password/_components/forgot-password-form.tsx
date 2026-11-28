@@ -15,7 +15,9 @@ import {
   type ForgotPasswordValues,
 } from '../../_components/auth-fields.schema';
 import { CheckEmailScreen } from '../../_components/check-email-screen';
-import { Banner, Field } from '../../_components/form-parts';
+import { AuthSteps, Banner, Field } from '../../_components/form-parts';
+
+const RESET_STEPS = ['Nhập email đã đăng ký', 'Mở link trong email, link còn hiệu lực 1 giờ', 'Đặt mật khẩu mới rồi đăng nhập lại'];
 
 // Email không tồn tại cũng trả 200 → không lộ tài khoản
 async function requestReset(email: string): Promise<string | null> {
@@ -60,6 +62,7 @@ export function ForgotPasswordForm() {
     return (
       <CheckEmailScreen
         title="Kiểm tra email"
+        steps={RESET_STEPS}
         onResend={() => requestReset(sentTo)}
         footer={<Link href="/login" className="block text-sm text-primary hover:underline">Quay lại đăng nhập</Link>}
       >
@@ -67,7 +70,7 @@ export function ForgotPasswordForm() {
           Nếu <strong>{sentTo}</strong> có tài khoản, chúng tôi đã gửi link đặt lại mật khẩu.
         </p>
         <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-          Link còn hiệu lực trong 1 giờ. Hãy kiểm tra hộp thư, cả mục Spam/Quảng cáo, trước khi gửi lại.
+          Không thấy email? Hãy xem cả mục Spam/Quảng cáo trước khi gửi lại.
         </p>
       </CheckEmailScreen>
     );
@@ -95,6 +98,7 @@ export function ForgotPasswordForm() {
           Gửi link đặt lại
         </Btn>
       </form>
+      <AuthSteps steps={RESET_STEPS} />
       <p className="text-center text-sm mt-6" style={{ color: 'var(--muted-foreground)' }}>
         Nhớ mật khẩu rồi?{' '}
         <Link href="/login" className="text-primary font-semibold hover:underline">Đăng nhập</Link>

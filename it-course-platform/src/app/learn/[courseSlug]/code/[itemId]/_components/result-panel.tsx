@@ -1,6 +1,8 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { FileInput, LoaderCircle, RefreshCw } from 'lucide-react';
+import type { CoderMood } from '@/components/shared/lumi-moment';
 import { VerdictBadge } from '@/components/shared/product-ui';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -15,6 +17,9 @@ import {
   type SubmissionStatus,
   verdictOf,
 } from '@/types/exercise';
+
+// Chỉ tải runtime Rive khi tab Kết quả có bài nộp
+const CoderLumi = dynamic(() => import('@/components/shared/lumi-moment').then((m) => m.CoderLumi), { ssr: false });
 
 export type ResultTab = 'tests' | 'result';
 export type ShownResult = { type: 'run'; run: RunResult } | { type: 'submission'; submission: SubmissionDetail };
@@ -95,31 +100,36 @@ function RunView({ run }: { run: RunResult }) {
   );
 }
 
-function SubmissionView({ submission: s, onLoadCode }: { submission: SubmissionDetail; onLoadCode?: () => void }) {
+function SubmissionSummary({ submission: s, onLoadCode }: { submission: SubmissionDetail; onLoadCode?: () => void }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border bg-muted/50 p-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1" role="status">
+        <VerdictBadge verdict={verdictOf(s.status)} />
+        <span className="text-sm font-semibold text-foreground">{s.score} điểm</span>
+        <span className="text-sm text-muted-foreground">
+          {s.passedTests}/{s.totalTests} test đạt
+        </span>
+      </div>
+      <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <div className="flex gap-1"><dt>Ngôn ngữ:</dt><dd className="text-foreground">{LANGUAGES[s.language]}</dd></div>
+        <div className="flex gap-1"><dt>Thời gian lớn nhất:</dt><dd className="font-mono text-foreground">{formatMs(s.maxTimeMs)}</dd></div>
+        <div className="flex gap-1"><dt>Bộ nhớ lớn nhất:</dt><dd className="font-mono text-foreground">{formatKb(s.maxMemoryKb)}</dd></div>
+      </dl>
+      {onLoadCode && (
+        <Button variant="outline" size="sm" className="w-fit max-md:h-11" onClick={onLoadCode}>
+          <FileInput data-icon="inline-start" aria-hidden />
+          Nạp code này vào editor
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function SubmissionTests({ submission: s }: { submission: SubmissionDetail }) {
   let pub = 0;
   let hidden = 0;
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 rounded-lg border bg-muted/50 p-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1" role="status">
-          <VerdictBadge verdict={verdictOf(s.status)} />
-          <span className="text-sm font-semibold text-foreground">{s.score} điểm</span>
-          <span className="text-sm text-muted-foreground">
-            {s.passedTests}/{s.totalTests} test đạt
-          </span>
-        </div>
-        <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <div className="flex gap-1"><dt>Ngôn ngữ:</dt><dd className="text-foreground">{LANGUAGES[s.language]}</dd></div>
-          <div className="flex gap-1"><dt>Thời gian lớn nhất:</dt><dd className="font-mono text-foreground">{formatMs(s.maxTimeMs)}</dd></div>
-          <div className="flex gap-1"><dt>Bộ nhớ lớn nhất:</dt><dd className="font-mono text-foreground">{formatKb(s.maxMemoryKb)}</dd></div>
-        </dl>
-        {onLoadCode && (
-          <Button variant="outline" size="sm" className="w-fit max-md:h-11" onClick={onLoadCode}>
-            <FileInput data-icon="inline-start" aria-hidden />
-            Nạp code này vào editor
-          </Button>
-        )}
-      </div>
+    <>
       {s.status === 'internal_error' && (
         <p className="text-sm text-muted-foreground">Hệ thống chấm gặp lỗi với lần nộp này, hãy nộp lại.</p>
       )}
@@ -135,7 +145,7 @@ function SubmissionView({ submission: s, onLoadCode }: { submission: SubmissionD
             ),
           )}
       </ul>
-    </div>
+    </>
   );
 }
 
@@ -161,6 +171,10 @@ export function ResultPanel({
   onLoadCode?: (s: SubmissionDetail) => void;
   className?: string;
 }) {
+  const sub = result?.type === 'submission' ? result.submission : null;
+  const loadSub = sub && onLoadCode && exercise.languages.includes(sub.language) ? () => onLoadCode(sub) : undefined;
+  // Lỗi của hệ thống chấm không phải lỗi bài làm nên Lumi không phản ứng
+  const lumi: CoderMood | null = grading ? 0 : sub?.status === 'accepted' ? 1 : sub && sub.status !== 'internal_error' ? 2 : null;
   return (
     <Tabs value={tab} onValueChange={(v) => onTabChange(v as ResultTab)} className={cn('min-h-0 gap-0 bg-card', className)}>
       <div className="border-b px-2">
@@ -189,32 +203,37 @@ export function ResultPanel({
         )}
       </TabsContent>
 
-      <TabsContent value="result" className="flex min-h-0 flex-col gap-3 overflow-y-auto p-3">
-        {grading && (
-          <Alert role="status">
-            <LoaderCircle className="motion-safe:animate-spin" aria-hidden />
-            <AlertTitle>Đang chấm…</AlertTitle>
-            <AlertDescription className="flex flex-col items-start gap-2">
-              Kết quả sẽ tự hiện khi chấm xong. Chưa thấy sau 30 giây? Bấm Làm mới.
-              <Button variant="outline" size="sm" className="max-md:h-11" isLoading={refreshing} onClick={onRefresh}>
-                <RefreshCw data-icon="inline-start" aria-hidden />
-                Làm mới
-              </Button>
-            </AlertDescription>
-          </Alert>
+      <TabsContent value="result" className="@container flex min-h-0 flex-col gap-3 overflow-y-auto p-3">
+        {(grading || sub) && (
+          <div className="flex items-center gap-4">
+            <div className="min-w-0 flex-1">
+              {grading ? (
+                <Alert role="status">
+                  <LoaderCircle className="motion-safe:animate-spin" aria-hidden />
+                  <AlertTitle>Đang chấm…</AlertTitle>
+                  <AlertDescription className="flex flex-col items-start gap-2">
+                    Kết quả sẽ tự hiện khi chấm xong. Chưa thấy sau 30 giây? Bấm Làm mới.
+                    <Button variant="outline" size="sm" className="max-md:h-11" isLoading={refreshing} onClick={onRefresh}>
+                      <RefreshCw data-icon="inline-start" aria-hidden />
+                      Làm mới
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                sub && <SubmissionSummary submission={sub} onLoadCode={loadSub} />
+              )}
+            </div>
+            {lumi !== null && (
+              <div className="hidden aspect-3/2 w-40 shrink-0 @lg:block">
+                <CoderLumi mood={lumi} className="size-full" />
+              </div>
+            )}
+          </div>
         )}
         {grading && result && <Separator />}
         {result?.type === 'run' && <RunView run={result.run} />}
-        {result?.type === 'submission' && (
-          <SubmissionView
-            submission={result.submission}
-            onLoadCode={
-              onLoadCode && exercise.languages.includes(result.submission.language)
-                ? () => onLoadCode(result.submission)
-                : undefined
-            }
-          />
-        )}
+        {grading && sub && <SubmissionSummary submission={sub} onLoadCode={loadSub} />}
+        {sub && <SubmissionTests submission={sub} />}
         {!grading && !result && (
           <p className="py-6 text-center text-sm text-muted-foreground">
             Bấm <strong className="font-semibold text-foreground">Chạy thử</strong> để kiểm tra với test công khai, hoặc{' '}

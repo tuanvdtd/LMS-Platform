@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from 'lucide-react';
+import { Check, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function Field({ id, label, error, children }: { id: string; label: string; error?: string; children: React.ReactNode }) {
@@ -38,5 +38,26 @@ export function PasswordToggle({ shown, onToggle }: { shown: boolean; onToggle: 
     >
       {shown ? <EyeOff size={15} style={{ color: 'var(--muted-foreground)' }} /> : <Eye size={15} style={{ color: 'var(--muted-foreground)' }} />}
     </Button>
+  );
+}
+
+export function AuthSteps({ steps, done = 0 }: { steps: string[]; done?: number }) {
+  return (
+    <ol className="mt-8 space-y-3 border-t pt-6">
+      {steps.map((step, i) => (
+        <li key={step} className="flex items-start gap-3 text-sm">
+          <span
+            className={
+              i < done
+                ? 'grid size-6 shrink-0 place-items-center rounded-full bg-success-soft text-success'
+                : 'grid size-6 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground'
+            }
+          >
+            {i < done ? <Check className="size-3.5" aria-label="Đã xong" /> : i + 1}
+          </span>
+          <span className={i < done ? 'pt-0.5 text-muted-foreground' : 'pt-0.5 text-foreground'}>{step}</span>
+        </li>
+      ))}
+    </ol>
   );
 }

@@ -1,14 +1,22 @@
 import Link from 'next/link';
-import { Home } from 'lucide-react';
+import { Compass, Home } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
+import { ErrorScreen } from '@/components/shared/error-screen';
 
 export function NotFoundContent() {
   return (
-    <div className="mx-auto flex min-h-page max-w-md flex-col items-center justify-center px-4 py-16 text-center">
-      <div className="mb-4 text-7xl font-extrabold text-border">404</div>
-      <h1 className="mb-3 text-xl font-bold text-foreground">Trang không tồn tại</h1>
-      <p className="mb-6 text-muted-foreground">Đường dẫn bạn truy cập không hợp lệ.</p>
-      <Link href="/" className={buttonVariants({ variant: 'outline' })}><Home className="size-4" />Về trang chủ</Link>
-    </div>
+    <ErrorScreen
+      scene="Lost"
+      code="404"
+      title="Không tìm thấy trang này"
+      actions={
+        <>
+          <Link href="/" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}><Home />Về trang chủ</Link>
+          <Link href="/courses" className={buttonVariants({ variant: 'outline', size: 'lg', className: 'w-full sm:w-auto' })}><Compass />Khám phá khoá học</Link>
+        </>
+      }
+    >
+      Đường dẫn có thể bị gõ sai, hoặc trang đã được chuyển sang chỗ khác.
+    </ErrorScreen>
   );
 }

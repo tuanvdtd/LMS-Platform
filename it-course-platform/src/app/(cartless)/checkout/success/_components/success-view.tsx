@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CircleCheckBig, CircleX, Loader2 } from 'lucide-react';
+import { CircleX, Loader2 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { getOrderBySession } from '@/lib/api/checkout';
+import { useCartStore } from '@/lib/cart-store';
 import { cn } from '@/lib/utils';
 import type { SessionOrder } from '@/types/checkout';
+import { Receipt } from './receipt';
 
 const MAX_TRIES = 10;
 const INTERVAL_MS = 2_000;
@@ -33,6 +35,8 @@ export function SuccessView() {
           if (cancelled) return;
           setOrder(o);
           if (o.status === 'pending') retry();
+          // Thanh toán xong BE đã xoá các khoá khỏi giỏ, badge trên header phải tải lại
+          if (o.status === 'paid') useCartStore.getState().refresh().catch(() => {});
         },
         () => { if (!cancelled) retry(); }, // lỗi mạng/tạm thời ≠ thanh toán thất bại
       );
@@ -42,37 +46,25 @@ export function SuccessView() {
 
   if (!sessionId || order?.status === 'failed') {
     return (
-      <Shell icon={<CircleX className="size-8" />} tone="text-destructive bg-destructive/10" title="Thanh toán không thành công">
+      <Notice icon={<CircleX className="size-8" />} tone="text-destructive bg-destructive/10" title="Thanh toán không thành công">
+        <p className="mb-8 text-muted-foreground">Giao dịch chưa hoàn tất. Bạn có thể thử thanh toán lại từ giỏ hàng.</p>
         <Link href="/cart" className={buttonVariants({ size: 'lg' })}>Về giỏ hàng</Link>
-      </Shell>
+      </Notice>
     );
   }
   if (gaveUp && order?.status !== 'paid') {
     return (
-      <Shell icon={<Loader2 className="size-8" />} tone="text-primary bg-primary/10" title="Đang xử lý thanh toán">
-        <p className="mb-6 text-muted-foreground">Hệ thống chưa nhận được xác nhận. Kiểm tra lại ở Đơn hàng sau ít phút.</p>
+      <Notice icon={<Loader2 className="size-8" />} tone="text-primary bg-primary/10" title="Đang xử lý thanh toán">
+        <p className="mb-8 text-muted-foreground">Hệ thống chưa nhận được xác nhận. Kiểm tra lại ở Đơn hàng sau ít phút.</p>
         <Link href="/orders" className={buttonVariants({ size: 'lg' })}>Xem đơn hàng</Link>
-      </Shell>
+      </Notice>
     );
   }
-  if (!order || order.status === 'pending') {
-    return (
-      <Shell icon={<Loader2 className="size-8 animate-spin" />} tone="text-primary bg-primary/10" title="Đang xác nhận thanh toán…">
-        <p className="text-muted-foreground">Vui lòng chờ trong giây lát.</p>
-      </Shell>
-    );
-  }
-  return (
-    <Shell icon={<CircleCheckBig className="size-8" />} tone="text-primary bg-primary/10" title="Thanh toán thành công!">
-      <p className="mb-6 text-muted-foreground">
-        Đã thêm {order.items.map((i) => i.course.title).join(', ')} vào tài khoản của bạn.
-      </p>
-      <Link href="/my-learning" className={buttonVariants({ size: 'lg' })}>Bắt đầu học ngay</Link>
-    </Shell>
-  );
+
+  return <Receipt order={order} />;
 }
 
-function Shell({ icon, tone, title, children }: { icon: React.ReactNode; tone: string; title: string; children: React.ReactNode }) {
+function Notice({ icon, tone, title, children }: { icon: React.ReactNode; tone: string; title: string; children: React.ReactNode }) {
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-20 text-center">
       <div className={cn('mb-6 flex size-16 items-center justify-center rounded-full', tone)}>{icon}</div>

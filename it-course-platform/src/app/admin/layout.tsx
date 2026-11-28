@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect } from 'react';
-import Link from 'next/link';
 import { redirect, usePathname, useRouter } from 'next/navigation';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { authClient } from '@/lib/auth-client';
 import { isAdmin, isStaff } from '@/lib/instructor-role';
 import { AdminShell } from './_components/admin-shell';
+import { ModeratorForbidden, OutsiderForbidden } from './_components/admin-forbidden';
 
 // Khu quản trị. Gate ở client như instructor/layout.tsx.
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -29,11 +29,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
   if (!data) return <ShellSkeleton />;
-  if (!isStaff(data.user)) return <Forbidden />;
+  if (!isStaff(data.user)) return <OutsiderForbidden user={data.user} />;
   const admin = isAdmin(data.user);
   return (
     <AdminShell user={data.user} admin={admin}>
-      <RoleGate admin={admin}>{children}</RoleGate>
+      <RoleGate admin={admin} user={data.user}>{children}</RoleGate>
     </AdminShell>
   );
 }
@@ -67,24 +67,12 @@ const MODERATOR_PATHS = ['/admin/course-approvals', '/admin/skill-bank', '/admin
 
 // Moderator chỉ dùng hàng đợi duyệt khoá, ngân hàng câu kỹ năng và bảo mật tài khoản của chính mình. Chỉ render sau khi có session (không chạy lúc prerender)
 // nên usePathname không cần Suspense; /admin điều hướng theo vai trò ở đây vì page không biết session.
-function RoleGate({ admin, children }: { admin: boolean; children: React.ReactNode }) {
+function RoleGate({ admin, user, children }: { admin: boolean; user: { email: string }; children: React.ReactNode }) {
   const pathname = usePathname();
   // Admin vào /admin là trang Tổng quan; moderator không có trang này.
   if (pathname === '/admin' && !admin) redirect('/admin/course-approvals');
-  if (!admin && !MODERATOR_PATHS.some((p) => pathname.startsWith(p))) return <Forbidden />;
+  if (!admin && !MODERATOR_PATHS.some((p) => pathname.startsWith(p))) return <ModeratorForbidden user={user} />;
   return children;
-}
-
-function Forbidden() {
-  return (
-    <Centered>
-      <h1 className="text-2xl font-extrabold">403</h1>
-      <p className="text-sm text-muted-foreground">Trang này chỉ dành cho quản trị viên.</p>
-      <Link href="/" className={buttonVariants({ variant: 'outline' })}>
-        Về trang chủ
-      </Link>
-    </Centered>
-  );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {

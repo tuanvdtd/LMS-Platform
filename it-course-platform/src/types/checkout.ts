@@ -29,7 +29,16 @@ export interface MyOrder {
   }[];
 }
 
-export interface SessionOrder { id: string; status: 'pending' | 'paid' | 'failed'; items: { course: { slug: string; title: string } }[] }
+export interface SessionOrder {
+  id: string;
+  status: 'pending' | 'paid' | 'failed';
+  paidAt: string | null;
+  provider: 'stripe' | 'vnpay';
+  subtotalAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  items: { unitPriceAmount: number; listPriceAmount: number; course: { slug: string; title: string; thumbnailUrl: string | null; instructor: { name: string } } }[];
+}
 
 export interface MyEnrollment {
   createdAt: string;

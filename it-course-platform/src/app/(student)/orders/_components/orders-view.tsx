@@ -77,7 +77,7 @@ function OrderCard({ order }: { order: MyOrder }) {
           <span className="ml-1.5 font-normal text-muted-foreground">{timeFmt.format(paidAt)}</span>
         </time>
         <span className="text-sm text-muted-foreground">
-          Mã đơn <span className="font-mono text-foreground">#{order.id.slice(0, 8)}</span>
+          Mã đơn <span className="font-mono text-foreground">#{order.id.slice(-8).toUpperCase()}</span>
         </span>
         <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Method className="size-4" aria-hidden />
