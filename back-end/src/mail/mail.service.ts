@@ -9,6 +9,7 @@ import {
   courseNudgeMail,
   courseReviewedMail,
   instructorApplicationReviewedMail,
+  payoutAccountChangedMail,
   resetPasswordMail,
   staffInviteMail,
   verificationMail,
@@ -54,6 +55,10 @@ export class MailService {
   // Kết quả duyệt đơn giảng viên cao cấp.
   sendInstructorApplicationReviewed(to: string, approved: boolean, reason: string | null) {
     return this.send(to, instructorApplicationReviewedMail(this.feUrl, approved, reason));
+  }
+
+  sendPayoutAccountChanged(to: string, a: { accountName: string; masked: string; at: Date }) {
+    return this.send(to, payoutAccountChangedMail(this.feUrl, a));
   }
 
   // Admin khoá tài khoản (trang Người dùng).

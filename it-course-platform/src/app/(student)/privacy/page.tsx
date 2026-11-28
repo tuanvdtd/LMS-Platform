@@ -61,10 +61,12 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li>Khi bạn đăng nhập hoặc liên kết Google, GitHub: tên, email, ảnh đại diện và mã định danh tài khoản do bên đó cung cấp.</li>
           <li>Từ Stripe: kết quả giao dịch và mã tham chiếu thanh toán.</li>
+          <li>Từ Didit, khi bạn đăng ký giảng viên cao cấp: kết quả xác minh danh tính, họ tên ghi trên giấy tờ tuỳ thân và số giấy tờ để tạo mã băm (xem mục 5).</li>
         </ul>
         <LegalNote title="Chúng tôi không thu thập:">
-          số thẻ thanh toán (Stripe xử lý trực tiếp), mật khẩu Google hay GitHub của bạn, danh bạ, vị trí chính xác, hay bất kỳ dữ liệu
-          nào khác trên các tài khoản liên kết ngoài những mục nêu trên.
+          số thẻ thanh toán (Stripe xử lý trực tiếp), ảnh giấy tờ tuỳ thân, ảnh chân dung hay ngày sinh (Didit xử lý trực tiếp), số giấy
+          tờ ở dạng đọc được, mật khẩu Google hay GitHub của bạn, danh bạ, vị trí chính xác, hay bất kỳ dữ liệu nào khác trên các tài khoản liên kết
+          ngoài những mục nêu trên.
         </LegalNote>
       </>
     ),
@@ -81,12 +83,14 @@ const SECTIONS: LegalSection[] = [
           <li>Xử lý đơn hàng, hoàn tiền, đối soát và chi trả doanh thu cho giảng viên.</li>
           <li>Cung cấp số liệu phân tích cho giảng viên về khoá học của họ.</li>
           <li>Kiểm duyệt khoá học, hồ sơ xác minh giảng viên và xử lý báo cáo vi phạm.</li>
+          <li>Xác minh danh tính giảng viên cao cấp để chi trả doanh thu đúng người, chống mạo danh và bảo đảm mỗi giấy tờ chỉ dùng cho một tài khoản.</li>
           <li>Gửi thông báo và email cần thiết cho việc sử dụng dịch vụ (xác minh, đặt lại mật khẩu, kết quả duyệt, trả lời câu hỏi).</li>
           <li>Phát hiện lỗi, đo hiệu năng và cải thiện nền tảng.</li>
         </ul>
         <p>
           Việc chấm bài và gợi ý khoá học được thực hiện tự động. Chúng không tạo ra quyết định có hệ quả pháp lý với bạn; nếu cho rằng
-          kết quả chấm sai, bạn có thể liên hệ giảng viên của khoá hoặc đội hỗ trợ.
+          kết quả chấm sai, bạn có thể liên hệ giảng viên của khoá hoặc đội hỗ trợ. Kết quả xác minh danh tính cũng do Didit đánh giá
+          tự động; nếu không đạt, bạn được thử lại, và đơn giảng viên cao cấp luôn do người duyệt quyết định.
         </p>
         <LegalNote title="Cam kết:">
           Aolumi không bán, không cho thuê dữ liệu cá nhân của bạn, không dùng dữ liệu của bạn để hiển thị quảng cáo của bên thứ ba
@@ -114,11 +118,44 @@ const SECTIONS: LegalSection[] = [
           <li>Google và GitHub: xác thực khi bạn chọn đăng nhập bằng các tài khoản này.</li>
           <li>Nhà cung cấp dịch vụ gửi email: gửi email hệ thống tới địa chỉ của bạn.</li>
           <li>Sentry: ghi nhận lỗi kỹ thuật. Dữ liệu gửi đi đã được lược bỏ cookie, nội dung biểu mẫu và tham số trên đường dẫn.</li>
+          <li>Didit: xác minh danh tính khi bạn đăng ký giảng viên cao cấp (xem mục 5).</li>
         </ul>
         <p>
           Các bên này chỉ nhận phần dữ liệu tối thiểu cần cho công việc của họ. Ngoài ra, chúng tôi chỉ cung cấp dữ liệu cho cơ quan nhà
           nước có thẩm quyền khi có yêu cầu hợp lệ theo quy định pháp luật.
         </p>
+      </>
+    ),
+  },
+  {
+    id: 'xac-minh-danh-tinh',
+    title: 'Xác minh danh tính giảng viên',
+    body: (
+      <>
+        <p>
+          Mục này chỉ áp dụng khi bạn đăng ký giảng viên cao cấp để bán khoá trả phí. Học viên và giảng viên chỉ đăng khoá miễn phí
+          không phải xác minh danh tính.
+        </p>
+        <ul>
+          <li><strong>Mục đích:</strong> biết đúng người chịu trách nhiệm với khoá học trả phí và doanh thu, chống mạo danh, và bảo đảm mỗi giấy tờ chỉ dùng cho một tài khoản giảng viên cao cấp.</li>
+          <li><strong>Cách thực hiện:</strong> bạn được chuyển sang trang của Didit, đơn vị xác minh danh tính, để chụp giấy tờ tuỳ thân (căn cước hoặc hộ chiếu) và ảnh chân dung. Didit đọc thông tin trên giấy tờ, kiểm tra giấy tờ và so khớp khuôn mặt của bạn với ảnh trên giấy tờ. Didit cũng ghi nhận địa chỉ IP và thông tin thiết bị để chống gian lận.</li>
+          <li><strong>Dữ liệu nhạy cảm:</strong> ảnh chân dung và đặc điểm khuôn mặt dùng để so khớp là dữ liệu sinh trắc học, thuộc nhóm dữ liệu cá nhân nhạy cảm theo pháp luật Việt Nam. Việc xác minh chỉ bắt đầu sau khi bạn đánh dấu đồng ý ở bước xác minh.</li>
+          <li><strong>Aolumi nhận về:</strong> trạng thái xác minh (đang làm, đang xem xét, đạt, không đạt), họ tên ghi trên giấy tờ khi đạt, mã phiên xác minh và thời điểm cập nhật kết quả. Ảnh giấy tờ và ảnh chân dung đi thẳng từ thiết bị của bạn tới Didit, không qua máy chủ của Aolumi.</li>
+          <li><strong>Mã băm số giấy tờ:</strong> từ số giấy tờ và nước cấp, Aolumi tạo một mã băm có khoá rồi chỉ lưu mã này, không lưu số gốc và không đọc ngược ra được. Mã băm dùng để nhận ra một giấy tờ đã được dùng xác minh cho tài khoản khác.</li>
+          <li><strong>Ai thấy họ tên trên giấy tờ:</strong> bạn và quản trị viên duyệt đơn. Quản trị viên xem cùng tên chủ tài khoản ngân hàng để tham khảo; tài khoản nhận tiền nên đứng tên bạn nhưng không bắt buộc. Họ tên này không hiển thị trên trang cá nhân hay cho người dùng khác.</li>
+          <li>
+            <strong>Didit lưu trữ:</strong> Didit xử lý dữ liệu theo chỉ dẫn của Aolumi, giữ trong thời hạn Aolumi thiết lập (tối đa 12
+            tháng kể từ lần xác minh) rồi xoá vĩnh viễn, và không bán dữ liệu sinh trắc học. Chi tiết xem{' '}
+            <a href="https://didit.me/terms/verification-privacy-notice/" target="_blank" rel="noopener noreferrer">
+              thông báo quyền riêng tư khi xác minh của Didit
+            </a>.
+          </li>
+        </ul>
+        <LegalNote title="Nếu bạn không đồng ý:">
+          bạn vẫn dạy và xuất bản khoá miễn phí như bình thường, chỉ không gửi được đơn giảng viên cao cấp. Bạn có thể yêu cầu xoá dữ
+          liệu xác minh bất cứ lúc nào qua <SupportEmail />; chúng tôi xoá phần lưu ở Aolumi và yêu cầu Didit xoá phần của họ. Nếu đơn
+          chưa được duyệt, bạn sẽ cần xác minh lại trước khi gửi đơn.
+        </LegalNote>
       </>
     ),
   },
@@ -174,6 +211,7 @@ const SECTIONS: LegalSection[] = [
         <li>Mã xác minh email và đặt lại mật khẩu: hết hạn trong thời gian ngắn và chỉ dùng được một lần.</li>
         <li>Đơn hàng, hoá đơn, chi trả doanh thu: lưu theo thời hạn mà pháp luật về kế toán và thuế yêu cầu, kể cả sau khi tài khoản bị xoá.</li>
         <li>Chứng chỉ đã cấp: giữ lại để người khác vẫn xác thực được, trừ khi bạn yêu cầu xoá.</li>
+        <li>Kết quả xác minh danh tính, họ tên trên giấy tờ và mã băm số giấy tờ: lưu cùng đơn giảng viên trong suốt thời gian tài khoản còn tồn tại. Ảnh giấy tờ và ảnh chân dung không lưu ở Aolumi; Didit xoá sau tối đa 12 tháng.</li>
         <li>Dữ liệu chẩn đoán lỗi: tự xoá theo chu kỳ lưu trữ của Sentry.</li>
       </ul>
     ),
@@ -188,6 +226,7 @@ const SECTIONS: LegalSection[] = [
           <li>Mật khẩu được băm bằng thuật toán một chiều. Bạn có thể bật xác thực hai lớp bằng ứng dụng tạo mã.</li>
           <li>Video khoá học được phát qua đường dẫn có chữ ký và có thời hạn.</li>
           <li>Mã nguồn bạn nộp chạy trong môi trường cô lập, tách khỏi dữ liệu của hệ thống và của người dùng khác.</li>
+          <li>Kết quả xác minh danh tính được lấy trực tiếp từ Didit qua kết nối có xác thực, không dựa vào dữ liệu do trình duyệt gửi lên.</li>
           <li>Chỉ quản trị viên và kiểm duyệt viên được phân quyền mới truy cập được dữ liệu cần cho công việc của họ.</li>
         </ul>
         <p>
@@ -213,7 +252,7 @@ const SECTIONS: LegalSection[] = [
         </ul>
         <p>
           Với những quyền chưa có sẵn trong Cài đặt, hãy gửi yêu cầu từ email đã đăng ký tới <SupportEmail />. Chúng tôi phản hồi trong
-          vòng 72 giờ. Một số dữ liệu vẫn phải giữ lại theo nghĩa vụ pháp lý, như nêu ở mục 6.
+          vòng 72 giờ. Một số dữ liệu vẫn phải giữ lại theo nghĩa vụ pháp lý, như nêu ở mục 7.
         </p>
       </>
     ),
@@ -233,7 +272,7 @@ const SECTIONS: LegalSection[] = [
     title: 'Chuyển dữ liệu ra nước ngoài',
     body: (
       <p>
-        Một số nhà cung cấp nêu ở mục 4 (Stripe, Amazon Web Services, Google, GitHub, Sentry) đặt máy chủ ngoài Việt Nam, nên dữ liệu
+        Một số nhà cung cấp nêu ở mục 4 (Stripe, Amazon Web Services, Google, GitHub, Sentry, Didit) đặt máy chủ ngoài Việt Nam, nên dữ liệu
         của bạn có thể được xử lý ở nước ngoài. Chúng tôi chỉ chuyển phần dữ liệu cần thiết cho dịch vụ tương ứng và chỉ làm việc với
         nhà cung cấp có cam kết bảo mật phù hợp.
       </p>
@@ -264,7 +303,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Chính sách bảo mật"
-      intro="Tóm tắt: chúng tôi chỉ thu thập dữ liệu cần cho việc học, thanh toán và bảo vệ tài khoản; không bán dữ liệu; công cụ chẩn đoán lỗi chỉ chạy khi bạn đồng ý."
+      intro="Tóm tắt: chúng tôi chỉ thu thập dữ liệu cần cho việc học, thanh toán và bảo vệ tài khoản; không bán dữ liệu; công cụ chẩn đoán lỗi chỉ chạy khi bạn đồng ý; ảnh giấy tờ và khuôn mặt khi xác minh giảng viên do Didit xử lý, Aolumi không lưu."
       sections={SECTIONS}
       other={{ href: '/terms', label: 'Điều khoản sử dụng' }}
     />

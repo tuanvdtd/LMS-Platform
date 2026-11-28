@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BadgeCheck, Bell, BellDot, BellRing, CircleHelp, ClipboardCheck, Code, MessageCircle, MessageCircleQuestion, type LucideIcon } from 'lucide-react';
+import { BadgeCheck, Bell, BellDot, BellRing, CircleHelp, ClipboardCheck, Code, Landmark, MessageCircle, MessageCircleQuestion, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +21,7 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   instructor_application: BadgeCheck,
   post_comment: MessageCircle,
   course_nudge: BellRing,
+  payout_account: Landmark,
 };
 // Loại lạ (BE thêm trước FE) → chuông thường.
 export const notificationIcon = (type: string): LucideIcon =>

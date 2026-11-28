@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import type { ApplicationView } from '@/types/instructor-application';
+import type { ApplicationView, Screen } from '@/types/instructor-application';
 
 // Lưu bước hiện tại; true = lưu được (onSaved đã gọi), false = lỗi đã hiện dưới từng ô.
 export type StepSave = () => Promise<boolean>;
 
 export type StepProps = {
   view: ApplicationView;
+  // Lưu xong một màn → wizard sang màn còn thiếu tiếp theo.
   onSaved: (v: ApplicationView) => void;
+  // Cập nhật dữ liệu mà không chuyển màn (ảnh vừa tải, kết quả xác minh mới).
+  onUpdate: (v: ApplicationView) => void;
+  go: (s: Screen) => void;
+  // Vừa được Didit đưa về trang này (callback kèm query).
+  returning: boolean;
   // Bước còn thay đổi chưa lưu đăng ký hàm lưu; bấm sang bước khác thì wizard lưu trước rồi mới chuyển.
   registerSave: (save: StepSave | null) => void;
 };

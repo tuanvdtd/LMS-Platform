@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { requireEnv } from '../env.js';
-import { type DiditDecision, verifyDiditWebhook } from './identity-rules.js';
+import { type DiditDecision, documentHash, verifyDiditWebhook } from './identity-rules.js';
 
 const BASE = 'https://verification.didit.me/v3';
 
@@ -11,6 +11,8 @@ export class DiditGateway {
   private readonly apiKey = requireEnv('DIDIT_API_KEY');
   private readonly workflowId = requireEnv('DIDIT_WORKFLOW_ID');
   private readonly webhookSecret = requireEnv('DIDIT_WEBHOOK_SECRET');
+  // Riêng khỏi các secret khác: đổi secret này là mất khả năng nhận ra giấy tờ đã dùng trước đó.
+  private readonly docHashSecret = requireEnv('IDENTITY_HASH_SECRET');
   // Làm xong trên trang Didit thì quay về wizard; GET đơn ở đó tự hỏi Didit kết quả.
   private readonly callback = `${requireEnv('FE_URL')}/instructor/verification`;
 
@@ -25,6 +27,10 @@ export class DiditGateway {
 
   getDecision(sessionId: string): Promise<DiditDecision> {
     return this.request<DiditDecision>(`/session/${encodeURIComponent(sessionId)}/decision/`);
+  }
+
+  documentHash(decision: DiditDecision): string | null {
+    return documentHash(decision, this.docHashSecret);
   }
 
   // Body đã parse nếu chữ ký + thời điểm hợp lệ, null nếu không.

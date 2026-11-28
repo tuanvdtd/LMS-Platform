@@ -22,6 +22,7 @@ describe('Revenue & payouts (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   const emails: string[] = [];
+  const mail = { sendVerification: vi.fn(), sendResetPassword: vi.fn(), sendPayoutAccountChanged: vi.fn() };
   let admin: TestUser;
   let rich: TestUser; // giảng viên đủ ngưỡng
   let poor: TestUser; // giảng viên dưới ngưỡng
@@ -78,7 +79,7 @@ describe('Revenue & payouts (e2e)', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(MailService)
-      .useValue({ sendVerification: vi.fn(), sendResetPassword: vi.fn() })
+      .useValue(mail)
       .compile();
     app = moduleRef.createNestApplication({ bodyParser: false });
     setupApp(app);
@@ -120,6 +121,22 @@ describe('Revenue & payouts (e2e)', () => {
         .send({ ...BANK, bankAccountName: '  Nguyễn  Văn Đức ' })
         .expect(200);
       expect(res.body).toEqual({ verified: true, account: { ...BANK, bankAccountName: 'NGUYEN VAN DUC' } });
+    });
+
+    it('đổi sang TK khác → thông báo + email; gửi lại y hệt → không báo', async () => {
+      const notices = () => prisma.notification.count({ where: { userId: poor.id, type: 'payout_account' } });
+      const next = { bankBin: '970436', bankAccountNo: '9876543210', bankAccountName: 'TRAN THI B' };
+      mail.sendPayoutAccountChanged.mockClear();
+      await call('put', '/api/instructor/payout-account', poor.cookie).send(next).expect(200);
+      expect(await notices()).toBe(1);
+      expect(mail.sendPayoutAccountChanged).toHaveBeenCalledWith(
+        expect.stringContaining('@'),
+        expect.objectContaining({ accountName: 'TRAN THI B', masked: '••••3210' }),
+      );
+      await call('put', '/api/instructor/payout-account', poor.cookie).send(next).expect(200);
+      expect(await notices()).toBe(1);
+      expect(mail.sendPayoutAccountChanged).toHaveBeenCalledTimes(1);
+      await prisma.instructorProfile.update({ where: { userId: poor.id }, data: BANK });
     });
 
     it('số TK sai → 400 theo trường', async () => {

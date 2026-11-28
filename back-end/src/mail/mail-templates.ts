@@ -331,3 +331,15 @@ export function accountLockedMail(feUrl: string, reason: string, until: Date | n
     note: 'Nếu bạn cho rằng đây là nhầm lẫn, hãy liên hệ đội ngũ hỗ trợ của Aolumi.',
   });
 }
+
+// Báo đổi tài khoản nhận tiền: phòng khi người khác chiếm phiên đăng nhập rồi đổi nơi nhận doanh thu.
+export function payoutAccountChangedMail(feUrl: string, a: { accountName: string; masked: string; at: Date }) {
+  return render({
+    subject: 'Tài khoản nhận tiền Aolumi của bạn vừa được đổi',
+    preheader: `Doanh thu sẽ chuyển vào tài khoản ${a.masked} từ kỳ chi trả tới.`,
+    heading: 'Tài khoản nhận tiền vừa được đổi',
+    body: `Lúc ${vnDateTime(a.at)}, tài khoản nhận doanh thu của bạn đã được đổi sang <b style="color:${C.ink}">${escapeHtml(a.accountName)}</b> · <span style="font-family:${MONO}">${a.masked}</span>. Doanh thu các kỳ chưa chi sẽ chuyển vào tài khoản này.`,
+    cta: ['Xem tài khoản nhận tiền', `${feUrl}/instructor/profile`],
+    note: 'Nếu không phải bạn đổi, hãy đổi mật khẩu ngay và liên hệ đội ngũ hỗ trợ của Aolumi trước kỳ chi trả.',
+  });
+}

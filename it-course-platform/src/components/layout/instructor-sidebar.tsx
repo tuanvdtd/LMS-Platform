@@ -32,9 +32,9 @@ export const INSTRUCTOR_NAV = [
 export default function InstructorSidebar() {
   const [analyticsOpen, setAnalyticsOpen] = useState(true);
   const pathname = usePathname();
-  // Mặc định thu gọn ở trang tin nhắn (nhường chỗ cho 3 cột); bấm nút thì theo lựa chọn của người dùng.
+  // Mặc định thu gọn ở trang tin nhắn và đơn giảng viên cao cấp (nhường chỗ cho 3 cột); bấm nút thì theo lựa chọn của người dùng.
   const [pref, setPref] = useState<boolean | null>(null);
-  const collapsed = pref ?? pathname.startsWith('/instructor/messages');
+  const collapsed = pref ?? (pathname.startsWith('/instructor/messages') || pathname.startsWith('/instructor/verification'));
 
   return (
     <aside

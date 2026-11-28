@@ -13,7 +13,7 @@ export const EMPTY_BANK: BankAccount = { bankBin: '', bankAccountNo: '', bankAcc
 export type BankFieldErrors = Partial<Record<keyof BankAccount, string>>;
 
 // Giống BE normalizeAccountName để người dùng thấy đúng tên sẽ lưu.
-const toAccountName = (s: string) =>
+export const toAccountName = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase();
 
 // Ô tài khoản nhận tiền: dùng ở thẻ "Thông tin nhận tiền" và form đăng ký giảng viên cao cấp.

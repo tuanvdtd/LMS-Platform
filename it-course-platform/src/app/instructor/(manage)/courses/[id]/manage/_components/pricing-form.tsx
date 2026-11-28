@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getApplication } from '@/lib/api/instructor-application';
+import type { ApplicationDisplayStatus } from '@/types/instructor-application';
 import { setCoursePrice } from '@/lib/api/instructor-courses';
 import { getPayoutAccount } from '@/lib/api/revenue';
 import { formatPrice, PRICE_TIERS } from '@/types/instructor-course';
@@ -21,10 +22,25 @@ import { PageHeader } from './form-save';
 const ITEMS = Object.fromEntries(PRICE_TIERS.map((p) => [String(p), formatPrice(p)]));
 
 // Định giá: chọn bậc giá; bậc > 0 cần giảng viên cao cấp + TK ngân hàng.
+const APP_NOTE: Record<ApplicationDisplayStatus, string> = {
+  none: 'Đăng ký giảng viên cao cấp để bán khoá trả phí. Khoá miễn phí không cần đăng ký.',
+  draft: 'Bạn đang làm dở đơn giảng viên cao cấp. Hoàn tất để bán khoá trả phí.',
+  pending: 'Đơn giảng viên cao cấp đang chờ duyệt. Trong lúc chờ, khoá vẫn xuất bản miễn phí được.',
+  rejected: 'Đơn giảng viên cao cấp chưa được duyệt. Xem lý do, sửa rồi gửi lại.',
+  approved: 'Bạn đã là giảng viên cao cấp.',
+};
+const APP_CTA: Record<ApplicationDisplayStatus, string> = {
+  none: 'Đăng ký giảng viên cao cấp',
+  draft: 'Tiếp tục đơn',
+  pending: 'Xem đơn',
+  rejected: 'Xem lý do',
+  approved: 'Xem',
+};
+
 export function PricingForm() {
   const { course, setCourse, patchCourse } = useCourse();
   const [account, setAccount] = useState<PayoutAccountState | null>(null);
-  const [pending, setPending] = useState(false);
+  const [appStatus, setAppStatus] = useState<ApplicationDisplayStatus | null>(null);
   const [price, setPrice] = useState(course.priceAmount);
   const [saving, setSaving] = useState(false);
   const locked = course.status === 'in_review';
@@ -34,7 +50,7 @@ export function PricingForm() {
   useEffect(() => {
     getPayoutAccount().then(setAccount, () => toast.error('Không tải được thông tin giảng viên'));
     // Lỗi tải đơn bỏ qua: link vẫn hiện chữ mặc định.
-    getApplication().then((v) => setPending(v.displayStatus === 'pending'), () => undefined);
+    getApplication().then((v) => setAppStatus(v.displayStatus), () => undefined);
   }, []);
 
   async function save() {
@@ -74,11 +90,9 @@ export function PricingForm() {
           {account && !account.verified && (
             <Alert>
               <AlertDescription className="flex flex-wrap items-center justify-between gap-3 text-foreground">
-                {pending
-                  ? 'Đơn giảng viên cao cấp đang chờ duyệt. Trong lúc chờ, khoá vẫn xuất bản miễn phí được.'
-                  : 'Đăng ký giảng viên cao cấp để bán khoá trả phí. Khoá miễn phí không cần đăng ký.'}
+                {APP_NOTE[appStatus ?? 'none']}
                 <Link href="/instructor/verification" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-                  {pending ? 'Xem đơn' : 'Đăng ký giảng viên cao cấp'}
+                  {APP_CTA[appStatus ?? 'none']}
                 </Link>
               </AlertDescription>
             </Alert>

@@ -47,5 +47,7 @@ export type ClosePeriodResult = {
 // Bản ghi trong https://api.vietqr.io/v2/banks (chỉ các trường dùng tới).
 export type VietQrBank = { bin: string; shortName: string; name: string; logo: string };
 
+// Khớp PAYOUT_MIN_VND của BE: dưới ngưỡng thì cộng dồn sang kỳ sau.
+export const PAYOUT_MIN_VND = 200_000;
 export const formatVnd = (n: number) => `${n.toLocaleString('vi-VN')}₫`;
 export const formatPeriod = (p: string) => `Tháng ${Number(p.slice(5))}/${p.slice(0, 4)}`;

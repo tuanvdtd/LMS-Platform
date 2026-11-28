@@ -18,6 +18,7 @@ export const acceptTerms = () => api.put<ApplicationView>(`${mine}/terms`, { acc
 export const savePayout = (body: BankAccount) => api.put<ApplicationView>(`${mine}/payout`, body).then((r) => r.data);
 export const startIdentity = () =>
   api.post<{ url: string }>(`${mine}/identity/session`, { consent: true }).then((r) => r.data);
+export const syncIdentity = () => api.post<ApplicationView>(`${mine}/identity/sync`).then((r) => r.data);
 export const submitApplication = () => api.post<ApplicationView>(`${mine}/submit`).then((r) => r.data);
 
 const admin = '/admin/instructor-applications';

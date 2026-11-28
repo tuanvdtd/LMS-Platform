@@ -11,7 +11,7 @@ web
 Người dùng chia thành hai nhóm tài khoản. Theo thứ tự ưu tiên:
 
 - **Học viên:** người học IT. Họ tìm khoá, ghi danh khoá free hoặc mua khoá có phí, rồi học video, làm trắc nghiệm và bài tập lập trình. Họ nhận gợi ý có giải thích lý do và nhận chứng chỉ.
-- **Giảng viên:** bất kỳ học viên nào cũng thành giảng viên ngay khi bấm "Trở thành giảng viên". Giảng viên tạo khoá free, soạn quiz và bài code, theo dõi dashboard phân tích. Muốn đặt giá > 0 và nhận doanh thu thì phải là **giảng viên đã xác minh**, tức hồ sơ chuyên môn đã được duyệt và đã có tài khoản ngân hàng.
+- **Giảng viên:** bất kỳ học viên nào cũng thành giảng viên ngay khi bấm "Trở thành giảng viên". Giảng viên tạo khoá free, soạn quiz và bài code, theo dõi dashboard phân tích. Muốn đặt giá > 0 và nhận doanh thu thì phải là **giảng viên cao cấp**, tức hồ sơ chuyên môn đã được duyệt, đã xác minh danh tính bằng giấy tờ tuỳ thân (qua Didit, mỗi giấy tờ chỉ một tài khoản) và đã khai tài khoản ngân hàng nhận tiền (nên chính chủ, không bắt buộc).
 - **Moderator / Admin:** tài khoản nghiệp vụ do admin cấp, tách riêng khỏi tài khoản cá nhân. Nhóm này không học, không mua, không dạy. Moderator duyệt khoá và hồ sơ xác minh trong danh mục cấp 1 được gán. Admin duyệt mọi hàng đợi, xử lý báo cáo vi phạm và chi trả doanh thu.
 
 Giao diện học viên và giảng viên quan trọng ngang nhau. Giao diện admin và moderator chỉ cần dùng được, rõ ràng.
